@@ -1,0 +1,28 @@
+[versions]
+agp = "9.4.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
+activityCompose = "1.13.0"
+miuix = "0.9.4"
+kotlinxSerialization = "1.11.0"
+aboutlibraries = "15.2.0"
+
+[libraries]
+androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "activityCompose" }
+miuix-ui = { module = "top.yukonga.miuix.kmp:miuix-ui-android", version.ref = "miuix" }
+miuix-icons = { module = "top.yukonga.miuix.kmp:miuix-icons-android", version.ref = "miuix" }
+miuix-preference = { module = "top.yukonga.miuix.kmp:miuix-preference-android", version.ref = "miuix" }
+miuix-blur = { module = "top.yukonga.miuix.kmp:miuix-blur-android", version.ref = "miuix" }
+miuix-shader = { module = "top.yukonga.miuix.kmp:miuix-shader-android", version.ref = "miuix" }
+miuix-nav = { module = "top.yukonga.miuix.kmp:miuix-nav-android", version.ref = "miuix" }
+kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+aboutlibraries-core = { module = "com.mikepenz:aboutlibraries-core", version.ref = "aboutlibraries" }
+aboutlibraries-compose-core = { module = "com.mikepenz:aboutlibraries-compose-core", version.ref = "aboutlibraries" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
+
