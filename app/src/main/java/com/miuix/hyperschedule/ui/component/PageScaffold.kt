@@ -4,11 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.Dp
@@ -19,6 +22,7 @@ import com.miuix.hyperschedule.ui.theme.captureForBlur
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -26,29 +30,54 @@ import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-// 毛玻璃顶部栏，可选返回按钮
 @Composable
 fun BlurredTopAppBar(
     title: String,
     blurBackdrop: LayerBackdrop?,
     scrollBehavior: ScrollBehavior,
     onBack: (() -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
+    actions: @Composable RowScope.() -> Unit = {},
+    bottomContent: @Composable () -> Unit = {},
+    pinnedTitle: Boolean = false,
 ) {
-    TopAppBar(
-        title = title,
-        modifier = Modifier.appBarBlur(blurBackdrop),
-        color = blurAppBarColor(blurBackdrop),
-        scrollBehavior = scrollBehavior,
-        titlePadding = 28.dp,
-        navigationIconPadding = 20.dp,
-        navigationIcon = {
+    val navigationIcon = @Composable {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             if (onBack != null) {
                 IconButton(onClick = onBack) {
                     Icon(imageVector = MiuixIcons.Back, contentDescription = "返回")
                 }
             }
-        },
-    )
+            leading?.invoke()
+        }
+    }
+    val barModifier = Modifier.appBarBlur(blurBackdrop)
+    val barColor = blurAppBarColor(blurBackdrop)
+    if (pinnedTitle) {
+        SmallTopAppBar(
+            title = title,
+            modifier = barModifier,
+            color = barColor,
+            scrollBehavior = scrollBehavior,
+            titlePadding = 28.dp,
+            navigationIconPadding = 20.dp,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            bottomContent = bottomContent,
+        )
+    } else {
+        TopAppBar(
+            title = title,
+            modifier = barModifier,
+            color = barColor,
+            scrollBehavior = scrollBehavior,
+            titlePadding = 28.dp,
+            navigationIconPadding = 20.dp,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            bottomContent = bottomContent,
+        )
+    }
 }
 
 // 页面内容列：毛玻璃、滚动手势与统一内边距

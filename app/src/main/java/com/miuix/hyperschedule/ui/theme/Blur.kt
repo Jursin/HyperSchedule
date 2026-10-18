@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.graphics.Shape
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
@@ -43,6 +44,28 @@ fun Modifier.appBarBlur(
                 blendColors =
                     listOf(
                         BlendColorEntry(MiuixTheme.colorScheme.surface.copy(alpha = 0.8f)),
+                    ),
+            ),
+    )
+}
+
+@Composable
+fun Modifier.navBarBlur(
+    backdrop: LayerBackdrop?,
+    shape: Shape,
+    blurRadius: Float = 25f,
+    blendColor: Color = MiuixTheme.colorScheme.surface.copy(alpha = 0.8f),
+): Modifier {
+    if (backdrop == null) return this
+    return this.textureBlur(
+        backdrop = backdrop,
+        shape = shape,
+        blurRadius = blurRadius,
+        colors =
+            BlurColors(
+                blendColors =
+                    listOf(
+                        BlendColorEntry(blendColor),
                     ),
             ),
     )

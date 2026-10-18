@@ -19,8 +19,7 @@ import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-// 通用确认对话框：[content] 用于进度、输入框等自定义正文，未传 [message] 时正文即由它提供
-// [cancelText] 为 null 时只显示确认按钮
+/** 通用确认对话框；[cancelText] 为 null 时只显示确认按钮，[content] 用于进度/输入框等自定义正文 */
 @Composable
 fun ConfirmDialog(
     title: String,

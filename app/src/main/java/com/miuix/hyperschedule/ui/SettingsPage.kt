@@ -1,220 +1,191 @@
 package com.miuix.hyperschedule.ui
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.miuix.hyperschedule.theme.PaletteStyle
-import com.miuix.hyperschedule.theme.PresetColors
-import com.miuix.hyperschedule.theme.ColorSwatchPreview
+import androidx.compose.ui.unit.sp
+import com.miuix.hyperschedule.schedule.currentWeekOf
+import com.miuix.hyperschedule.schedule.parseDateOrNull
+import com.miuix.hyperschedule.schedule.semesterStartMonday
 import com.miuix.hyperschedule.theme.SettingsStore
-import com.miuix.hyperschedule.theme.ThemeMode
-import com.miuix.hyperschedule.getAppVersion
-import com.miuix.hyperschedule.getAppVersionCode
-import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
+import com.miuix.hyperschedule.ui.component.DatePickerDialog
+import com.miuix.hyperschedule.ui.component.NumberPickerDialog
 import com.miuix.hyperschedule.ui.component.PageScrollColumn
 import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
-import top.yukonga.miuix.kmp.basic.BasicComponent
+import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-
-private const val RepositoryUrl = "https://github.com/Jursin/CourseSchedule"
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun SettingsPage(
     store: SettingsStore,
-    onLicenseClick: () -> Unit,
-    onCheckUpdate: () -> Unit,
+    onAppearanceClick: () -> Unit,
+    onUpdateClick: () -> Unit,
+    onAboutClick: () -> Unit,
     bottomPadding: Dp = 80.dp,
 ) {
     val state = store.state
-    val context = LocalContext.current
-    val uriHandler = LocalUriHandler.current
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(state.blur)
-    val themeOptions = listOf("跟随系统", "浅色", "深色")
-    var showProxyDialog by remember { mutableStateOf(false) }
-    var proxyInput by remember { mutableStateOf("") }
+    var showNonCurrentWeek by remember { mutableStateOf(false) }
+    var showStartDateDialog by remember { mutableStateOf(false) }
+    var showCurrentWeekDialog by remember { mutableStateOf(false) }
+    var showTotalWeeksDialog by remember { mutableStateOf(false) }
+    var dateDraft by remember { mutableStateOf(LocalDate.now()) }
+    var weekDraft by remember { mutableIntStateOf(1) }
+    var totalWeeksDraft by remember { mutableIntStateOf(state.totalWeeks) }
 
-    Scaffold(
-        topBar = { BlurredTopAppBar("设置", blurBackdrop, scrollBehavior) },
-    ) { paddingValues ->
-        PageScrollColumn(
-            blurBackdrop = blurBackdrop,
-            scrollBehavior = scrollBehavior,
-            contentPadding = paddingValues,
-            topPadding = 4.dp,
-            bottomPadding = bottomPadding,
-        ) {
-            SmallTitle(text = "外观设置", insideMargin = PaddingValues(16.dp, 8.dp, 16.dp, 0.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    OverlayDropdownPreference(
-                        title = "主题模式",
-                        items = themeOptions,
-                        selectedIndex = ThemeMode.entries.indexOf(state.themeMode),
-                        onSelectedIndexChange = { index ->
-                            store.update { it.copy(themeMode = ThemeMode.entries[index]) }
-                        },
-                    )
-                    SwitchPreference("模糊效果", "为顶栏、底栏、对话框添加模糊效果", state.blur) {
-                        store.update { it.copy(blur = it.blur.not()) }
-                    }
-                    SwitchPreference("预测性返回动画", "返回滑动前提前预览即将跳转至的界面", state.predictiveBack) {
-                        store.update { it.copy(predictiveBack = it.predictiveBack.not()) }
-                    }
-                    SwitchPreference("自定义颜色", "自定义应用主题配色方案", state.customColor) {
-                        store.update { it.copy(customColor = it.customColor.not()) }
-                    }
-                    if (state.customColor) {
-                        SwitchPreference("动态取色", "基于系统壁纸颜色生成配色方案", state.dynamicColor) {
-                            store.update { it.copy(dynamicColor = it.dynamicColor.not()) }
-                        }
-                        OverlayDropdownPreference(
-                            title = "调色板风格",
-                            items = PaletteStyle.entries.map { it.title },
-                            selectedIndex = PaletteStyle.entries.indexOf(state.paletteStyle),
-                            onSelectedIndexChange = { index ->
-                                store.update { it.copy(paletteStyle = PaletteStyle.entries[index]) }
-                            },
-                        )
-                        if (!state.dynamicColor) {
-                            PresetColorGrid(
-                                paletteStyle = state.paletteStyle,
-                                selectedSeed = state.seedColor,
-                                onSelect = { color -> store.update { it.copy(seedColor = color) } },
-                            )
-                        }
-                    }
-                    SwitchPreference("悬浮底栏", "切换悬浮式底部导航栏", state.floatingNav) {
-                        store.update { it.copy(floatingNav = it.floatingNav.not()) }
-                    }
-                }
+    // 空串 = 未设置
+    val startDate = remember(state.startDate) { parseDateOrNull(state.startDate) }
+    // 当前周数由开学日期推算，与开始上课日期互推：改一边会同步另一边
+    val currentWeek = remember(startDate) { startDate?.let { currentWeekOf(it, LocalDate.now()) } }
+    val currentWeekLabel =
+        when {
+            currentWeek == null -> "未设置"
+            currentWeek < 1 -> "未开学"
+            currentWeek > state.totalWeeks -> "学期已结束"
+            else -> "第${currentWeek}周"
+        }
+
+    Scaffold(topBar = { BlurredTopAppBar("设置", blurBackdrop, scrollBehavior) }) { paddingValues ->
+        PageScrollColumn(blurBackdrop, scrollBehavior, paddingValues, bottomPadding = bottomPadding, topPadding = 4.dp) {
+            SettingsSection("基本设置") {
+                ArrowPreference(
+                    "开始上课日期",
+                    endActions = {
+                        startDate?.let {
+                            SettingValueText("%04d/%02d/%02d".format(it.year, it.monthValue, it.dayOfMonth))
+                        } ?: SettingValueText("未设置")
+                    },
+                    onClick = {
+                        dateDraft = startDate ?: LocalDate.now()
+                        showStartDateDialog = true
+                    },
+                )
+                ArrowPreference(
+                    "当前周数",
+                    endActions = { SettingValueText(currentWeekLabel) },
+                    onClick = {
+                        weekDraft = currentWeek?.coerceIn(1, state.totalWeeks) ?: 1
+                        showCurrentWeekDialog = true
+                    },
+                )
+                ArrowPreference(
+                    "本学期总周数",
+                    endActions = { SettingValueText("共${state.totalWeeks}周") },
+                    onClick = {
+                        totalWeeksDraft = state.totalWeeks
+                        showTotalWeeksDialog = true
+                    },
+                )
+                SwitchPreference("显示非本周课程", checked = showNonCurrentWeek) { showNonCurrentWeek = it }
+                OverlayDropdownPreference(
+                    title = "启动页面",
+                    items = listOf("今日课表", "课程表"),
+                    selectedIndex = state.launchPage,
+                    onSelectedIndexChange = { index ->
+                        store.update { settings -> settings.copy(launchPage = index) }
+                    },
+                )
             }
 
-            SmallTitle(text = "更新设置", insideMargin = PaddingValues(16.dp, 8.dp, 16.dp, 0.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    ArrowPreference(
-                        title = "检查更新",
-                        summary = "从 GitHub 检查最新版本",
-                        onClick = onCheckUpdate,
-                    )
-                    SwitchPreference("启动时检查更新", "打开应用时自动检查新版本", state.checkUpdateOnStart) {
-                        store.update { it.copy(checkUpdateOnStart = it.checkUpdateOnStart.not()) }
-                    }
-                    ArrowPreference(
-                        title = "加速地址",
-                        summary = state.githubProxyUrl.ifBlank { "设置 GitHub 加速地址" },
-                        onClick = {
-                            proxyInput = state.githubProxyUrl
-                            showProxyDialog = true
-                        },
-                    )
-                }
+            SettingsSection("数据管理") {
+                ArrowPreference("作息管理", onClick = {})
+                ArrowPreference("课表管理", onClick = {})
+                ArrowPreference("课程管理", onClick = {})
+                ArrowPreference("课表导入", onClick = {})
+                ArrowPreference("课表导出", onClick = {})
             }
 
-            SmallTitle(text = "关于", insideMargin = PaddingValues(16.dp, 8.dp, 16.dp, 0.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
-                    BasicComponent(
-                        title = "版本",
-                        summary = "${getAppVersion(context)} (${getAppVersionCode(context)})",
-                    )
-                    ArrowPreference(
-                        title = "查看源代码",
-                        summary = RepositoryUrl,
-                        onClick = { uriHandler.openUri(RepositoryUrl) },
-                    )
-                    ArrowPreference(
-                        title = "开放源代码许可",
-                        summary = "查看应用所使用的第三方开源库及其许可证信息",
-                        onClick = onLicenseClick,
-                    )
-                }
+            SettingsSection("高级功能") {
+                ArrowPreference("课程提醒", onClick = {})
+                ArrowPreference("节假日与调休", onClick = {})
+                ArrowPreference("开启新学期", onClick = {})
+                ArrowPreference("备份与恢复", onClick = {})
+            }
+
+            SettingsSection("更多") {
+                ArrowPreference("外观与主题", onClick = onAppearanceClick)
+                ArrowPreference("更新", onClick = onUpdateClick)
+                ArrowPreference("关于", onClick = onAboutClick)
             }
         }
     }
 
-    if (showProxyDialog) {
-        ConfirmDialog(
-            title = "设置 GitHub 加速地址",
+    if (showStartDateDialog) {
+        DatePickerDialog(
+            title = "开始上课日期",
+            date = dateDraft,
+            onDateChange = { dateDraft = it },
             appBlur = state.blur,
+            onDismiss = { showStartDateDialog = false },
             onConfirm = {
-                store.update { it.copy(githubProxyUrl = proxyInput.trim()) }
-                showProxyDialog = false
+                store.update { it.copy(startDate = dateDraft.toString()) }
+                showStartDateDialog = false
             },
-            onDismiss = { showProxyDialog = false },
-            content = {
-                TextField(
-                    value = proxyInput,
-                    onValueChange = { proxyInput = it },
-                    label = "URL",
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
+        )
+    }
+    if (showCurrentWeekDialog) {
+        NumberPickerDialog(
+            title = "当前周数",
+            value = weekDraft,
+            onValueChange = { weekDraft = it },
+            range = 1..state.totalWeeks,
+            label = { "第${it}周" },
+            appBlur = state.blur,
+            onDismiss = { showCurrentWeekDialog = false },
+            onConfirm = {
+                // 反推第一周的周一：让「今天」正好落在选定周，且开学日期本身就是周一
+                val firstMonday = semesterStartMonday(LocalDate.now()).minusWeeks((weekDraft - 1).toLong())
+                store.update { it.copy(startDate = firstMonday.toString()) }
+                showCurrentWeekDialog = false
+            },
+        )
+    }
+    if (showTotalWeeksDialog) {
+        NumberPickerDialog(
+            title = "本学期总周数",
+            value = totalWeeksDraft,
+            onValueChange = { totalWeeksDraft = it },
+            range = 1..60,
+            label = { "共${it}周" },
+            appBlur = state.blur,
+            onDismiss = { showTotalWeeksDialog = false },
+            onConfirm = {
+                store.update { it.copy(totalWeeks = totalWeeksDraft) }
+                showTotalWeeksDialog = false
             },
         )
     }
 }
 
 @Composable
-private fun PresetColorGrid(
-    paletteStyle: PaletteStyle,
-    selectedSeed: Int,
-    onSelect: (Int) -> Unit,
-) {
-    BoxWithConstraints(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp),
-    ) {
-        val columns = (maxWidth / 80.dp).toInt().coerceAtLeast(1)
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            PresetColors.chunked(columns).forEach { rowItems ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                ) {
-                    rowItems.forEach { preset ->
-                        Box(
-                            modifier = Modifier.width(80.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            ColorSwatchPreview(
-                                preset = preset,
-                                paletteStyle = paletteStyle,
-                                selected = selectedSeed == preset.color.toArgb(),
-                                onClick = { onSelect(preset.color.toArgb()) },
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
+private fun SettingsSection(title: String, content: @Composable () -> Unit) {
+    SmallTitle(text = title, insideMargin = PaddingValues(16.dp, 8.dp, 16.dp, 0.dp))
+    Card(modifier = Modifier.fillMaxWidth()) { Column { content() } }
+}
+
+@Composable
+private fun SettingValueText(value: String) {
+    Text(
+        text = value,
+        fontSize = 14.5.sp,
+        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+    )
 }
