@@ -19,10 +19,6 @@ val DEFAULT_SECTION_TIMES: List<Pair<String, String>> = listOf(
     "20:45" to "22:20",
 )
 
-private val SectionTimes = DEFAULT_SECTION_TIMES.map { (start, end) ->
-    LocalTime.parse(start) to LocalTime.parse(end)
-}
-
 /** 开学日所在周的周一 */
 fun semesterStartMonday(startDate: LocalDate): LocalDate =
     startDate.minusDays((startDate.dayOfWeek.value - 1).toLong())
@@ -37,10 +33,25 @@ fun weekDatesOf(startDate: LocalDate, week: Int): List<LocalDate> {
     return List(7) { monday.plusDays(it.toLong()) }
 }
 
-/** 当前时间落在第几节（1..N）；不在任何一节课内返回 -1 */
-fun currentSectionAt(now: LocalTime): Int {
-    val index = SectionTimes.indexOfFirst { (start, end) -> now in start..<end }
+/** 当前时间落在第几节（1..N）；按传入的作息表计算（课表作息可能被导入覆盖），不在任何节次内返回 -1 */
+fun currentSectionAt(times: List<Pair<String, String>>, now: LocalTime): Int {
+    val index =
+        times.indexOfFirst { (start, end) ->
+            val startTime = runCatching { LocalTime.parse(start) }.getOrNull()
+            val endTime = runCatching { LocalTime.parse(end) }.getOrNull()
+            startTime != null && endTime != null && now >= startTime && now < endTime
+        }
     return if (index >= 0) index + 1 else -1
+}
+
+/** "HH:mm" → 当天第几分钟；格式不合法返回 null */
+fun parseMinutes(time: String?): Int? {
+    if (time.isNullOrBlank()) return null
+    val parts = time.split(":")
+    if (parts.size != 2) return null
+    val hour = parts[0].toIntOrNull() ?: return null
+    val minute = parts[1].toIntOrNull() ?: return null
+    return hour * 60 + minute
 }
 
 fun parseDateOrNull(text: String): LocalDate? =

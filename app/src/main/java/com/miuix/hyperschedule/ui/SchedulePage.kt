@@ -1,24 +1,19 @@
 package com.miuix.hyperschedule.ui
 
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -29,45 +24,49 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.miuix.hyperschedule.data.model.Course
+import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.schedule.DEFAULT_SECTION_TIMES
+import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import com.miuix.hyperschedule.schedule.currentSectionAt
 import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.parseDateOrNull
-import com.miuix.hyperschedule.schedule.weekDatesOf
-import com.miuix.hyperschedule.theme.SettingsStore
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
+import com.miuix.hyperschedule.ui.component.CourseDetailItem
+import com.miuix.hyperschedule.ui.component.CourseDetailSheet
+import com.miuix.hyperschedule.ui.component.DAY_NAMES
+import com.miuix.hyperschedule.ui.component.DayGridColumn
 import com.miuix.hyperschedule.ui.component.LocalLastTapDown
 import com.miuix.hyperschedule.ui.component.NumberPickerDialog
 import com.miuix.hyperschedule.ui.component.ProvideBackToNow
+import com.miuix.hyperschedule.ui.component.SectionTimesColumn
+import com.miuix.hyperschedule.ui.component.WeekdayRow
+import com.miuix.hyperschedule.ui.component.isSameSlotAs
+import com.miuix.hyperschedule.ui.component.resolveWeekCourses
 import com.miuix.hyperschedule.ui.navigation.LocalMainTabNavigating
+import com.miuix.hyperschedule.ui.navigation.ProvideOverlay
 import com.miuix.hyperschedule.ui.navigation.LocalPageIsCurrent
 import com.miuix.hyperschedule.ui.theme.captureForBlur
 import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
-import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
@@ -76,39 +75,31 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowUpDown
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.Background
+import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.ConvertFile
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import kotlin.time.Duration.Companion.minutes
-
-// 网格几何
-private val SectionHeight = 92.dp
-private val SectionColumnWidth = 36.dp
-private val WeekdayRowHeight = 40.dp
-private val CardCornerRadius = 10.dp
-private val CardInset = 2.dp
-
-/** 今天 / 当前节次高亮蓝 */
-private val TodayHighlight = Color(0xFF3482FF)
-
-private val DAY_NAMES = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-
-private val SectionCount = DEFAULT_SECTION_TIMES.size
-
-/** 周 pager 前后各留的页数；取大值让两边都能一直滑 */
-private const val EdgePages = 1000
 
 /** 「+」格：同一时刻只有一个，记录它属于哪一天哪一节 */
 private data class PendingCell(val day: Int, val section: Int)
 
+/** 周 pager 前后各留的页数；取大值让两边都能一直滑 */
+private const val EdgePages = 1000
+
+/** 学期总周数上限（与设置页范围一致）；pager 页数按它固定，改设置时无需重建 */
+private const val MaxWeeks = 60
+
 @Composable
-fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
-    val settings = store.state
+fun SchedulePage(
+    table: CourseTableData?,
+    allCourses: List<CourseWithWeeks>,
+    showNonCurrentWeek: Boolean = true,
+    appBlur: Boolean = false,
+    onEditCourse: (Course) -> Unit = {},
+    onAddCourse: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
+) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
@@ -123,9 +114,13 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
         }
     val today = now.toLocalDate()
 
+    // 导入的作息可能不是 8 节，节次列与网格高度都跟着它走
+    val sectionTimes = table?.sectionTimes ?: DEFAULT_SECTION_TIMES
+    val config = table?.config
+
     // 空串 = 未设置
-    val startDate = remember(settings.startDate) { parseDateOrNull(settings.startDate) }
-    val totalWeeks = settings.totalWeeks.coerceAtLeast(1)
+    val startDate = remember(config?.semesterStartDate) { parseDateOrNull(config?.semesterStartDate.orEmpty()) }
+    val totalWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
     val currentWeek = remember(startDate, today) { startDate?.let { currentWeekOf(it, today) } }
 
     fun weekOfPage(page: Int): Int = page - EdgePages + 1
@@ -133,8 +128,9 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
     fun pageOfWeek(week: Int): Int = EdgePages + week - 1
 
     val todayPage = currentWeek?.let { pageOfWeek(it) }
-    val pageCount = EdgePages * 2 + totalWeeks
+    val pageCount = EdgePages * 2 + MaxWeeks
     val lastPage = pageCount - 1
+    // 页数固定，学期设置变化时只影响内容，不动 pager 本身
     val pagerState =
         remember {
             PagerState(
@@ -145,8 +141,26 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
     val viewingPage by remember { derivedStateOf { pagerState.currentPage } }
 
     var pendingCell by remember { mutableStateOf<PendingCell?>(null) }
+    var detailAnchor by remember { mutableStateOf<Course?>(null) }
+    var detailVisible by remember { mutableStateOf(false) }
     var showJumpDialog by remember { mutableStateOf(false) }
     var jumpWeek by remember { mutableIntStateOf(1) }
+
+    // 换页后原来的「+」不再属于当前视图
+    LaunchedEffect(viewingPage) { pendingCell = null }
+
+    // 点击网格外任何一处都收起「+」；底栏在页面之外，靠 MainScaffold 记的全局按下位置覆盖
+    // 各页的网格范围分开记：左右邻页是偏移着布局的，共用一个变量会把范围带偏
+    val dayColumnsBounds = remember { mutableStateMapOf<Int, Rect>() }
+    val lastTapDown = LocalLastTapDown.current
+    LaunchedEffect(Unit) {
+        snapshotFlow { lastTapDown.value }.collect { position ->
+            val bounds = dayColumnsBounds[pagerState.currentPage]
+            if (position != null && (bounds == null || !bounds.contains(position))) {
+                pendingCell = null
+            }
+        }
+    }
 
     val pageIsCurrent = LocalPageIsCurrent.current
     val tabNavigating = LocalMainTabNavigating.current
@@ -158,21 +172,6 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
         if (pendingReset && (pageIsCurrent || !tabNavigating)) {
             pagerState.scrollToPage((todayPage ?: pageOfWeek(1)).coerceIn(0, lastPage))
             pendingReset = false
-        }
-    }
-
-    // 换页后原来的「+」不再属于当前视图
-    LaunchedEffect(viewingPage) { pendingCell = null }
-
-    // 点击范围外的任何一处都收起「+」；底栏在页面之外，靠 MainScaffold 记的全局按下位置覆盖
-    var dayColumnsBounds by remember { mutableStateOf<Rect?>(null) }
-    val lastTapDown = LocalLastTapDown.current
-    LaunchedEffect(Unit) {
-        snapshotFlow { lastTapDown.value }.collect { position ->
-            val bounds = dayColumnsBounds
-            if (position != null && (bounds == null || !bounds.contains(position))) {
-                pendingCell = null
-            }
         }
     }
 
@@ -196,7 +195,7 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
     // 采集放在页面最外层（周 pager 之外）：内层 pager 会打断「内容采集 → 顶栏取样」的对应关系
     Scaffold(
         topBar = {
-                Box {
+            Box {
                 BlurredTopAppBar(
                     title = "",
                     blurBackdrop = blurBackdrop,
@@ -272,8 +271,19 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
             beyondViewportPageCount = 1,
         ) { page ->
             val week = weekOfPage(page)
+            // 未开学 / 学期已结束：网格照常显示，只是不放任何课程
+            val inSemester = week in 1..totalWeeks
             val currentSection =
-                if (week == currentWeek) currentSectionAt(now.toLocalTime()) else -1
+                if (week == currentWeek) currentSectionAt(sectionTimes, now.toLocalTime()) else -1
+            val pageCourses =
+                remember(allCourses, week, inSemester, showNonCurrentWeek) {
+                    if (inSemester) {
+                        resolveWeekCourses(allCourses, week, showNonCurrentWeek)
+                    } else {
+                        emptyList()
+                    }
+                }
+
             Column(
                 modifier =
                     Modifier
@@ -289,17 +299,20 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
                         .padding(top = paddingValues.calculateTopPadding()),
             ) {
                 Row(modifier = Modifier.fillMaxWidth()) {
-                    SectionTimesColumn(currentSection = currentSection)
+                    SectionTimesColumn(currentSection = currentSection, sectionTimes = sectionTimes)
                     // 「网格」= 7 个日期列这块矩形；页面按它判断点击是否落在网格外
                     Row(
                         modifier =
                             Modifier
                                 .weight(1f)
-                                .onGloballyPositioned { dayColumnsBounds = it.boundsInRoot() },
+                                .onGloballyPositioned { coords -> dayColumnsBounds[page] = coords.boundsInRoot() },
                     ) {
                         for (day in 1..DAY_NAMES.size) {
                             DayGridColumn(
                                 modifier = Modifier.weight(1f),
+                                courses = pageCourses.filter { it.course.day == day },
+                                sectionCount = sectionTimes.size,
+                                sectionTimes = sectionTimes,
                                 pendingSection = pendingCell?.takeIf { it.day == day }?.section ?: -1,
                                 // 没设开学日期就没有可添加的日期，不可点
                                 onCellTap =
@@ -308,11 +321,49 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
                                     } else {
                                         null
                                     },
+                                // 点卡片只带出一门课，抽屉再按「同一格」把该格所有课程取出来
+                                onCourseClick = { clicked ->
+                                    detailAnchor = clicked
+                                    detailVisible = true
+                                },
+                                // 再点一次「+」直接进新建课程页
+                                onPendingTap = { section -> onAddCourse(day, section, section) },
                             )
                         }
                     }
                 }
                 Spacer(modifier = Modifier.height(80.dp))
+            }
+        }
+    }
+
+    detailAnchor?.let { anchor ->
+        // 每次都从库里取：编辑页改完返回，抽屉内容立刻跟着更新
+        val items =
+            remember(allCourses, anchor, pageWeek) {
+                allCourses
+                    .filter { it.course.isSameSlotAs(anchor) }
+                    // 这一格的时段被改走后，退回按课名取，避免抽屉突然空掉
+                    .ifEmpty { allCourses.filter { it.course.name == anchor.name } }
+                    .map { item ->
+                        val weeks = item.weeks.map { it.weekNumber }
+                        CourseDetailItem(item.course, weeks, weeks.contains(pageWeek))
+                    }
+                    // 本周生效的排前面
+                    .sortedByDescending { it.activeInWeek }
+            }
+        if (items.isNotEmpty()) {
+            // 挂到跨页浮层宿主上，层级高于底部导航
+            ProvideOverlay {
+                CourseDetailSheet(
+                    items = items,
+                    show = detailVisible,
+                    onEdit = onEditCourse,
+                    onAdd = { day, startSection, endSection -> onAddCourse(day, startSection, endSection) },
+                    onDismiss = { detailVisible = false },
+                    // 收起动画结束后再丢掉数据
+                    onDismissFinished = { detailAnchor = null },
+                )
             }
         }
     }
@@ -340,147 +391,5 @@ fun SchedulePage(store: SettingsStore, appBlur: Boolean = false) {
                 showJumpDialog = false
             },
         )
-    }
-}
-
-/** 星期行：年份 + 周一~周日 + 日期，今天蓝色加粗；未设置开学日期时只有星期名 */
-@Composable
-private fun WeekdayRow(startDate: LocalDate?, week: Int, currentWeek: Int?, today: LocalDate) {
-    val dates =
-        remember(startDate, week) {
-            if (startDate != null) weekDatesOf(startDate, week) else null
-        }
-    Row(modifier = Modifier.fillMaxWidth().height(WeekdayRowHeight).padding(end = 2.dp)) {
-        Box(
-            modifier = Modifier.width(SectionColumnWidth).fillMaxHeight(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = dates?.first()?.year?.toString().orEmpty(),
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-            )
-        }
-        DAY_NAMES.forEachIndexed { index, dayName ->
-            val date = dates?.getOrNull(index)
-            val isToday = date != null && week == currentWeek && date == today
-            Column(
-                modifier = Modifier.weight(1f).fillMaxHeight(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text(
-                    text = dayName,
-                    style =
-                        MiuixTheme.textStyles.footnote1.copy(
-                            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
-                        ),
-                    color = if (isToday) TodayHighlight else MiuixTheme.colorScheme.onSurface,
-                )
-                if (date != null) {
-                    Text(
-                        text = "${date.monthValue}/${date.dayOfMonth}",
-                        style = MiuixTheme.textStyles.footnote2,
-                        color = if (isToday) TodayHighlight else MiuixTheme.colorScheme.onSurfaceVariantActions,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/** 左侧节次列：序号 + 起止时间三行；当前节次整列蓝色 */
-@Composable
-private fun SectionTimesColumn(currentSection: Int) {
-    Column(modifier = Modifier.width(SectionColumnWidth)) {
-        DEFAULT_SECTION_TIMES.forEachIndexed { index, (startTime, endTime) ->
-            val isCurrent = index + 1 == currentSection
-            Box(
-                modifier = Modifier.fillMaxWidth().height(SectionHeight),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "${index + 1}",
-                        style =
-                            MiuixTheme.textStyles.body2.copy(
-                                fontWeight = if (isCurrent) FontWeight.Medium else FontWeight.Normal,
-                            ),
-                        color = if (isCurrent) TodayHighlight else MiuixTheme.colorScheme.onSurface,
-                    )
-                    Text(
-                        text = startTime,
-                        style = MiuixTheme.textStyles.footnote2.copy(fontSize = 10.sp),
-                        color = if (isCurrent) TodayHighlight else MiuixTheme.colorScheme.onSurfaceVariantActions,
-                    )
-                    Text(
-                        text = endTime,
-                        style = MiuixTheme.textStyles.footnote2.copy(fontSize = 10.sp),
-                        color = if (isCurrent) TodayHighlight else MiuixTheme.colorScheme.onSurfaceVariantActions,
-                    )
-                }
-            }
-        }
-    }
-}
-
-/**
- * 单日列：整列一个点击层，按落点纵坐标反查节次，「+」格叠在对应节次上
- * [onCellTap] 为 null 表示该页不可点（未设置开学日期/未开学/已结束）
- */
-@Composable
-private fun DayGridColumn(
-    pendingSection: Int,
-    onCellTap: ((Int) -> Unit)?,
-    modifier: Modifier = Modifier,
-) {
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
-    val density = LocalDensity.current
-    val sectionPx = with(density) { SectionHeight.toPx() }
-    val currentOnCellTap by rememberUpdatedState(onCellTap)
-    Box(
-        modifier =
-            modifier
-                .height(SectionHeight * SectionCount)
-                .pointerInput(onCellTap != null) {
-                    if (currentOnCellTap == null) return@pointerInput
-                    detectTapGestures { offset ->
-                        val section = (offset.y / sectionPx).toInt() + 1
-                        if (section in 1..SectionCount) currentOnCellTap?.invoke(section)
-                    }
-                },
-    ) {
-        if (pendingSection in 1..SectionCount) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .height(SectionHeight)
-                        .offset(y = SectionHeight * (pendingSection - 1)),
-            ) {
-                Card(
-                    modifier = Modifier.fillMaxSize().padding(CardInset),
-                    cornerRadius = CardCornerRadius,
-                    insideMargin = PaddingValues(0.dp),
-                    colors =
-                        CardDefaults.defaultColors(
-                            color = Color(0xFF9E9E9E).copy(alpha = if (isDark) 0.13f else 0.15f),
-                            contentColor = Color(0xFF9E9E9E).copy(alpha = 0.5f),
-                        ),
-                    pressFeedbackType = PressFeedbackType.Sink,
-                    showIndication = true,
-                    // 本次只做视觉反馈：再点无动作
-                    onClick = {},
-                ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = MiuixIcons.Add,
-                            contentDescription = "添加",
-                            modifier = Modifier.size(22.dp),
-                        )
-                    }
-                }
-            }
-        }
     }
 }

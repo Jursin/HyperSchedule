@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -16,6 +17,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -62,10 +64,31 @@ private fun NavEntry(
     content()
 }
 
+/**
+ * 跨页浮层宿主：抽屉这类要盖住底栏的内容挂到这里，
+ * 由 MainScaffold 在底栏之后绘制，保证层级在最上面。
+ */
+class OverlayHostState {
+    internal var content by mutableStateOf<(@Composable () -> Unit)?>(null)
+}
+
+val LocalOverlayHost = compositionLocalOf<OverlayHostState?> { null }
+
+/** 把内容挂到 [LocalOverlayHost]；[content] 为 null 时撤下 */
+@Composable
+fun ProvideOverlay(content: (@Composable () -> Unit)?) {
+    val host = LocalOverlayHost.current ?: return
+    val latest = rememberUpdatedState(content)
+    DisposableEffect(host, content != null) {
+        host.content = if (content != null) ({ latest.value?.invoke() }) else null
+        onDispose { if (content != null) host.content = null }
+    }
+}
+
 /** 底部导航切换动画进行中；页面据此临时关掉日期/周 pager 的手势，避免与过渡动画互抢 */
 val LocalMainTabNavigating = compositionLocalOf { false }
 
-/** 当前页面槽是不是用户正在看的 Tab（含被设置等二级页盖住的情况）；页面据此实现「切走再回来复位到今日/本周」 */
+/** 当前页面槽是不是用户正在看的 Tab（只按 Tab 判断，二级页盖住不算离开）；页面据此实现「切走再回来复位到今日/本周」 */
 val LocalPageIsCurrent = compositionLocalOf { true }
 
 @Composable
@@ -76,6 +99,16 @@ fun MainScaffold(
     appearancePage: @Composable (onBack: () -> Unit) -> Unit = {},
     updatePage: @Composable (onBack: () -> Unit) -> Unit = {},
     aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
+    courseDetailPage: @Composable (name: String, week: Int, onBack: () -> Unit) -> Unit = { _, _, _ -> },
+    courseEditPage:
+        @Composable (
+            name: String,
+            day: Int,
+            startSection: Int,
+            endSection: Int,
+            focusId: String,
+            onBack: () -> Unit,
+        ) -> Unit = { _, _, _, _, _, _ -> },
     content: @Composable (page: Int, bottomPadding: Dp, navigate: (Page) -> Unit) -> Unit,
 ) {
     val navBackStack = rememberNavBackStack<Page>(Page.Home)
@@ -89,6 +122,7 @@ fun MainScaffold(
     val navBarBackdrop = rememberAppBlurBackdrop(appBlur)
     // 「今」按钮跨页共享：切 tab 时按钮不随页面滑走，只就地收起/展开
     val backToNowHost = remember { BackToNowHostState() }
+    val overlayHost = remember { OverlayHostState() }
 
     // 全局按下位置（见 LocalLastTapDown）
     val lastTapDown = remember { mutableStateOf<Offset?>(null) }
@@ -140,7 +174,10 @@ fun MainScaffold(
                     }
                 },
     ) {
-        CompositionLocalProvider(LocalLastTapDown provides lastTapDown) {
+        CompositionLocalProvider(
+            LocalLastTapDown provides lastTapDown,
+            LocalOverlayHost provides overlayHost,
+        ) {
             // 首次组合时的页码，固定不变；不在组合期读 currentPage，否则滑动每帧都会重组
             val firstPage = remember { pagerState.currentPage }
 
@@ -174,7 +211,7 @@ fun MainScaffold(
                             ) { page ->
                                 CompositionLocalProvider(
                                     LocalMainTabNavigating provides mainPagerState.isNavigating,
-                                    LocalPageIsCurrent provides (page == mainPagerState.selectedPage && backStack.size == 1),
+                                    LocalPageIsCurrent provides (page == mainPagerState.selectedPage),
                                     LocalTabPageIndex provides page,
                                     LocalBackToNowHost provides backToNowHost,
                                 ) {
@@ -200,6 +237,8 @@ fun MainScaffold(
                                     modifier = Modifier.fillMaxWidth(0.63f),
                                 )
                             }
+                            // 浮层（课表详情抽屉等）画在底栏之后，层级最高
+                            overlayHost.content?.invoke()
                         }
                     }
                 }
@@ -220,6 +259,16 @@ fun MainScaffold(
                 entry<Page.About> {
                     NavEntry(interceptPredictiveBack, onBack) {
                         aboutPage(onBack) { backStack.add(Page.License) }
+                    }
+                }
+                entry<Page.CourseDetail> { key ->
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        courseDetailPage(key.name, key.week, onBack)
+                    }
+                }
+                entry<Page.CourseEdit> { key ->
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        courseEditPage(key.name, key.day, key.startSection, key.endSection, key.focusId, onBack)
                     }
                 }
             }

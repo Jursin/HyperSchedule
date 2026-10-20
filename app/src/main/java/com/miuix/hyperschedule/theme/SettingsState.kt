@@ -6,7 +6,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
-import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 
 private inline fun <reified T : Enum<T>> SharedPreferences.enum(name: String, default: T): T =
     getString(name, null)?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default
@@ -31,8 +30,7 @@ class SettingsStore(context: Context) {
             putBoolean("checkUpdateOnStart", state.checkUpdateOnStart)
             putString("githubProxyUrl", state.githubProxyUrl)
             putString("paletteStyle", state.paletteStyle.name)
-            putString("startDate", state.startDate)
-            putInt("totalWeeks", state.totalWeeks)
+            putBoolean("showNonCurrentWeek", state.showNonCurrentWeek)
         }
     }
 
@@ -48,9 +46,7 @@ class SettingsStore(context: Context) {
         checkUpdateOnStart = preferences.getBoolean("checkUpdateOnStart", true),
         githubProxyUrl = preferences.getString("githubProxyUrl", "").orEmpty(),
         paletteStyle = preferences.enum("paletteStyle", PaletteStyle.TonalSpot),
-        // 空串 = 未设置
-        startDate = preferences.getString("startDate", "").orEmpty(),
-        totalWeeks = preferences.getInt("totalWeeks", DEFAULT_TOTAL_WEEKS),
+        showNonCurrentWeek = preferences.getBoolean("showNonCurrentWeek", true),
     )
 }
 
@@ -66,6 +62,5 @@ data class SettingsState(
     val githubProxyUrl: String,
     val paletteStyle: PaletteStyle,
     val seedColor: Int,
-    val startDate: String,
-    val totalWeeks: Int,
+    val showNonCurrentWeek: Boolean = true, // 课表里是否显示本周不上（灰显）的课
 )

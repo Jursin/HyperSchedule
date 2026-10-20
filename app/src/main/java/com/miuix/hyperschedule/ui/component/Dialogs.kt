@@ -27,6 +27,7 @@ fun ConfirmDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
     confirmText: String = "确定",
+    confirmEnabled: Boolean = true,
     cancelText: String? = "取消",
     destructive: Boolean = false,
     message: String? = null,
@@ -58,6 +59,7 @@ fun ConfirmDialog(
                         modifier = Modifier.weight(1f),
                         onClick = onConfirm,
                         text = confirmText,
+                        enabled = confirmEnabled,
                         colors =
                             if (destructive) {
                                 ButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error)
