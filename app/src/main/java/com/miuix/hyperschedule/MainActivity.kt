@@ -22,6 +22,7 @@ import com.miuix.hyperschedule.ui.navigation.Page
 import com.miuix.hyperschedule.ui.page.AboutPage
 import com.miuix.hyperschedule.ui.page.AppearancePage
 import com.miuix.hyperschedule.ui.page.CourseEditPage
+import com.miuix.hyperschedule.ui.page.CourseManagePage
 import com.miuix.hyperschedule.ui.page.CourseWeeksPage
 import com.miuix.hyperschedule.ui.page.UpdatePage
 import com.miuix.hyperschedule.ui.rememberCourseTableData
@@ -74,6 +75,18 @@ class MainActivity : ComponentActivity() {
                     courseDetailPage = { name, week, onBack ->
                         CourseWeeksPage(name, week, table, allCourses, appBlur = settings.blur, onBack = onBack)
                     },
+                    courseManagePage = { navigate, onBack ->
+                        CourseManagePage(
+                            courses = allCourses,
+                            appBlur = settings.blur,
+                            onEditCourse = { name -> navigate(Page.CourseEdit(name)) },
+                            onAddCourse = { navigate(Page.CourseEdit("")) },
+                            onDeleteCourses = { ids ->
+                                coroutineScope.launch { repository.deleteCourses(ids) }
+                            },
+                            onBack = onBack,
+                        )
+                    },
                     courseEditPage = { name, day, startSection, endSection, focusId, onBack ->
                         CourseEditPage(
                             initialName = name,
@@ -109,6 +122,10 @@ class MainActivity : ComponentActivity() {
                                 onAddCourse = { day, startSection, endSection ->
                                     navigate(Page.CourseEdit("", day, startSection, endSection))
                                 },
+                                onManageCourses = { navigate(Page.CourseManage) },
+                                onSaveCourses = { deletedIds, rows ->
+                                    coroutineScope.launch { repository.saveCourseEdits(deletedIds, rows) }
+                                },
                             )
                         2 -> SettingsPage(
                             store = settingsStore,
@@ -117,6 +134,7 @@ class MainActivity : ComponentActivity() {
                             onAppearanceClick = { navigate(Page.Appearance) },
                             onUpdateClick = { navigate(Page.Update) },
                             onAboutClick = { navigate(Page.About) },
+                            onManageCourses = { navigate(Page.CourseManage) },
                             bottomPadding = bottomPadding,
                         )
                     }

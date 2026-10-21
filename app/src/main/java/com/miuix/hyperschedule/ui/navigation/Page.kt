@@ -18,6 +18,9 @@ sealed class Page : NavKey {
     /** 课程全部周；week 为进入时浏览到的教学周，用于打开后定位 */
     @Serializable data class CourseDetail(val name: String, val week: Int) : Page()
 
+    /** 课程管理：按课名聚合所有时段 */
+    @Serializable data object CourseManage : Page()
+
     /** 课程编辑（同名课程所有时段）；name 为空表示新建，day/startSection/endSection 用于预填第一张卡 */
     @Serializable
     data class CourseEdit(

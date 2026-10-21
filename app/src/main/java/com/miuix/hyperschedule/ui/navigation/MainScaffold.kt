@@ -100,6 +100,7 @@ fun MainScaffold(
     updatePage: @Composable (onBack: () -> Unit) -> Unit = {},
     aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
     courseDetailPage: @Composable (name: String, week: Int, onBack: () -> Unit) -> Unit = { _, _, _ -> },
+    courseManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     courseEditPage:
         @Composable (
             name: String,
@@ -264,6 +265,11 @@ fun MainScaffold(
                 entry<Page.CourseDetail> { key ->
                     NavEntry(interceptPredictiveBack, onBack) {
                         courseDetailPage(key.name, key.week, onBack)
+                    }
+                }
+                entry<Page.CourseManage> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        courseManagePage(navigate, onBack)
                     }
                 }
                 entry<Page.CourseEdit> { key ->

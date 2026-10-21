@@ -91,6 +91,12 @@ class ScheduleRepository(
         }
     }
 
+    /** 删除课程（连带其周次），课程管理页多选删除用 */
+    suspend fun deleteCourses(ids: List<String>) =
+        withContext(Dispatchers.IO) {
+            if (ids.isNotEmpty()) courseDao.deleteCoursesByIds(ids)
+        }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     fun timeSlotsOf(courseTableId: String): Flow<List<TimeSlot>> =
         bindingDao.observeBindingByCourseTableId(courseTableId).flatMapLatest { binding ->

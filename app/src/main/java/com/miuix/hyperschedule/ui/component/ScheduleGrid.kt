@@ -2,7 +2,9 @@ package com.miuix.hyperschedule.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -19,13 +21,18 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -36,6 +43,7 @@ import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.schedule.parseMinutes
 import com.miuix.hyperschedule.schedule.weekDatesOf
 import java.time.LocalDate
+import kotlinx.coroutines.withTimeoutOrNull
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -46,7 +54,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 // 网格几何
-private val SectionHeight = 92.dp
+internal val SectionHeight = 92.dp
 private val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
 
@@ -149,6 +157,11 @@ internal fun DayGridColumn(
     onCellTap: ((Int) -> Unit)?,
     onCourseClick: (Course) -> Unit,
     onPendingTap: ((Int) -> Unit)? = null,
+    // 正在拖的原卡片（按原位置比对），它按「本周不上」灰显
+    draggingCourse: Course? = null,
+    onDragStart: (Course, Offset) -> Unit = { _, _ -> },
+    onDrag: (Offset) -> Unit = {},
+    onDragEnd: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
@@ -159,6 +172,11 @@ internal fun DayGridColumn(
     val currentOnPendingTap by rememberUpdatedState(onPendingTap)
     val currentPendingSection by rememberUpdatedState(pendingSection)
     val currentCourses by rememberUpdatedState(courses)
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDrag by rememberUpdatedState(onDrag)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    // 拖动回调要把手指坐标换算成 root 坐标
+    var columnTopLeft by remember { mutableStateOf(Offset.Zero) }
     // 已被课程占用的节次不再响应「+」：标准课按节次范围，自定义时间课按与节次的重叠区间
     val occupiedSections =
         remember(courses, sectionTimes) {
@@ -174,6 +192,25 @@ internal fun DayGridColumn(
                 }
             }
         }
+    // 落在课程上就开详情抽屉，落在空格上就给「+」
+    fun tapAt(offset: Offset) {
+        val section = (offset.y / sectionPx).toInt() + 1
+        if (section !in 1..sectionCount) return
+        val hit =
+            currentCourses
+                .firstOrNull { it.active && it.course.covers(section, sectionTimes) }
+                ?: currentCourses.firstOrNull { it.course.covers(section, sectionTimes) }
+        if (hit != null) {
+            currentOnCourseClick(hit.course)
+        } else if (section !in occupiedSections) {
+            // 已经是「+」的格子再点一次就进新建课程页
+            if (section == currentPendingSection) {
+                currentOnPendingTap?.invoke(section)
+            } else {
+                currentOnCellTap?.invoke(section)
+            }
+        }
+    }
     // 「+」格配色：有动态取色时用主题色，否则中性灰
     val dynamicColor = MiuixTheme.isDynamicColor
     val pendingColor =
@@ -189,25 +226,63 @@ internal fun DayGridColumn(
         modifier =
             modifier
                 .height(SectionHeight * sectionCount)
-                // 整列一个点击层：落在课程上就开详情抽屉，落在空格上就给「+」。
-                // 卡片自身的 clickable 会先消费掉事件，这里只兜底，两条路径只会走一条。
+                .onGloballyPositioned { columnTopLeft = it.boundsInRoot().topLeft }
+                // 一层手势处理完：抬手是点击，长按后跟手拖动课程
                 .pointerInput(sectionTimes, occupiedSections) {
-                    detectTapGestures { offset ->
-                        val section = (offset.y / sectionPx).toInt() + 1
-                        if (section !in 1..sectionCount) return@detectTapGestures
-                        val hit =
-                            currentCourses
-                                .firstOrNull { it.active && it.course.covers(section, sectionTimes) }
-                                ?: currentCourses.firstOrNull { it.course.covers(section, sectionTimes) }
-                        if (hit != null) {
-                            currentOnCourseClick(hit.course)
-                        } else if (section !in occupiedSections) {
-                            // 已经是「+」的格子再点一次就进新建课程页
-                            if (section == currentPendingSection) {
-                                currentOnPendingTap?.invoke(section)
-                            } else {
-                                currentOnCellTap?.invoke(section)
+                    awaitEachGesture {
+                        val down = awaitFirstDown(requireUnconsumed = false)
+                        val downPosition = down.position
+                        var upPosition: Offset? = null
+                        var upConsumed = false
+                        var movedAway = false
+                        // 长按等待期：抬手走点击，移动超出阈值就交还给页面滚动
+                        withTimeoutOrNull(viewConfiguration.longPressTimeoutMillis) {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: return@withTimeoutOrNull
+                                if (!change.pressed) {
+                                    upPosition = change.position
+                                    // 子节点（如「+」格）已经处理过的点击不再重复
+                                    upConsumed = change.isConsumed
+                                    return@withTimeoutOrNull
+                                }
+                                if ((change.position - downPosition).getDistance() > viewConfiguration.touchSlop) {
+                                    movedAway = true
+                                    return@withTimeoutOrNull
+                                }
                             }
+                        }
+                        if (movedAway) return@awaitEachGesture
+                        upPosition?.let { position ->
+                            if (!upConsumed) tapAt(position)
+                            return@awaitEachGesture
+                        }
+                        // 长按成立：只有本周生效的标准节次课可以拖（只挪这一周）
+                        val section = (downPosition.y / sectionPx).toInt() + 1
+                        val hit =
+                            if (section in 1..sectionCount) {
+                                currentCourses.firstOrNull {
+                                    it.active && !it.course.isCustomTime && it.course.covers(section, sectionTimes)
+                                }
+                            } else {
+                                null
+                            }
+                        if (hit == null) {
+                            waitForUpOrCancellation()
+                            return@awaitEachGesture
+                        }
+                        currentOnDragStart(hit.course, columnTopLeft + downPosition)
+                        try {
+                            while (true) {
+                                val event = awaitPointerEvent()
+                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                                change.consume()
+                                if (!change.pressed) break
+                                currentOnDrag(columnTopLeft + change.position)
+                            }
+                        } finally {
+                            // 手势被系统打断时也要收尾，不能让浮层卡住
+                            currentOnDragEnd()
                         }
                     }
                 },
@@ -221,12 +296,21 @@ internal fun DayGridColumn(
                 Box(modifier = Modifier.offset(y = SectionHeight * (start - 1))) {
                     Row(modifier = Modifier.fillMaxWidth()) {
                         items.forEach { item ->
+                            // 只灰显原来那一张：整行搬走后它已经换了位置，就别再灰了
+                            val original = draggingCourse
+                            val dragged =
+                                original != null &&
+                                    item.course.id == original.id &&
+                                    item.course.day == original.day &&
+                                    item.course.startSection == original.startSection
                             ScheduleCourseCard(
                                 course = item.course,
                                 sectionHeight = SectionHeight,
-                                isCurrentWeek = item.active,
+                                // 松手落库后本周这张本来就不生效，先按灰卡显示，颜色不会跳
+                                isCurrentWeek = item.active && !dragged,
                                 showBadge = stacked,
-                                onClick = { onCourseClick(item.course) },
+                                // 点击统一由整列的手势处理，卡片自己不再抢手势，长按才能顺利进入拖动
+                                onClick = null,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -242,7 +326,7 @@ internal fun DayGridColumn(
                 sectionHeight = SectionHeight,
                 isCurrentWeek = item.active,
                 showBadge = item.hiddenCount > 0,
-                onClick = { onCourseClick(item.course) },
+                onClick = null,
                 heightOverride = layout.height,
                 modifier = Modifier.offset(y = layout.top),
             )

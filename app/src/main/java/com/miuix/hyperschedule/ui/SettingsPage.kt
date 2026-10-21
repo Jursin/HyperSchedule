@@ -50,6 +50,7 @@ fun SettingsPage(
     onAppearanceClick: () -> Unit,
     onUpdateClick: () -> Unit,
     onAboutClick: () -> Unit,
+    onManageCourses: () -> Unit = {},
     bottomPadding: Dp = 80.dp,
 ) {
     val state = store.state
@@ -154,7 +155,7 @@ fun SettingsPage(
             SettingsSection("数据管理") {
                 ArrowPreference("作息管理", onClick = {})
                 ArrowPreference("课表管理", onClick = {})
-                ArrowPreference("课程管理", onClick = {})
+                ArrowPreference("课程管理", onClick = onManageCourses)
                 ArrowPreference("课表导入", onClick = { importLauncher.launch(arrayOf("*/*")) })
                 ArrowPreference("课表导出", onClick = {})
             }

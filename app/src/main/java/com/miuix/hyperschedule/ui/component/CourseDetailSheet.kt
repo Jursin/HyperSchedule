@@ -20,9 +20,10 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -169,22 +170,28 @@ fun CourseDetailSheet(
                     )
                 }
             }
-            Column(
+            val listState = rememberLazyListState()
+            val currentIndex = items.indexOfFirst { it.activeInWeek }
+            // 打开时翻到本周那张卡；内容放得下时滚动会被钳住，等于不动
+            LaunchedEffect(show) {
+                if (show && currentIndex >= 0) listState.scrollToItem(currentIndex)
+            }
+            LazyColumn(
+                state = listState,
                 modifier =
                     Modifier
                         .fillMaxWidth()
                         .heightIn(max = 560.dp)
                         .overScrollVertical()
-                        .scrollEndHaptic()
-                        .verticalScroll(rememberScrollState())
-                        .padding(horizontal = 16.dp),
+                        .scrollEndHaptic(),
+                contentPadding = PaddingValues(horizontal = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                items.forEach { item ->
+                items(items, key = { it.course.id }) { item ->
                     CourseDetailCard(item, onEdit = { onEdit(item.course) })
                 }
                 // 卡片下方留白
-                Spacer(modifier = Modifier.height(70.dp))
+                item { Spacer(modifier = Modifier.height(70.dp)) }
             }
         }
     }
@@ -303,6 +310,6 @@ private fun summaryText(course: Course, weeks: List<Int>): AnnotatedString =
                 append('\n')
             }
             infoIcon(InfoIconId.CREDIT, "学分")
-            fieldValue(formatCredit(credit))
+            fieldValue("${formatCredit(credit)}学分")
         }
     }
