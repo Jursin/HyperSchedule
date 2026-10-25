@@ -8,10 +8,12 @@ import androidx.room.RoomWarnings
 import androidx.room.Transaction
 import androidx.room.Upsert
 import com.miuix.hyperschedule.data.model.Course
+import com.miuix.hyperschedule.data.model.CourseTableCourseCount
+import com.miuix.hyperschedule.data.model.CourseWeek
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import kotlinx.coroutines.flow.Flow
 
-/** 课程表访问：标准节次与自定义时间混排，按星期 → 节次 → 自定义时间排序 */
+/** 课程与课程周次访问：标准节次与自定义时间混排，按星期 → 节次 → 自定义时间排序 */
 @Dao
 interface CourseDao {
 
@@ -41,6 +43,10 @@ interface CourseDao {
     @Query("DELETE FROM courses WHERE courseTableId = :courseTableId")
     suspend fun deleteCoursesByTableId(courseTableId: String)
 
+    /** 每张课表的课程门数，课程管理按课名聚合，这里同样按名字去重 */
+    @Query("SELECT courseTableId, COUNT(DISTINCT name) AS count FROM courses GROUP BY courseTableId")
+    fun observeCourseCountsByTable(): Flow<List<CourseTableCourseCount>>
+
     @Transaction
     @Query(
         """
@@ -60,4 +66,17 @@ interface CourseDao {
         day: Int,
         weekNumber: Int,
     ): Flow<List<CourseWithWeeks>>
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertWeeks(courseWeeks: List<CourseWeek>)
+
+    /** 全量替换某门课的周次：先删旧关系再插新关系 */
+    @Transaction
+    suspend fun updateCourseWeeks(courseId: String, courseWeeks: List<CourseWeek>) {
+        deleteWeeksByCourseId(courseId)
+        insertWeeks(courseWeeks)
+    }
+
+    @Query("DELETE FROM course_weeks WHERE courseId = :courseId")
+    suspend fun deleteWeeksByCourseId(courseId: String)
 }

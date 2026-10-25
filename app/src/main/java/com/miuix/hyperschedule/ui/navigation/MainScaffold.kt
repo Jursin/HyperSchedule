@@ -8,9 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -20,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -28,7 +30,6 @@ import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
@@ -36,11 +37,10 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import com.miuix.hyperschedule.ui.component.BackToNowButton
 import com.miuix.hyperschedule.ui.component.BackToNowHostState
 import com.miuix.hyperschedule.ui.component.LocalBackToNowHost
-import com.miuix.hyperschedule.ui.component.LocalLastTapDown
 import com.miuix.hyperschedule.ui.component.LocalTabPageIndex
 import com.miuix.hyperschedule.ui.page.LicensePage
-import com.miuix.hyperschedule.ui.theme.captureForBlur
-import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
+import com.miuix.hyperschedule.ui.effect.captureForBlur
+import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
@@ -91,12 +91,15 @@ val LocalMainTabNavigating = compositionLocalOf { false }
 /** 当前页面槽是不是用户正在看的 Tab（只按 Tab 判断，二级页盖住不算离开）；页面据此实现「切走再回来复位到今日/本周」 */
 val LocalPageIsCurrent = compositionLocalOf { true }
 
+/** 全局最后一次按下的位置，页面据此判断点击是否落在交互区外 */
+val LocalLastTapDown = staticCompositionLocalOf<MutableState<Offset?>> { mutableStateOf(null) }
+
 @Composable
 fun MainScaffold(
     appBlur: Boolean,
     predictiveBackEnabled: Boolean,
     initialPage: Int = 0,
-    appearancePage: @Composable (onBack: () -> Unit) -> Unit = {},
+    themePage: @Composable (onBack: () -> Unit) -> Unit = {},
     updatePage: @Composable (onBack: () -> Unit) -> Unit = {},
     aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
     courseDetailPage: @Composable (name: String, week: Int, onBack: () -> Unit) -> Unit = { _, _, _ -> },
@@ -110,7 +113,15 @@ fun MainScaffold(
             focusId: String,
             onBack: () -> Unit,
         ) -> Unit = { _, _, _, _, _, _ -> },
-    content: @Composable (page: Int, bottomPadding: Dp, navigate: (Page) -> Unit) -> Unit,
+    timeTableManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
+    courseTableManagePage: @Composable (onBack: () -> Unit) -> Unit = {},
+    scheduleImportPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    timeTableEditPage: @Composable (planId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
+    comboEditPage: @Composable (comboId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
+    content: @Composable (page: Int, navigate: (Page) -> Unit) -> Unit,
 ) {
     val navBackStack = rememberNavBackStack<Page>(Page.Home)
     val backStack: MutableList<NavKey> = navBackStack
@@ -216,7 +227,7 @@ fun MainScaffold(
                                     LocalTabPageIndex provides page,
                                     LocalBackToNowHost provides backToNowHost,
                                 ) {
-                                    content(page, 80.dp, navigate)
+                                    content(page, navigate)
                                 }
                             }
                             // 「今」按钮：与底栏同层，不在 tab pager 内，切页时原地动画
@@ -252,7 +263,7 @@ fun MainScaffold(
                     }
                 }
                 entry<Page.Appearance> {
-                    NavEntry(interceptPredictiveBack, onBack) { appearancePage(onBack) }
+                    NavEntry(interceptPredictiveBack, onBack) { themePage(onBack) }
                 }
                 entry<Page.Update> {
                     NavEntry(interceptPredictiveBack, onBack) { updatePage(onBack) }
@@ -275,6 +286,46 @@ fun MainScaffold(
                 entry<Page.CourseEdit> { key ->
                     NavEntry(interceptPredictiveBack, onBack) {
                         courseEditPage(key.name, key.day, key.startSection, key.endSection, key.focusId, onBack)
+                    }
+                }
+                entry<Page.TimeTableManage> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        timeTableManagePage(navigate, onBack)
+                    }
+                }
+                entry<Page.CourseTableManage> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        courseTableManagePage(onBack)
+                    }
+                }
+                entry<Page.ScheduleImport> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        scheduleImportPage(onBack)
+                    }
+                }
+                entry<Page.ScheduleExport> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        scheduleExportPage(onBack)
+                    }
+                }
+                entry<Page.Backup> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        backupPage(onBack)
+                    }
+                }
+                entry<Page.Holiday> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        holidayPage(onBack)
+                    }
+                }
+                entry<Page.TimeTableEdit> { key ->
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        timeTableEditPage(key.planId, onBack)
+                    }
+                }
+                entry<Page.ComboEdit> { key ->
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        comboEditPage(key.comboId, onBack)
                     }
                 }
             }

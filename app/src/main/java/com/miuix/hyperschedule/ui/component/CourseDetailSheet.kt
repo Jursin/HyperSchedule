@@ -1,10 +1,6 @@
 package com.miuix.hyperschedule.ui.component
 
-import androidx.activity.compose.BackHandler
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -26,22 +21,20 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.miuix.hyperschedule.data.model.Course
+import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.theme.SheetBottomInset
+import com.miuix.hyperschedule.theme.SheetMaxHeight
+import com.miuix.hyperschedule.theme.sheetCardColor
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -63,9 +56,6 @@ data class CourseDetailItem(
 
 /**
  * 课程详情抽屉：列出被点格子里的所有课程，每张卡带一个「编辑」按钮。
- *
- * 不用系统 Dialog，直接叠在宿主页面上做位移 + 弹簧动画，
- * 避免每次打开都要创建窗口导致首帧掉帧。
  */
 @Composable
 fun CourseDetailSheet(
@@ -76,138 +66,64 @@ fun CourseDetailSheet(
     onEdit: (Course) -> Unit = {},
     onAdd: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
 ) {
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
-    val progress = remember { Animatable(0f) }
-    val currentOnDismissFinished by rememberUpdatedState(onDismissFinished)
-    LaunchedEffect(show) {
-        if (show) {
-            progress.animateTo(1f, spring(dampingRatio = 0.86f, stiffness = 520f))
-        } else {
-            progress.animateTo(0f, spring(dampingRatio = 0.95f, stiffness = 620f))
-            currentOnDismissFinished()
-        }
-    }
-    // 完全收起且不再展示时整棵子树退出，避免无谓的合成层
-    if (progress.value <= 0f && !show) return
-
-    BackHandler(enabled = show) { onDismiss() }
-
-    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-    // 抽屉本体用实色而不是玻璃层：深色 #1E1E1E 比页面底色亮一档，浅色 #F2F2F2 略深于页面，两种主题都能和背景分开
-    val panelColor =
-        when {
-            MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surfaceContainer
-            isDark -> Color(0xFF1E1E1E)
-            else -> Color(0xFFF2F2F2)
-        }
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 遮罩
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .graphicsLayer { alpha = progress.value }
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss,
-                    ),
-        )
-        Column(
-            modifier =
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .graphicsLayer { translationY = (1f - progress.value) * size.height }
-                    .clip(shape)
-                    .background(panelColor)
-                    // 顶边一道极淡的高光，避免深色下和背景黏在一起
-                    .border(
-                        width = 1.dp,
-                        color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                        shape = shape,
-                    ),
-        ) {
-            // 拖动条
-            Box(
-                modifier =
-                    Modifier
-                        .padding(top = 8.dp)
-                        .size(width = 36.dp, height = 4.dp)
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f))
-                        .align(Alignment.CenterHorizontally),
-            )
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                contentAlignment = Alignment.Center,
+    SheetScaffold(
+        title = "课程详情",
+        show = show,
+        onDismiss = onDismiss,
+        onDismissFinished = onDismissFinished,
+        titleAction = {
+            IconButton(
+                onClick = {
+                    items.firstOrNull()?.let { item ->
+                        val course = item.course
+                        val start = course.startSection ?: 1
+                        onDismiss()
+                        onAdd(course.day, start, (course.endSection ?: start).coerceAtLeast(start))
+                    }
+                },
+                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
+                minWidth = 40.dp,
+                minHeight = 40.dp,
             ) {
-                Text(
-                    text = "课程详情",
-                    fontSize = MiuixTheme.textStyles.title4.fontSize,
-                    fontWeight = FontWeight.Medium,
-                    color = MiuixTheme.colorScheme.onSurface,
+                Icon(
+                    imageVector = MiuixIcons.Add,
+                    contentDescription = "添加课程",
+                    modifier = Modifier.size(20.dp),
+                    tint = MiuixTheme.colorScheme.onSurface,
                 )
-                IconButton(
-                    onClick = {
-                        items.firstOrNull()?.let { item ->
-                            val course = item.course
-                            val start = course.startSection ?: 1
-                            onDismiss()
-                            onAdd(course.day, start, (course.endSection ?: start).coerceAtLeast(start))
-                        }
-                    },
-                    modifier = Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
-                    minWidth = 40.dp,
-                    minHeight = 40.dp,
-                ) {
-                    Icon(
-                        imageVector = MiuixIcons.Add,
-                        contentDescription = "添加课程",
-                        modifier = Modifier.size(20.dp),
-                        tint = MiuixTheme.colorScheme.onSurface,
-                    )
-                }
             }
-            val listState = rememberLazyListState()
-            val currentIndex = items.indexOfFirst { it.activeInWeek }
-            // 打开时翻到本周那张卡；内容放得下时滚动会被钳住，等于不动
-            LaunchedEffect(show) {
-                if (show && currentIndex >= 0) listState.scrollToItem(currentIndex)
+        },
+    ) {
+        val listState = rememberLazyListState()
+        val currentIndex = items.indexOfFirst { it.activeInWeek }
+        // 打开时翻到本周那张卡；内容放得下时滚动会被钳住，等于不动
+        LaunchedEffect(show) {
+            if (show && currentIndex >= 0) listState.scrollToItem(currentIndex)
+        }
+        LazyColumn(
+            state = listState,
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = SheetMaxHeight)
+                    .overScrollVertical()
+                    .scrollEndHaptic(),
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+        ) {
+            items(items, key = { it.course.id }) { item ->
+                CourseDetailCard(item, onEdit = { onEdit(item.course) })
             }
-            LazyColumn(
-                state = listState,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 560.dp)
-                        .overScrollVertical()
-                        .scrollEndHaptic(),
-                contentPadding = PaddingValues(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(items, key = { it.course.id }) { item ->
-                    CourseDetailCard(item, onEdit = { onEdit(item.course) })
-                }
-                // 卡片下方留白
-                item { Spacer(modifier = Modifier.height(70.dp)) }
-            }
+            // 卡片下方留白，最后一张也能完整滚出来
+            item { Spacer(modifier = Modifier.height(SheetBottomInset)) }
         }
     }
 }
 
 @Composable
 private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
     val course = item.course
-    // 动态取色用 surfaceContainerHigh，否则深色 #303030、浅色纯白
-    val cardColor =
-        when {
-            MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surfaceContainerHigh
-            isDark -> Color(0xFF303030)
-            else -> Color.White
-        }
+    val cardColor = sheetCardColor()
     Card(
         modifier = Modifier.fillMaxWidth(),
         insideMargin = PaddingValues(0.dp),
@@ -225,14 +141,14 @@ private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = if (item.activeInWeek) course.name else "${course.name}（非本周）",
-                    style = MiuixTheme.textStyles.body1.copy(fontSize = 17.sp),
+                    style = MiuixTheme.textStyles.headline1,
                     fontWeight = FontWeight.Medium,
                     color = MiuixTheme.colorScheme.onSurface,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = summaryText(course, item.weeks),
-                    style = MiuixTheme.textStyles.body2.copy(fontSize = 14.sp),
+                    style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     inlineContent = courseInfoIcons(),
                 )
@@ -244,7 +160,7 @@ private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
                                 infoIcon(InfoIconId.REMARK, "备注")
                                 append(remark)
                             },
-                        style = MiuixTheme.textStyles.body2.copy(fontSize = 14.sp),
+                        style = MiuixTheme.textStyles.body2,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -276,7 +192,7 @@ private fun EditPill(onClick: () -> Unit) {
     ) {
         Text(
             text = "编辑",
-            style = MiuixTheme.textStyles.body1.copy(fontSize = 16.sp),
+            style = MiuixTheme.textStyles.body1,
             fontWeight = FontWeight.Medium,
             color = MiuixTheme.colorScheme.primary,
         )

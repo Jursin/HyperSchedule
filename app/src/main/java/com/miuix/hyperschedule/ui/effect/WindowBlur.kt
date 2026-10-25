@@ -1,4 +1,4 @@
-package com.miuix.hyperschedule.ui.theme
+package com.miuix.hyperschedule.ui.effect
 
 import android.os.Build
 import android.view.Window
@@ -16,6 +16,9 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.window.DialogWindowProvider
 import java.util.function.Consumer
 
+/** 窗口背景模糊半径，交给系统的 cross-window blur 处理 */
+private const val BlurRadius = 30
+
 // 给当前窗口（对话框或 Activity）加上窗口级背景模糊。Android 12+ 支持
 @Composable
 fun WindowBlurEffect(useBlur: Boolean) {
@@ -26,7 +29,7 @@ fun WindowBlurEffect(useBlur: Boolean) {
 
     DisposableEffect(window, useBlur, blurEnabledBySystem) {
         if (useBlur && blurEnabledBySystem) {
-            window.applyBlur(30)
+            window.applyBlur()
         } else {
             window.clearBlur()
         }
@@ -58,11 +61,11 @@ private fun isCrossWindowBlurEnabled(): Boolean {
 }
 
 @RequiresApi(Build.VERSION_CODES.S)
-private fun Window.applyBlur(radius: Int) {
+private fun Window.applyBlur() {
     addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
     attributes =
         attributes.apply {
-            blurBehindRadius = radius.coerceIn(0, 150)
+            blurBehindRadius = BlurRadius.coerceIn(0, 150)
         }
 }
 

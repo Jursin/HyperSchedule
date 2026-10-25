@@ -29,19 +29,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
+import com.miuix.hyperschedule.theme.CourseTintAlpha
+import com.miuix.hyperschedule.theme.PageBottomInset
+import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.formatCredit
+import com.miuix.hyperschedule.ui.component.pageContentPadding
+import com.miuix.hyperschedule.ui.component.pageScroll
 import com.miuix.hyperschedule.ui.component.rememberCourseColor
-import com.miuix.hyperschedule.ui.theme.captureForBlur
-import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
+import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import java.text.Collator
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Card
@@ -59,11 +61,6 @@ import top.yukonga.miuix.kmp.icon.extended.Create
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-
-/** 卡片底色：课程色叠在页面上，与课表网格里的课程卡同一档 */
-private const val ManageCardAlpha = 0.15f
 
 /** 课程管理：同名课程聚合成一张卡，点击进入编辑；长按进入多选，可批量删除 */
 @Composable
@@ -104,7 +101,7 @@ fun CourseManagePage(
     Scaffold(
         topBar = { BlurredTopAppBar("课程管理", blurBackdrop, scrollBehavior, onBack = onBack) },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
                 if (selecting) {
                     FloatingActionButton(
                         onClick = { deleteConfirm = true },
@@ -148,36 +145,24 @@ fun CourseManagePage(
             ) {
                 Text(
                     text = "暂无课程",
-                    fontSize = 17.sp,
+                    style = MiuixTheme.textStyles.headline1,
                     fontWeight = FontWeight.Medium,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = "点右下角添加课程",
-                    fontSize = 14.sp,
+                    style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         } else {
             LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Fixed(2),
-                modifier =
-                    Modifier
-                        .fillMaxSize()
-                        .captureForBlur(blurBackdrop)
-                        .scrollEndHaptic()
-                        .overScrollVertical()
-                        .nestedScroll(scrollBehavior.nestedScrollConnection),
-                contentPadding =
-                    PaddingValues(
-                        start = 12.dp,
-                        top = paddingValues.calculateTopPadding() + 4.dp,
-                        end = 12.dp,
-                        bottom = 120.dp,
-                    ),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalItemSpacing = 12.dp,
+                modifier = Modifier.fillMaxSize().pageScroll(blurBackdrop, scrollBehavior),
+                contentPadding = pageContentPadding(paddingValues, bottom = PageBottomInset),
+                horizontalArrangement = Arrangement.spacedBy(SectionSpacing),
+                verticalItemSpacing = SectionSpacing,
                 overscrollEffect = null,
             ) {
                 items(groups, key = { it.first }) { (name, list) ->
@@ -232,7 +217,7 @@ private fun CourseManageCard(
         Card(
             modifier = Modifier.fillMaxWidth(),
             insideMargin = PaddingValues(14.dp),
-            colors = CardDefaults.defaultColors(color = color.copy(alpha = ManageCardAlpha)),
+            colors = CardDefaults.defaultColors(color = color.copy(alpha = CourseTintAlpha)),
             onClick = onClick,
             onLongPress = onLongClick,
         ) {
@@ -248,7 +233,7 @@ private fun CourseManageCard(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = name,
-                        fontSize = 16.sp,
+                        style = MiuixTheme.textStyles.body1,
                         fontWeight = FontWeight.Bold,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -261,13 +246,13 @@ private fun CourseManageCard(
                             modifier =
                                 Modifier
                                     .clip(RoundedCornerShape(5.dp))
-                                    .background(color.copy(alpha = ManageCardAlpha))
+                                    .background(color.copy(alpha = CourseTintAlpha))
                                     .padding(horizontal = 6.dp, vertical = 2.dp),
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
                                 text = "$slotCount 个时段",
-                                fontSize = 11.sp,
+                                style = MiuixTheme.textStyles.footnote2,
                                 maxLines = 1,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             )
@@ -309,7 +294,7 @@ private fun MetaRow(icon: ImageVector, text: String) {
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = text,
-            fontSize = 13.sp,
+            style = MiuixTheme.textStyles.footnote1,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,

@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -38,8 +39,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.luminance
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -52,12 +51,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.graphics.createBitmap
 import com.miuix.hyperschedule.R
 import com.miuix.hyperschedule.getAppVersion
 import com.miuix.hyperschedule.getAppVersionCode
+import com.miuix.hyperschedule.theme.isDarkTheme
 import com.miuix.hyperschedule.ui.effect.BgEffectBackground
-import com.miuix.hyperschedule.ui.theme.appBarBlur
-import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
+import com.miuix.hyperschedule.ui.effect.appBarBlur
+import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -79,7 +80,6 @@ import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import androidx.core.graphics.createBitmap
 
 private const val RepositoryUrl = "https://github.com/Jursin/HyperSchedule"
 
@@ -181,7 +181,7 @@ private fun AboutContentBody(
 ) {
     val layoutDirection = LocalLayoutDirection.current
     val density = LocalDensity.current
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = isDarkTheme()
 
     // 图标/名称渐变取色层：不跟随模糊开关，只要支持 RuntimeShader 就始终启用
     val gradientBackdrop = rememberAppBlurBackdrop(true)
@@ -349,7 +349,7 @@ private fun AboutContentBody(
                 Text(
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     text = versionInfoText,
-                    fontSize = 14.sp,
+                    style = MiuixTheme.textStyles.body2,
                     textAlign = TextAlign.Center,
                 )
             }

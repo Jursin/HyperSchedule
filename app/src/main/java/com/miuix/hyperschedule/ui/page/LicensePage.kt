@@ -21,19 +21,21 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.util.author
+import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.theme.SheetMaxHeight
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
-import com.miuix.hyperschedule.ui.theme.captureForBlur
-import com.miuix.hyperschedule.ui.theme.rememberAppBlurBackdrop
+import com.miuix.hyperschedule.ui.component.ConfirmDialog
+import com.miuix.hyperschedule.ui.component.pageContentPadding
+import com.miuix.hyperschedule.ui.component.pageScroll
+import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -41,12 +43,10 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 fun LicensePage(
@@ -75,21 +75,9 @@ fun LicensePage(
         topBar = { BlurredTopAppBar("开放源代码许可", blurBackdrop, scrollBehavior, onBack = onBack) },
     ) { paddingValues ->
         LazyColumn(
-            modifier =
-                Modifier
-                    .fillMaxSize()
-                    .captureForBlur(blurBackdrop)
-                    .scrollEndHaptic()
-                    .overScrollVertical()
-                    .nestedScroll(scrollBehavior.nestedScrollConnection),
-            contentPadding =
-                PaddingValues(
-                    start = 12.dp,
-                    top = paddingValues.calculateTopPadding() + 8.dp,
-                    end = 12.dp,
-                    bottom = 16.dp,
-                ),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxSize().pageScroll(blurBackdrop, scrollBehavior),
+            contentPadding = pageContentPadding(paddingValues, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(SectionSpacing),
             overscrollEffect = null,
         ) {
             items(libraries, key = { it.uniqueId }) { library ->
@@ -102,84 +90,78 @@ fun LicensePage(
     }
 
     selectedLibrary?.let { library ->
-        WindowDialog(
-            show = showLicenseDialog,
+        ConfirmDialog(
             title = library.name,
+            appBlur = appBlur,
             summary = library.artifactVersion,
             summaryColor = MiuixTheme.colorScheme.primary,
-            onDismissRequest = { showLicenseDialog = false },
+            show = showLicenseDialog,
+            onDismiss = { showLicenseDialog = false },
             onDismissFinished = { selectedLibrary = null },
-            content = {
-                val dismissState = LocalDismissState.current
-                Column(
+            onConfirm = {},
+            actions = {
+                if (!library.website.isNullOrBlank()) {
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = { uriHandler.openUri(library.website!!) },
+                        text = "访问主页",
+                    )
+                }
+                TextButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = { showLicenseDialog = false },
+                    text = "关闭",
+                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                )
+            },
+        ) {
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = SheetMaxHeight),
+            ) {
+                LazyColumn(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .heightIn(max = 420.dp),
+                            .weight(1f, fill = false)
+                            .scrollEndHaptic()
+                            .overScrollVertical(),
+                    contentPadding = PaddingValues(bottom = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                    overscrollEffect = null,
                 ) {
-                    LazyColumn(
-                        modifier =
-                            Modifier
-                                .fillMaxWidth()
-                                .weight(1f, fill = false)
-                                .scrollEndHaptic()
-                                .overScrollVertical(),
-                        contentPadding = PaddingValues(bottom = 12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        overscrollEffect = null,
-                    ) {
-                        items(library.licenses.toList()) { license ->
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                colors =
-                                    CardDefaults.defaultColors(
-                                        color = MiuixTheme.colorScheme.surfaceContainerHighest,
-                                    ),
-                            ) {
-                                Column(modifier = Modifier.padding(16.dp)) {
-                                    Text(
-                                        text = license.name,
-                                        style = MiuixTheme.textStyles.title3,
-                                        color = MiuixTheme.colorScheme.primary,
-                                        modifier =
-                                            Modifier.clickable {
-                                                license.url?.let { uriHandler.openUri(it) }
-                                            },
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = license.licenseContent ?: "该许可证无公开文本",
-                                        style = MiuixTheme.textStyles.body2,
-                                        color = MiuixTheme.colorScheme.onSurfaceContainer,
-                                    )
-                                }
+                    items(library.licenses.toList()) { license ->
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            colors =
+                                CardDefaults.defaultColors(
+                                    color = MiuixTheme.colorScheme.surfaceContainerHighest,
+                                ),
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text(
+                                    text = license.name,
+                                    style = MiuixTheme.textStyles.title3,
+                                    color = MiuixTheme.colorScheme.primary,
+                                    modifier =
+                                        Modifier.clickable {
+                                            license.url?.let { uriHandler.openUri(it) }
+                                        },
+                                )
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = license.licenseContent ?: "该许可证无公开文本",
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = MiuixTheme.colorScheme.onSurfaceContainer,
+                                )
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        if (!library.website.isNullOrBlank()) {
-                            TextButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = { uriHandler.openUri(library.website!!) },
-                                text = "访问主页",
-                            )
-                        }
-                        TextButton(
-                            modifier = Modifier.weight(1f),
-                            onClick = { dismissState?.invoke() },
-                            text = "关闭",
-                            colors = ButtonDefaults.textButtonColorsPrimary(),
-                        )
-                    }
                 }
-            },
-        )
+            }
+        }
     }
 }
 
@@ -240,7 +222,7 @@ private fun LibraryCard(
                         Text(
                             text = license.name,
                             color = MiuixTheme.colorScheme.primary,
-                            fontSize = 12.sp,
+                            style = MiuixTheme.textStyles.footnote1,
                             fontWeight = FontWeight.SemiBold,
                         )
                     }

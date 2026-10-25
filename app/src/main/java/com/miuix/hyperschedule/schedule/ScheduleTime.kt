@@ -2,10 +2,20 @@ package com.miuix.hyperschedule.schedule
 
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 
 /** 学期总周数默认值（设置页可改） */
 const val DEFAULT_TOTAL_WEEKS = 20
+
+/** 学期总周数上限 */
+const val MAX_TOTAL_WEEKS = 60
+
+/** 节次数量范围 */
+val SECTION_COUNT_RANGE = 6..20
+
+/** 上午 / 下午 / 晚上 */
+enum class SectionPeriod { MORNING, AFTERNOON, EVENING }
 
 /** 默认作息：8 节（产品指定） */
 val DEFAULT_SECTION_TIMES: List<Pair<String, String>> = listOf(
@@ -54,5 +64,23 @@ fun parseMinutes(time: String?): Int? {
     return hour * 60 + minute
 }
 
+/** 当天第几分钟 → "HH:mm" */
+fun formatMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
+
 fun parseDateOrNull(text: String): LocalDate? =
     runCatching { LocalDate.parse(text) }.getOrNull()
+
+/** LocalDate → yyyy/MM/dd */
+fun formatDate(date: LocalDate): String = "%04d/%02d/%02d".format(date.year, date.monthValue, date.dayOfMonth)
+
+/** 年月日任一变化后收敛到合法日期（1 月 31 日切到 2 月不会越界） */
+fun adjustDate(
+    date: LocalDate,
+    year: Int = date.year,
+    month: Int = date.monthValue,
+    day: Int = date.dayOfMonth,
+): LocalDate {
+    val safeMonth = month.coerceIn(1, 12)
+    val maxDay = YearMonth.of(year, safeMonth).lengthOfMonth()
+    return LocalDate.of(year, safeMonth, day.coerceIn(1, maxDay))
+}

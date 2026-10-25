@@ -1,5 +1,6 @@
 package com.miuix.hyperschedule.data.importer
 
+import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -38,7 +39,7 @@ data class TimeSlotJson(
 @Serializable
 data class CourseTableConfigJson(
     val semesterStartDate: String? = null,
-    val semesterTotalWeeks: Int = 20,
+    val semesterTotalWeeks: Int = DEFAULT_TOTAL_WEEKS,
     val firstDayOfWeek: Int = 1,
 )
 

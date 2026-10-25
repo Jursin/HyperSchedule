@@ -5,6 +5,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.colorResource
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -67,3 +68,7 @@ fun PaletteStyle.toMiuixStyle(): ThemePaletteStyle = when (this) {
     PaletteStyle.Vibrant -> ThemePaletteStyle.Vibrant
     PaletteStyle.Expressive -> ThemePaletteStyle.Expressive
 }
+
+/** 当前是否深色主题：按背景亮度判断，动态取色下同样成立 */
+@Composable
+fun isDarkTheme(): Boolean = MiuixTheme.colorScheme.background.luminance() < 0.5f

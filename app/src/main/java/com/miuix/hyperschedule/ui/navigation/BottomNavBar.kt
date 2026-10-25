@@ -38,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -57,8 +56,9 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.theme.isDarkTheme
 import com.miuix.hyperschedule.ui.effect.NavIndicatorAnimation
-import com.miuix.hyperschedule.ui.theme.navBarBlur
+import com.miuix.hyperschedule.ui.effect.navBarBlur
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Text
@@ -67,7 +67,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Months
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Years
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal data class Tab(val label: String, val icon: ImageVector)
 
@@ -118,7 +117,7 @@ internal fun BottomNavBar(
     val animationScope = rememberCoroutineScope()
     val tabsCount = tabs.size
 
-    val isDark = MiuixTheme.colorScheme.background.luminance() < 0.5f
+    val isDark = isDarkTheme()
     val colors = if (isDark) NavBarColors.Dark else NavBarColors.Light
 
     val labelTextStyle =
@@ -335,7 +334,7 @@ private fun Indicator(
     )
 }
 
-/** 按下缩放/加亮用 Folme 默认弹簧 spring(0.9, 0.3) */
+/** 按下缩放与加亮的弹簧曲线 */
 private val PressSpec = spring<Float>(dampingRatio = 0.9f, stiffness = 438f)
 
 /** 底栏尺寸，数值取自日历真机实测（1080×2400，density 2.8125） */

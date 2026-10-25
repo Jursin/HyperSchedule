@@ -1,4 +1,4 @@
-package com.miuix.hyperschedule.ui.theme
+package com.miuix.hyperschedule.ui.effect
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier

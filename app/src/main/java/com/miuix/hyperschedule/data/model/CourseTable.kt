@@ -2,12 +2,10 @@ package com.miuix.hyperschedule.data.model
 
 import androidx.room.Entity
 import androidx.room.ForeignKey
-import androidx.room.Index
 import androidx.room.PrimaryKey
-import kotlinx.serialization.Serializable
+import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 
 /** 课表元数据 */
-@Serializable
 @Entity(tableName = "course_tables")
 data class CourseTable(
     @PrimaryKey val id: String,
@@ -15,8 +13,7 @@ data class CourseTable(
     val createdAt: Long, // 用于排序
 )
 
-/** 课表配置，与 CourseTable 一对一 */
-@Serializable
+/** 课表配置，与 CourseTable 一对一，主键即课表 id */
 @Entity(
     tableName = "course_table_config",
     foreignKeys = [
@@ -27,37 +24,17 @@ data class CourseTable(
             onDelete = ForeignKey.CASCADE,
         )
     ],
-    indices = [Index(value = ["courseTableId"], unique = true)],
 )
 data class CourseTableConfig(
     @PrimaryKey val courseTableId: String,
     val showWeekends: Boolean = false,
-    val semesterStartDate: String? = null, // "yyyy-MM-dd"
-    val semesterTotalWeeks: Int = 20,
+    val semesterStartDate: String? = null, // "yyyy-MM-dd"，空表示未设置
+    val semesterTotalWeeks: Int = DEFAULT_TOTAL_WEEKS,
     val firstDayOfWeek: Int = 1, // 1 = 周一 … 7 = 周日
 )
 
-/** 课表与作息方案的绑定：一个课表一条；targetId 等于 courseTableId 时即专属作息 */
-@Serializable
-@Entity(
-    tableName = "course_time_bindings",
-    foreignKeys = [
-        ForeignKey(
-            entity = CourseTable::class,
-            parentColumns = ["id"],
-            childColumns = ["courseTableId"],
-            onDelete = ForeignKey.CASCADE,
-        )
-    ],
+/** 每张课表的课程门数（按课程名去重） */
+data class CourseTableCourseCount(
+    val courseTableId: String,
+    val count: Int,
 )
-data class CourseTimeBinding(
-    @PrimaryKey val courseTableId: String,
-    val targetType: TargetType = TargetType.SINGLE,
-    val targetId: String,
-) {
-    @Serializable
-    enum class TargetType {
-        SINGLE, // 单一作息
-        COMBO, // 组合作息
-    }
-}
