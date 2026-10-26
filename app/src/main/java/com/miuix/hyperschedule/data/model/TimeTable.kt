@@ -15,7 +15,7 @@ data class TimeTable(
     @PrimaryKey val id: String,
     val name: String? = null,
     val createdAt: Long,
-    val defaultClassDuration: Int = 90, // 单位分钟
+    val defaultClassDuration: Int = DEFAULT_CLASS_DURATION, // 单位分钟
     val morningAfternoonSplit: String = DEFAULT_MORNING_SPLIT, // 上午/下午分界，空串按默认值处理
     val afternoonEveningSplit: String = DEFAULT_EVENING_SPLIT, // 下午/晚上分界，空串按默认值处理
 ) {
@@ -23,6 +23,7 @@ data class TimeTable(
     val isExclusive: Boolean get() = name == null
 
     companion object {
+        const val DEFAULT_CLASS_DURATION = 90
         const val DEFAULT_MORNING_SPLIT = "12:00"
         const val DEFAULT_EVENING_SPLIT = "18:00"
     }

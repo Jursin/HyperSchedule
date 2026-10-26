@@ -119,6 +119,7 @@ fun MainScaffold(
     scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    reminderPage: @Composable (onBack: () -> Unit) -> Unit = {},
     timeTableEditPage: @Composable (planId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
     comboEditPage: @Composable (comboId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
     content: @Composable (page: Int, navigate: (Page) -> Unit) -> Unit,
@@ -316,6 +317,11 @@ fun MainScaffold(
                 entry<Page.Holiday> {
                     NavEntry(interceptPredictiveBack, onBack) {
                         holidayPage(onBack)
+                    }
+                }
+                entry<Page.Reminder> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        reminderPage(onBack)
                     }
                 }
                 entry<Page.TimeTableEdit> { key ->

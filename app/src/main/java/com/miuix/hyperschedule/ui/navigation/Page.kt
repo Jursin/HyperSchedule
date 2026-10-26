@@ -49,6 +49,9 @@ sealed class Page : NavKey {
     /** 节假日与调休：假期区间与调休补班日 */
     @Serializable data object Holiday : Page()
 
+    /** 课程提醒：提醒开关与通知权限 */
+    @Serializable data object Reminder : Page()
+
     /** 编辑作息方案（专属/公共）；[planId] 为空表示新建 */
     @Serializable data class TimeTableEdit(val planId: String = "") : Page()
 

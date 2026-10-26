@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 /** 一条设置：读写各自知道键与默认值，[Prefs] 是唯一的键清单 */
@@ -121,6 +122,30 @@ private val Prefs =
         boolSetting("todayShowRemark", true, { it.todayStyle.showRemark }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showRemark = v))
         },
+        boolSetting("todayShowPeriods", true, { it.todayStyle.showPeriods }) { s, v ->
+            s.copy(todayStyle = s.todayStyle.copy(showPeriods = v))
+        },
+        boolSetting("reminderEnabled", false, { it.reminder.enabled }) { s, v ->
+            s.copy(reminder = s.reminder.copy(enabled = v))
+        },
+        intSetting(
+            "reminderPreMinutes",
+            ReminderSettings.Default.preMinutes,
+            { it.reminder.preMinutes },
+            coerce = { ReminderSettings.snapPreMinutes(it) },
+        ) { s, v -> s.copy(reminder = s.reminder.copy(preMinutes = v)) },
+        boolSetting("reminderInClass", false, { it.reminder.inClass }) { s, v ->
+            s.copy(reminder = s.reminder.copy(inClass = v))
+        },
+        boolSetting("reminderAutoDnd", false, { it.reminder.autoDnd }) { s, v ->
+            s.copy(reminder = s.reminder.copy(autoDnd = v))
+        },
+        intSetting(
+            "reminderDndMode",
+            ReminderSettings.Default.dndMode,
+            { it.reminder.dndMode },
+            coerce = { it.coerceIn(ReminderSettings.DND_MODE_LABELS.indices) },
+        ) { s, v -> s.copy(reminder = s.reminder.copy(dndMode = v)) },
     )
 
 class SettingsStore(context: Context) {
@@ -165,7 +190,44 @@ data class SettingsState(
     val currentTableId: String? = null, // 当前使用的课表，空或失效时回退到最早创建的一张
     val style: ScheduleStyle = ScheduleStyle(), // 课程表外观
     val todayStyle: TodayStyle = TodayStyle(), // 今日课表外观
+    val reminder: ReminderSettings = ReminderSettings(), // 课程提醒
 )
+
+/**
+ * 课程提醒设置。
+ *
+ * 目前只有 [enabled] 与 [preMinutes] 真正生效（决定 ICS 导出时的课前提醒），
+ * [inClass] 与 [autoDnd] 只是先把选择记下来，等接入通知调度后再用。
+ */
+data class ReminderSettings(
+    val enabled: Boolean = false,
+    val preMinutes: Int = 10,
+    val inClass: Boolean = false,
+    val autoDnd: Boolean = false,
+    val dndMode: Int = 0,
+) {
+    /** ICS 导出用的提醒分钟数：总开关关闭时不写提醒，0 表示准时 */
+    val icsAlarmMinutes: Int?
+        get() = if (enabled) preMinutes else null
+
+    companion object {
+        val Default = ReminderSettings()
+
+        /** 课前提醒档位，5 分钟一跳；0 表示准时 */
+        val PRE_MINUTE_OPTIONS = (0..30 step 5).toList()
+
+        /** 自动勿扰的档位，下标即 [dndMode] */
+        val DND_MODE_LABELS = listOf("完全勿扰", "静音模式", "勿扰模式")
+
+        fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "$minutes 分钟"
+
+        /** 把存下来的分钟数收敛到最近的档位，避免落在一个滚轮里没有的值 */
+        fun snapPreMinutes(minutes: Int): Int = PRE_MINUTE_OPTIONS.minBy { abs(it - minutes) }
+
+        /** 分钟数在 [PRE_MINUTE_OPTIONS] 里的下标，滚轮直接用它当值 */
+        fun preMinuteIndexOf(minutes: Int): Int = PRE_MINUTE_OPTIONS.indexOf(snapPreMinutes(minutes))
+    }
+}
 
 /** 课程表外观：抽屉里能改的都在这里，改动即时生效 */
 data class ScheduleStyle(
@@ -206,6 +268,7 @@ data class TodayStyle(
     val showTeacher: Boolean = true,
     val showCredit: Boolean = true,
     val showRemark: Boolean = true,
+    val showPeriods: Boolean = true,
 ) {
     companion object {
         val Default = TodayStyle()

@@ -309,16 +309,18 @@ internal fun ColorCard(
                 color = MiuixTheme.colorScheme.onSurface,
             )
         }
-        val columns = 6
         val totalItems = CoursePalette.size + 1
-        val rowsCount = (totalItems + columns - 1) / columns
+        val rowsCount = (totalItems + PaletteColumns - 1) / PaletteColumns
         for (row in 0 until rowsCount) {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(SectionSpacing),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(start = PaletteEdge, end = PaletteEdge, bottom = PaletteRowSpacing),
+                horizontalArrangement = Arrangement.spacedBy(PaletteCellSpacing),
             ) {
-                for (col in 0 until columns) {
-                    val index = row * columns + col
+                for (col in 0 until PaletteColumns) {
+                    val index = row * PaletteColumns + col
                     if (index < CoursePalette.size) {
                         ColorCell(
                             color = CoursePalette[index],
@@ -344,6 +346,21 @@ internal fun ColorCard(
     }
 }
 
+/** 色板一行放几个；13 个色 + 1 个自定义正好两整行 */
+private const val PaletteColumns = 7
+private val PaletteEdge = 8.dp
+private val PaletteCellSpacing = 6.dp
+private val PaletteRowSpacing = 8.dp
+
+/** 颜色格之间再让出一点，格子才不会顶满 */
+private val CellInset = 2.5.dp
+
+/** 颜色格选中描边宽度；色块向内让出的距离与圆角收缩量都用它，保证贴合 */
+private val BorderWidth = 2.dp
+
+/** 颜色格外轮廓圆角；色块圆角取 外轮廓圆角 - 描边宽，两者同心 */
+private val CellCornerRadius = 10.dp
+
 /** 颜色格：选中时外圈主题色描边，内部填淡化的课程色 */
 @Composable
 internal fun ColorCell(
@@ -357,6 +374,7 @@ internal fun ColorCell(
     Box(
         modifier =
             modifier
+                .padding(CellInset)
                 .aspectRatio(1f)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -370,15 +388,15 @@ internal fun ColorCell(
                 Modifier
                     .fillMaxSize()
                     .squircleBorder(
-                        width = 2.dp,
+                        width = BorderWidth,
                         color = MiuixTheme.colorScheme.primary.copy(alpha = borderAlpha),
-                        cornerRadius = 12.dp,
+                        cornerRadius = CellCornerRadius,
                     )
-                    .padding(4.dp)
-                    .squircleClip(8.dp)
+                    .padding(BorderWidth)
+                    .squircleClip(CellCornerRadius - BorderWidth)
                     .background(
                         when {
-                            color != null -> color.copy(alpha = if (isDark) 0.22f else 0.16f)
+                            color != null -> color.copy(alpha = if (isDark) 0.40f else 0.16f)
                             isDark -> MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                             else -> MiuixTheme.colorScheme.surface
                         }
@@ -389,7 +407,7 @@ internal fun ColorCell(
                 Icon(
                     imageVector = MiuixIcons.Add,
                     contentDescription = "自定义颜色",
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(16.dp),
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }

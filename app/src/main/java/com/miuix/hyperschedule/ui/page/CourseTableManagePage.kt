@@ -1,21 +1,18 @@
 package com.miuix.hyperschedule.ui.page
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import com.miuix.hyperschedule.data.repository.TableSummary
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
-import com.miuix.hyperschedule.ui.component.IconHeaderDialog
 import com.miuix.hyperschedule.ui.component.PreferenceItemSection
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.SelectableEditRow
+import com.miuix.hyperschedule.ui.component.TableNameDialog
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -104,34 +101,6 @@ fun CourseTableManagePage(
                 pendingDelete = null
                 onDelete(summary.table.id)
             },
-        )
-    }
-}
-
-/** 添加/重命名课表：名称为空时确定按钮不可点 */
-@Composable
-private fun TableNameDialog(
-    title: String,
-    initialName: String = "",
-    appBlur: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: (String) -> Unit,
-) {
-    var name by remember { mutableStateOf(initialName) }
-    IconHeaderDialog(
-        title = title,
-        appBlur = appBlur,
-        confirmEnabled = name.isNotBlank(),
-        onDismiss = onDismiss,
-        onConfirm = { onConfirm(name.trim()) },
-    ) {
-        TextField(
-            value = name,
-            onValueChange = { name = it.take(20) },
-            label = "课表名称",
-            useLabelAsPlaceholder = true,
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

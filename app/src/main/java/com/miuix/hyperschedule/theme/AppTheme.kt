@@ -7,11 +7,40 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.TextStyle
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.TextStyles
 import top.yukonga.miuix.kmp.theme.ThemeColorSpec
 import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
+import top.yukonga.miuix.kmp.theme.defaultTextStyles
+
+/** 等宽数字：MiSans 用 thum，其他字体用 tnum；不支持的字体自动忽略 */
+private const val TabularFigures = "\"thum\" 1, \"tnum\" 1"
+
+/** 全站文本样式：在 Miuix 默认字号上打开等宽数字 */
+private val TabularTextStyles: TextStyles =
+    defaultTextStyles().let { base ->
+        fun TextStyle.tabular() = copy(fontFeatureSettings = TabularFigures)
+        base.copy(
+            main = base.main.tabular(),
+            paragraph = base.paragraph.tabular(),
+            body1 = base.body1.tabular(),
+            body2 = base.body2.tabular(),
+            button = base.button.tabular(),
+            footnote1 = base.footnote1.tabular(),
+            footnote2 = base.footnote2.tabular(),
+            headline1 = base.headline1.tabular(),
+            headline2 = base.headline2.tabular(),
+            subtitle = base.subtitle.tabular(),
+            title1 = base.title1.tabular(),
+            title2 = base.title2.tabular(),
+            title3 = base.title3.tabular(),
+            title4 = base.title4.tabular(),
+        )
+    }
+
 
 @Composable
 fun AppTheme(
@@ -46,7 +75,7 @@ fun AppTheme(
             ThemeController(if (isDark) ColorSchemeMode.Dark else ColorSchemeMode.Light)
         }
     }
-    MiuixTheme(controller = controller, content = content)
+    MiuixTheme(controller = controller, textStyles = TabularTextStyles, content = content)
 }
 
 enum class ThemeMode(val title: String) {

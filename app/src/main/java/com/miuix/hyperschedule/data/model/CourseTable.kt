@@ -30,7 +30,6 @@ data class CourseTableConfig(
     val showWeekends: Boolean = false,
     val semesterStartDate: String? = null, // "yyyy-MM-dd"，空表示未设置
     val semesterTotalWeeks: Int = DEFAULT_TOTAL_WEEKS,
-    val firstDayOfWeek: Int = 1, // 1 = 周一 … 7 = 周日
 )
 
 /** 每张课表的课程门数（按课程名去重） */

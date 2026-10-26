@@ -41,7 +41,12 @@ data class Course(
     val colorArgb: Int? = null, // 自定义颜色；为空时回落到 colorInt 对应的色板色
     val remark: String? = null, // 限 300 字
     val credit: Float? = null,
-)
+) {
+    companion object {
+        /** 课程色板容量：colorInt 取值 [0, COLOR_COUNT) */
+        const val COLOR_COUNT = 13
+    }
+}
 
 /** 课程与周次的多对多关联，主键 (courseId, weekNumber) */
 @Entity(

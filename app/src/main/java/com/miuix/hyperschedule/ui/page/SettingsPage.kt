@@ -43,6 +43,7 @@ fun SettingsPage(
     onOpenExport: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
     onOpenHoliday: () -> Unit = {},
+    onOpenReminder: () -> Unit = {},
 ) {
     val state = store.state
     val scope = rememberCoroutineScope()
@@ -132,9 +133,8 @@ fun SettingsPage(
         }
 
         PreferenceSection("高级功能") {
-            ArrowPreference("课程提醒", onClick = {})
+            ArrowPreference("课程提醒", onClick = onOpenReminder)
             ArrowPreference("节假日与调休", onClick = onOpenHoliday)
-            ArrowPreference("开启新学期", onClick = {})
             ArrowPreference("备份与恢复", onClick = onOpenBackup)
         }
 

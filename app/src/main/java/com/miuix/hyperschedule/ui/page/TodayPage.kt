@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,8 +20,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -49,6 +46,7 @@ import com.miuix.hyperschedule.ui.component.TodayAppearanceSheet
 import com.miuix.hyperschedule.ui.component.TodayCourseList
 import com.miuix.hyperschedule.ui.component.dayLabel
 import com.miuix.hyperschedule.ui.component.markOrNull
+import com.miuix.hyperschedule.ui.effect.captureForBlur
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import com.miuix.hyperschedule.ui.navigation.LocalMainTabNavigating
 import com.miuix.hyperschedule.ui.navigation.LocalPageIsCurrent
@@ -100,6 +98,13 @@ fun TodayPage(
     // 收起动画跑完才卸载抽屉
     var appearanceMounted by remember { mutableStateOf(false) }
 
+    val pageDate = dateState.date
+    val pageWeek = startDate?.let { currentWeekOf(it, pageDate) }
+    val pagePlan =
+        remember(holidayPlan, pageWeek, pageDate.dayOfWeek.value) {
+            pageWeek?.let { holidayPlan.of(it, pageDate.dayOfWeek.value) } ?: HolidayDay()
+        }
+
     val pageIsCurrent = LocalPageIsCurrent.current
     val tabNavigating = LocalMainTabNavigating.current
     // 离开过就记一笔，切回那一刻或导航结束时复位
@@ -138,17 +143,29 @@ fun TodayPage(
                         Icon(MiuixIcons.Background, contentDescription = "今日课表外观")
                     }
                 },
+                bottomContent = {
+                    DateTitleRow(
+                        date = pageDate,
+                        plan = pagePlan,
+                        onJumpClick = {
+                            dateDraft = pageDate
+                            showJumpDialog = true
+                        },
+                    )
+                },
+                pinnedTitle = true,
             )
         },
     ) { paddingValues ->
         DatePager(
             dateState = dateState,
-            modifier = Modifier.fillMaxSize(),
+            // 采集点放在 pager 整体上，翻页或滚动时始终只录一份
+            modifier = Modifier.fillMaxSize().captureForBlur(blurBackdrop),
             // 底部导航切页动画期间禁用手势，避免和过渡动画互抢
             userScrollEnabled = !tabNavigating,
-        ) { pageDate ->
-            val week = startDate?.let { currentWeekOf(it, pageDate) }
-            val day = pageDate.dayOfWeek.value
+        ) { date ->
+            val week = startDate?.let { currentWeekOf(it, date) }
+            val day = date.dayOfWeek.value
             // 这一天在放假 / 调休规则下的结论：补课时要看的可能是被调那一天的课（甚至别的周）
             val dayPlan =
                 remember(holidayPlan, week, day) {
@@ -168,40 +185,21 @@ fun TodayPage(
             val courses by coursesFlow.collectAsState(emptyList())
             val mark = dayPlan.markOrNull()
 
-            // 标题占掉的高度：空状态要把它下面的剩余区域平分上下留白
-            var titleHeight by remember { mutableStateOf(0.dp) }
-            val density = LocalDensity.current
-
             Box(modifier = Modifier.fillMaxSize()) {
                 PageScrollColumn(
-                    // 只让当前页往 backdrop 里录：同一个 backdrop 只有一个采集点
-                    blurBackdrop = blurBackdrop.takeIf { pageDate == dateState.date },
+                    // 采集点放在外层 pager 上，每页不再各自录制
+                    blurBackdrop = null,
                     scrollBehavior = scrollBehavior,
-                    // 顶栏高度作为滚动内容的内边距：内容才能滚到顶栏下方，顶栏有东西可模糊
+                    // 顶栏（含日期行）高度作为滚动内容的内边距：内容才能滚到它下方，顶栏有东西可模糊
                     contentPadding = PaddingValues(top = paddingValues.calculateTopPadding()),
                     topPadding = 0.dp,
                 ) {
-                    Box(
-                        modifier =
-                            Modifier.onGloballyPositioned {
-                                titleHeight = with(density) { it.size.height.toDp() }
-                            },
-                    ) {
-                        DateTitleRow(
-                            date = pageDate,
-                            plan = dayPlan,
-                            onJumpClick = {
-                                dateDraft = pageDate
-                                showJumpDialog = true
-                            },
-                        )
-                    }
                     // 放假这天不上课：不列课程，直接走下面的空状态
                     if (courses.isNotEmpty() && !dayPlan.holiday) {
                         TodayCourseList(
                             courses = courses,
                             slots = slots,
-                            pageDate = pageDate,
+                            pageDate = date,
                             style = style,
                             mark = mark,
                             modifier = Modifier.padding(top = 8.dp),
@@ -216,13 +214,13 @@ fun TodayPage(
                             Modifier
                                 .fillMaxSize()
                                 .padding(
-                                    top = paddingValues.calculateTopPadding() + titleHeight,
+                                    top = paddingValues.calculateTopPadding(),
                                     bottom = PageBottomInset,
                                 ),
                         contentAlignment = Alignment.Center,
                     ) {
                         EmptyCourseHint(
-                            isToday = pageDate == dateState.today,
+                            isToday = date == dateState.today,
                             isHoliday = dayPlan.holiday,
                         )
                     }
@@ -265,8 +263,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
         modifier =
             Modifier
                 .fillMaxWidth()
-                .offset(x = (-15).dp)
-                .padding(start = 28.dp, top = 8.dp),
+                .padding(start = 28.dp, end = 16.dp, top = 2.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(

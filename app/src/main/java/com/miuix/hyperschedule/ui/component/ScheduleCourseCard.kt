@@ -64,7 +64,11 @@ internal val CoursePalette =
         0xFFAB47BC, // 紫
         0xFF009688, // 蓝绿
         0xFF673AB7, // 深紫
+        0xFFE2793F, // 赭橙
+        0xFF607D8B, // 蓝灰
     ).map { Color(it) }
+        // 与 Course.COLOR_COUNT 必须一致，改色板时一起改
+        .also { check(it.size == Course.COLOR_COUNT) }
 
 /** 课表网格里的课程卡片；样式全部来自外观设置 */
 @Composable

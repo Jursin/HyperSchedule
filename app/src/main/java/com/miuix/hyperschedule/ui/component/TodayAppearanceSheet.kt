@@ -25,7 +25,15 @@ fun TodayAppearanceSheet(
         onDismissFinished = onDismissFinished,
     ) {
         SheetScrollColumn {
-            PreferenceSection(cardColor = sheetCardColor(), title = "显示内容") {
+            PreferenceSection(cardColor = sheetCardColor(), title = "列表") {
+                SwitchPreference(
+                    checked = style.showPeriods,
+                    onCheckedChange = { onStyleChange(style.copy(showPeriods = it)) },
+                    title = "显示时段分隔",
+                )
+            }
+
+            PreferenceSection(cardColor = sheetCardColor(), title = "课程卡片") {
                 SwitchPreference(
                     checked = style.showSection,
                     onCheckedChange = { onStyleChange(style.copy(showSection = it)) },

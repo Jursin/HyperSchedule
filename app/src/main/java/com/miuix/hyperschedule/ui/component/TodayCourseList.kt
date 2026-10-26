@@ -77,19 +77,35 @@ fun TodayCourseList(
     // 每行都取一次系统日期太浪费，列表算一次即可
     val today = LocalDate.now()
 
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        groups.forEach { (title, items) ->
-            if (items.isEmpty()) return@forEach
-            SectionPill(title)
-            Spacer(modifier = Modifier.height(2.dp))
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column {
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (style.showPeriods) {
+            // 按时段分组：一个时段内多门课共用一张卡片
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                groups.forEach { (title, items) ->
+                    if (items.isEmpty()) return@forEach
+                    SectionPill(title)
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Card(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            items.forEach { item ->
+                                TodayCourseRow(item, slotMap, pageDate, today, now, style, mark, onCourseClick)
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+            }
+        } else {
+            // 关闭时段分隔：每门课单独一张卡片
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                groups.forEach { (_, items) ->
                     items.forEach { item ->
-                        TodayCourseRow(item, slotMap, pageDate, today, now, style, mark, onCourseClick)
+                        Card(modifier = Modifier.fillMaxWidth()) {
+                            TodayCourseRow(item, slotMap, pageDate, today, now, style, mark, onCourseClick)
+                        }
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }

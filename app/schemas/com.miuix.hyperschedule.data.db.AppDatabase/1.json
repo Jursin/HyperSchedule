@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "2b2c878161f2cf68c981642a03b115ac",
+    "identityHash": "87c131dfd65f18bbde0ee44fd79f05c7",
     "entities": [
       {
         "tableName": "course_tables",
@@ -36,7 +36,7 @@
       },
       {
         "tableName": "course_table_config",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`courseTableId` TEXT NOT NULL, `showWeekends` INTEGER NOT NULL, `semesterStartDate` TEXT, `semesterTotalWeeks` INTEGER NOT NULL, `firstDayOfWeek` INTEGER NOT NULL, PRIMARY KEY(`courseTableId`), FOREIGN KEY(`courseTableId`) REFERENCES `course_tables`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`courseTableId` TEXT NOT NULL, `showWeekends` INTEGER NOT NULL, `semesterStartDate` TEXT, `semesterTotalWeeks` INTEGER NOT NULL, PRIMARY KEY(`courseTableId`), FOREIGN KEY(`courseTableId`) REFERENCES `course_tables`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "courseTableId",
@@ -58,12 +58,6 @@
           {
             "fieldPath": "semesterTotalWeeks",
             "columnName": "semesterTotalWeeks",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "firstDayOfWeek",
-            "columnName": "firstDayOfWeek",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -642,7 +636,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '2b2c878161f2cf68c981642a03b115ac')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '87c131dfd65f18bbde0ee44fd79f05c7')"
     ]
   }
 }

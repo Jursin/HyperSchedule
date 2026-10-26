@@ -22,6 +22,7 @@ import com.miuix.hyperschedule.ui.page.BackupPage
 import com.miuix.hyperschedule.ui.page.ComboEditPage
 import com.miuix.hyperschedule.ui.page.CourseEditPage
 import com.miuix.hyperschedule.ui.page.CourseManagePage
+import com.miuix.hyperschedule.ui.page.CourseReminderPage
 import com.miuix.hyperschedule.ui.page.CourseTableManagePage
 import com.miuix.hyperschedule.ui.page.CourseWeeksPage
 import com.miuix.hyperschedule.ui.page.HolidayPage
@@ -189,16 +190,23 @@ class MainActivity : ComponentActivity() {
                     },
                     scheduleImportPage = { onBack ->
                         ScheduleImportPage(
+                            tables = rememberTableSummaries(repository),
                             table = table,
                             repository = repository,
                             appBlur = settings.blur,
+                            onSwitchTable = { tableId ->
+                                settingsStore.update { it.copy(currentTableId = tableId) }
+                            },
                             onBack = onBack,
                         )
                     },
                     scheduleExportPage = { onBack ->
                         ScheduleExportPage(
                             tables = rememberTableSummaries(repository),
+                            repository = repository,
+                            holidayRepository = holidayRepository,
                             currentTableId = settingsStore.state.currentTableId,
+                            reminder = settings.reminder,
                             appBlur = settings.blur,
                             onBack = onBack,
                         )
@@ -208,6 +216,13 @@ class MainActivity : ComponentActivity() {
                         HolidayPage(
                             repository = holidayRepository,
                             table = table,
+                            appBlur = settings.blur,
+                            onBack = onBack,
+                        )
+                    },
+                    reminderPage = { onBack ->
+                        CourseReminderPage(
+                            store = settingsStore,
                             appBlur = settings.blur,
                             onBack = onBack,
                         )
@@ -260,6 +275,7 @@ class MainActivity : ComponentActivity() {
                             onOpenExport = { navigate(Page.ScheduleExport) },
                             onOpenBackup = { navigate(Page.Backup) },
                             onOpenHoliday = { navigate(Page.Holiday) },
+                            onOpenReminder = { navigate(Page.Reminder) },
                         )
                     }
                 }

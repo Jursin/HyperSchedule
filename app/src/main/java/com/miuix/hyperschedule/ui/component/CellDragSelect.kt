@@ -47,16 +47,17 @@ internal fun Modifier.cellDragSelect(
                 return@awaitEachGesture
             }
             // 按下格的状态决定整段是选中还是取消，base 取按下的那一刻，回拖才有依据
+            val start: Int = anchor
             val base = selectedCells.value()
-            val add = anchor !in base
-            var target = anchor
+            val add = start !in base
+            var target = start
             var dragging = false
             while (true) {
                 val event = awaitPointerEvent()
                 val change = event.changes.firstOrNull { it.id == down.id } ?: event.changes.firstOrNull()
                 if (change == null) break
                 if (!change.pressed) {
-                    if (!dragging) tap.value(anchor)
+                    if (!dragging) tap.value(start)
                     break
                 }
                 val delta = change.position - down.position
@@ -66,17 +67,17 @@ internal fun Modifier.cellDragSelect(
                 ) {
                     dragging = true
                     haptics.performHapticFeedback(HapticFeedbackType.LongPress)
-                    range.value(anchor, anchor, add, base)
+                    range.value(start, start, add, base)
                     change.consume()
                 }
                 if (dragging) {
                     change.consume()
-                    val cell = hit.value(change.position) ?: target
-                    if (cell != target) {
+                    val cell = hit.value(change.position)
+                    if (cell != null && cell != target) {
                         target = cell
                         // 手指每越过一格震动一次
                         haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                        cell?.let { range.value(anchor, it, add, base) }
+                        range.value(start, cell, add, base)
                     }
                 }
             }

@@ -27,6 +27,12 @@ class HolidayRepository(context: Context) {
     fun observe(year: Int): Flow<List<HolidayEntry>> =
         revisionFlow.map { readEntries(year) }.flowOn(Dispatchers.IO)
 
+    /** 某段日期内的条目；学期跨年时把两年合并 */
+    suspend fun entriesIn(startDate: LocalDate, endDate: LocalDate): List<HolidayEntry> =
+        withContext(Dispatchers.IO) {
+            (startDate.year..endDate.year).flatMap { readEntries(it) }
+        }
+
     /** 新增或覆盖；[old] 非空表示编辑原条目（可跨年移动） */
     suspend fun upsert(entry: HolidayEntry, old: HolidayEntry? = null) =
         withContext(Dispatchers.IO) {
