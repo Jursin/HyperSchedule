@@ -4,7 +4,7 @@ import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.schedule.parseMinutes
 
-/** 同一格：同一天且起始节次相同（与网格分格方式一致）；自定义时间课比对起止时间 */
+/** 同一格：同一天且起始节次相同；自定义时间课比对起止时间 */
 internal fun Course.isSameSlotAs(other: Course): Boolean {
     if (day != other.day) return false
     if (isCustomTime || other.isCustomTime) {

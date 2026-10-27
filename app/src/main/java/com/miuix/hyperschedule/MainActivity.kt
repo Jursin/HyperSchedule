@@ -13,6 +13,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import com.miuix.hyperschedule.data.db.AppDatabase
 import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
+import com.miuix.hyperschedule.reminder.ReminderScheduler
 import com.miuix.hyperschedule.theme.AppTheme
 import com.miuix.hyperschedule.theme.SettingsStore
 import com.miuix.hyperschedule.ui.navigation.MainScaffold
@@ -61,6 +62,10 @@ class MainActivity : ComponentActivity() {
             // 课表级数据在这里常驻订阅：进入课程详情页时无需再等一次数据库
             val table = rememberCourseTableData(repository, settingsStore)
             val allCourses = rememberCoursesWithWeeks(repository, table?.tableId)
+            // 提醒重排的全部触发点：启动、改提醒设置、换课表、课程增删改（allCourses 换代）
+            LaunchedEffect(settings.reminder, settings.currentTableId, allCourses) {
+                ReminderScheduler.resync(applicationContext)
+            }
             val checkUpdate: () -> Unit = {
                 coroutineScope.launch {
                     val message = runCatching {

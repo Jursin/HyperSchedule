@@ -55,7 +55,7 @@ data class ComboScheduleJson(
     val publicSchedules: List<PublicScheduleJson> = emptyList(),
 )
 
-/** 公共作息缺单节时长时的兜底，与拾光课程表的默认值一致 */
+/** 公共作息缺单节时长时的兜底 */
 private const val FALLBACK_CLASS_DURATION = 45
 
 @Serializable

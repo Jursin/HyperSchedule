@@ -53,7 +53,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-/** 拉到这条分界线以下才收起，没到就弹回去（与 Miuix 底部抽屉一致） */
+/** 拉到这条分界线以下才收起，没到就弹回去 */
 private val DismissDistance = 150.dp
 
 /** 甩得够快时不必非要拉过 [DismissDistance] */

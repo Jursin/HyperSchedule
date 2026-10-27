@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -21,13 +23,18 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.LifecycleOwner
+import com.miuix.hyperschedule.reminder.PrivilegedService
 import com.miuix.hyperschedule.reminder.ReminderPermissions
+import com.miuix.hyperschedule.reminder.ShizukuAccess
+import com.miuix.hyperschedule.reminder.SuperIsland
 import com.miuix.hyperschedule.theme.ReminderSettings
 import com.miuix.hyperschedule.theme.SettingsStore
 import com.miuix.hyperschedule.ui.component.NumberPickerDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.ValueLabel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
@@ -49,12 +56,17 @@ fun CourseReminderPage(
     var tempMinuteIndex by remember { mutableIntStateOf(0) }
 
     var perms by remember(context) { mutableStateOf(ReminderPermissions.read(context)) }
+    var shizukuGranted by remember { mutableStateOf(ShizukuAccess.hasPermission) }
+    val islandSupported = remember { SuperIsland.isSupported() }
     // 用户去系统设置授权后回来要立刻反映，否则状态一直是旧的
     val lifecycleOwner = remember(context) { context.findLifecycleOwner() }
     DisposableEffect(lifecycleOwner, context) {
         val observer =
             LifecycleEventObserver { _, event ->
-                if (event == Lifecycle.Event.ON_RESUME) perms = ReminderPermissions.read(context)
+                if (event == Lifecycle.Event.ON_RESUME) {
+                    perms = ReminderPermissions.read(context)
+                    shizukuGranted = ShizukuAccess.hasPermission
+                }
             }
         lifecycleOwner?.lifecycle?.addObserver(observer)
         onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
@@ -81,13 +93,42 @@ fun CourseReminderPage(
         store.update { state -> state.copy(reminder = transform(state.reminder)) }
     }
 
+    fun requestShizuku() {
+        if (!ShizukuAccess.isRunning) {
+            // 服务没起时管理器也弹不出授权框，只能把用户领到管理器里自己点启动
+            Toast.makeText(context, "请先在 Shizuku 中启动服务", Toast.LENGTH_LONG).show()
+            ShizukuAccess.openManager(context)
+            return
+        }
+        ShizukuAccess.requestPermission { granted ->
+            shizukuGranted = granted
+        }
+    }
+
+    // 岛要靠这层授权绕过系统校验，进页面就顺手把授权框弹出来，别让用户自己去找
+    LaunchedEffect(islandSupported) {
+        if (!islandSupported || ShizukuAccess.hasPermission) return@LaunchedEffect
+        ShizukuAccess.requestPermissionWhenReady { granted ->
+            shizukuGranted = granted
+        }
+    }
+
+    // 绕行前要现绑 shell 侧服务，首次要等它起进程；进页面先热一下，到点就不用干等
+    LaunchedEffect(islandSupported, shizukuGranted) {
+        if (!islandSupported || !shizukuGranted) return@LaunchedEffect
+        withContext(Dispatchers.IO) { PrivilegedService.get(context) }
+    }
+
     val master = reminder.enabled
 
     PreferenceScreen(title = "课程提醒", appBlur = appBlur, onBack = onBack) {
         PreferenceSection {
             SwitchPreference(
                 checked = master,
-                onCheckedChange = { checked -> update { it.copy(enabled = checked) } },
+                onCheckedChange = { checked ->
+                    update { it.copy(enabled = checked) }
+                    if (checked) requestNotification()
+                },
                 title = "开启提醒",
             )
             if (master) {
@@ -172,6 +213,14 @@ fun CourseReminderPage(
                 endActions = { ValueLabel("前往检查") },
                 onClick = { ReminderPermissions.openAppDetailsSettings(context) },
             )
+            if (islandSupported) {
+                ArrowPreference(
+                    title = "Shizuku 授权",
+                    summary = "将通知样式提升为小米超级岛",
+                    endActions = { GrantedLabel(shizukuGranted) },
+                    onClick = { if (!shizukuGranted) requestShizuku() },
+                )
+            }
         }
     }
 

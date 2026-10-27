@@ -194,12 +194,7 @@ data class SettingsState(
     val reminder: ReminderSettings = ReminderSettings(), // 课程提醒
 )
 
-/**
- * 课程提醒设置。
- *
- * 目前只有 [enabled] 与 [preMinutes] 真正生效（决定 ICS 导出时的课前提醒），
- * [inClass] 与 [autoDnd] 只是先把选择记下来，等接入通知调度后再用。
- */
+/** 课程提醒设置 */
 data class ReminderSettings(
     val enabled: Boolean = false,
     val preMinutes: Int = 10,

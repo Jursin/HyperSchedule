@@ -179,6 +179,23 @@ class ScheduleRepository(
     fun coursesWithWeeksOfTable(courseTableId: String): Flow<List<CourseWithWeeks>> =
         courseDao.getCoursesWithWeeksByTableId(courseTableId)
 
+    /** 当前该用哪张课表 */
+    suspend fun existingTableIdOnce(preferredId: String?): String? =
+        withContext(Dispatchers.IO) {
+            preferredId?.let { tableDao.getTableOnce(it) }?.id ?: tableDao.getFirstTableOnce()?.id
+        }
+
+    /** 学期起始日与总周数 */
+    suspend fun configOnce(courseTableId: String): CourseTableConfig? =
+        withContext(Dispatchers.IO) { tableDao.getConfigOnce(courseTableId) }
+
+    /** 整张课表的课程，含周次 */
+    suspend fun coursesOnce(courseTableId: String): List<CourseWithWeeks> =
+        coursesWithWeeksOfTable(courseTableId).first()
+
+    /** 当前生效的节次（含组合规则的按日期切换），取第一帧即可 */
+    suspend fun slotsOnce(courseTableId: String): List<TimeSlot> = timeSlotsOf(courseTableId).first()
+
     /** 编辑页保存：一次事务内删除被移除的时段，写入（新增或更新）其余时段与周次 */
     suspend fun saveCourseEdits(
         deletedIds: List<String>,
