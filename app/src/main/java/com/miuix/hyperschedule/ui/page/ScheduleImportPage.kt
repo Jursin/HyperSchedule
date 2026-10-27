@@ -18,13 +18,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.data.importer.CourseTableJson
+import com.miuix.hyperschedule.data.importer.share.ShareCodeImport
+import com.miuix.hyperschedule.data.importer.share.ShareCodeSource
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.data.repository.TableSummary
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.ui.CourseTableData
 import com.miuix.hyperschedule.ui.component.IconHeaderDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.SelectableEditRow
+import com.miuix.hyperschedule.ui.component.ShareCodeDialog
 import com.miuix.hyperschedule.ui.component.TableNameDialog
 import com.miuix.hyperschedule.ui.component.WideActionButton
 import kotlinx.coroutines.Dispatchers
@@ -34,10 +39,17 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 
-/** 导入来源：决定用哪个解析器 */
+/** 文件导入来源：决定用哪个解析器 */
 private enum class ImportSource {
     JSON,
     ICS,
+}
+
+/** 待导入内容：选好文件或取回口令后，等用户指定目标课表 */
+private sealed interface PendingImport {
+    data class File(val source: ImportSource, val text: String) : PendingImport
+
+    data class Share(val payload: CourseTableJson) : PendingImport
 }
 
 /** 课表导入：选好文件后先选目标课表，可直接新建一张再导入 */
@@ -53,18 +65,27 @@ fun ScheduleImportPage(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // 读到的文件内容；选完课表才真正落库
-    var pending by remember { mutableStateOf<Pair<ImportSource, String>?>(null) }
+    var pending by remember { mutableStateOf<PendingImport?>(null) }
     var launching by remember { mutableStateOf(ImportSource.JSON) }
     var showPicker by remember { mutableStateOf(false) }
     var showNameDialog by remember { mutableStateOf(false) }
     var selectedTableId by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
+    var shareSource by remember { mutableStateOf<ShareCodeSource?>(null) }
+    var shareBusy by remember { mutableStateOf(false) }
+    var shareError by remember { mutableStateOf<String?>(null) }
 
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
 
+    /** 内容到手后统一走这里：默认选中当前课表，用户再确认或改选 */
+    fun askTargetTable(item: PendingImport) {
+        pending = item
+        selectedTableId = table?.tableId ?: tables.firstOrNull()?.table?.id
+        showPicker = true
+    }
+
     fun importInto(tableId: String) {
-        val (source, text) = pending ?: return
+        val item = pending ?: return
         if (busy) return
         busy = true
         showPicker = false
@@ -72,9 +93,13 @@ fun ScheduleImportPage(
             val result =
                 runCatching {
                     withContext(Dispatchers.IO) {
-                        when (source) {
-                            ImportSource.JSON -> repository.importCourseTableJson(text, tableId)
-                            ImportSource.ICS -> repository.importIcs(text, tableId)
+                        when (item) {
+                            is PendingImport.File ->
+                                when (item.source) {
+                                    ImportSource.JSON -> repository.importCourseTableJson(item.text, tableId)
+                                    ImportSource.ICS -> repository.importIcs(item.text, tableId)
+                                }
+                            is PendingImport.Share -> repository.importShareCode(item.payload, tableId)
                         }
                     }
                 }
@@ -83,9 +108,29 @@ fun ScheduleImportPage(
             result.fold(
                 onSuccess = {
                     onSwitchTable(tableId)
-                    toast("已导入 $it 门课程")
+                    toast("已导入${it}门课程".cjkDigitGap())
                 },
-                onFailure = { toast("导入失败：${it.message ?: "文件格式不正确"}") },
+                onFailure = { toast("导入失败：${it.message ?: "内容格式不正确"}") },
+            )
+        }
+    }
+
+    fun submitShareCode(
+        source: ShareCodeSource,
+        code: String,
+    ) {
+        if (shareBusy) return
+        shareBusy = true
+        shareError = null
+        scope.launch {
+            val result = runCatching { ShareCodeImport.fetch(source, code) }
+            shareBusy = false
+            result.fold(
+                onSuccess = { payload ->
+                    shareSource = null
+                    askTargetTable(PendingImport.Share(payload))
+                },
+                onFailure = { shareError = it.message ?: "没有取到课表数据" },
             )
         }
     }
@@ -105,9 +150,7 @@ fun ScheduleImportPage(
                         if (text.isBlank()) {
                             toast("文件是空的")
                         } else {
-                            pending = source to text
-                            selectedTableId = table?.tableId ?: tables.firstOrNull()?.table?.id
-                            showPicker = true
+                            askTargetTable(PendingImport.File(source, text))
                         }
                     },
                     onFailure = { toast("读取失败：${it.message ?: "无法读取文件"}") },
@@ -144,18 +187,16 @@ fun ScheduleImportPage(
         }
 
         PreferenceSection("口令") {
-            ArrowPreference(
-                title = "WakeUp 课程表分享口令导入",
-                onClick = {},
-            )
-            ArrowPreference(
-                title = "星链课表分享码导入",
-                onClick = {},
-            )
-            ArrowPreference(
-                title = "Nexio 课程表分享口令导入",
-                onClick = {},
-            )
+            ShareCodeSource.entries.forEach { source ->
+                ArrowPreference(
+                    title = "${source.label}${source.codeName}导入",
+                    summary = source.hint,
+                    onClick = {
+                        shareError = null
+                        shareSource = source
+                    },
+                )
+            }
         }
     }
 
@@ -180,7 +221,7 @@ fun ScheduleImportPage(
                         title = summary.table.name.ifBlank { "未命名" },
                         summary =
                             if (summary.courseCount > 0) {
-                                "共 ${summary.courseCount} 门课程，导入后将被覆盖"
+                                "共${summary.courseCount}门课程，导入后将被覆盖".cjkDigitGap()
                             } else {
                                 "暂无课程"
                             },
@@ -195,6 +236,22 @@ fun ScheduleImportPage(
                 onClick = { showNameDialog = true },
             )
         }
+    }
+
+    shareSource?.let { source ->
+        ShareCodeDialog(
+            title = "${source.label}导入",
+            hint = source.hint,
+            appBlur = appBlur,
+            busy = shareBusy,
+            error = shareError,
+            onDismiss = {
+                if (shareBusy) return@ShareCodeDialog
+                shareSource = null
+                shareError = null
+            },
+            onSubmit = { code -> submitShareCode(source, code) },
+        )
     }
 
     if (showNameDialog) {

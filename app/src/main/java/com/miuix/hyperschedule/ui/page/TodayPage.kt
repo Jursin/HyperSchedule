@@ -29,9 +29,11 @@ import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import com.miuix.hyperschedule.schedule.HolidayDay
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.parseDateOrNull
 import com.miuix.hyperschedule.theme.PageBottomInset
+import com.miuix.hyperschedule.theme.ReminderSettings
 import com.miuix.hyperschedule.theme.TodayStyle
 import com.miuix.hyperschedule.ui.CourseTableData
 import com.miuix.hyperschedule.ui.DatePager
@@ -72,6 +74,7 @@ fun TodayPage(
     table: CourseTableData?,
     style: TodayStyle = TodayStyle.Default,
     onStyleChange: (TodayStyle) -> Unit = {},
+    reminder: ReminderSettings = ReminderSettings.Default,
     holidayRepository: HolidayRepository? = null,
     appBlur: Boolean = false,
     onCourseClick: (name: String, week: Int) -> Unit = { _, _ -> },
@@ -88,6 +91,9 @@ fun TodayPage(
             table?.config?.semesterStartDate?.let(::parseDateOrNull)
         }
     val totalWeeks = (table?.config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
+
+    val preClassMinutes =
+        if (reminder.enabled) reminder.preMinutes else ReminderSettings.Default.preMinutes
 
     // 放假 / 调休：与课表页共用同一张（周次, 星期）表，翻日期只查表
     val holidayPlan = rememberHolidayPlan(holidayRepository, startDate, totalWeeks)
@@ -202,6 +208,7 @@ fun TodayPage(
                             pageDate = date,
                             style = style,
                             mark = mark,
+                            preClassMinutes = preClassMinutes,
                             modifier = Modifier.padding(top = 8.dp),
                             onCourseClick = { course -> shownWeek?.let { onCourseClick(course.name, it) } },
                         )
@@ -267,7 +274,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "${date.year}年${date.monthValue}月${date.dayOfMonth}日 ${dayLabel(date.dayOfWeek.value)}",
+            text = "${date.year}年${date.monthValue}月${date.dayOfMonth}日 ${dayLabel(date.dayOfWeek.value)}".cjkDigitGap(),
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             color = MiuixTheme.colorScheme.onSurface,

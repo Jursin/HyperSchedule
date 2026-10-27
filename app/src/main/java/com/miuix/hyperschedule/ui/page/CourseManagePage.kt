@@ -34,6 +34,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.theme.CourseTintAlpha
 import com.miuix.hyperschedule.theme.PageBottomInset
 import com.miuix.hyperschedule.theme.SectionSpacing
@@ -189,7 +190,7 @@ fun CourseManagePage(
         ConfirmDialog(
             title = "删除课程",
             appBlur = appBlur,
-            message = "确定要删除选中的 ${selected.size} 门课程吗？",
+            message = "确定要删除选中的${selected.size}门课程吗？".cjkDigitGap(),
             confirmText = "删除",
             destructive = true,
             onDismiss = { deleteConfirm = false },
@@ -251,7 +252,7 @@ private fun CourseManageCard(
                             contentAlignment = Alignment.Center,
                         ) {
                             Text(
-                                text = "$slotCount 个时段",
+                                text = "${slotCount}个时段".cjkDigitGap(),
                                 style = MiuixTheme.textStyles.footnote2,
                                 maxLines = 1,
                                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -265,7 +266,7 @@ private fun CourseManageCard(
                 }
                 if (credit != null) {
                     Spacer(modifier = Modifier.height(if (teacher.isNotBlank()) 4.dp else 10.dp))
-                    MetaRow(icon = MiuixIcons.Create, text = "${formatCredit(credit)} 学分")
+                    MetaRow(icon = MiuixIcons.Create, text = "${formatCredit(credit)}学分".cjkDigitGap())
                 }
             }
         }

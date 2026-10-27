@@ -28,6 +28,7 @@ import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.data.model.TimeSlot
 import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.parseDateOrNull
 import com.miuix.hyperschedule.schedule.weekDatesOf
 import com.miuix.hyperschedule.theme.SectionSpacing
@@ -156,7 +157,7 @@ fun CourseWeeksPage(
                 item(key = weekNumber) {
                     // 与设置页一致：标题和卡片之间也留 12dp 列间距
                     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
-                        SectionTitle("第${weekNumber}周")
+                        SectionTitle("第${weekNumber}周".cjkDigitGap())
                         Card(modifier = Modifier.fillMaxWidth()) {
                             Column {
                                 rows.forEach { row ->

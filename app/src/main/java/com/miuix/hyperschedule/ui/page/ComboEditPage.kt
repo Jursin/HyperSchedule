@@ -24,6 +24,7 @@ import com.miuix.hyperschedule.data.model.TimeTable
 import com.miuix.hyperschedule.data.model.TimeTableComboRule
 import com.miuix.hyperschedule.data.repository.ComboDetail
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.formatDate
 import com.miuix.hyperschedule.schedule.parseDateOrNull
 import com.miuix.hyperschedule.theme.SectionSpacing
@@ -217,7 +218,7 @@ private fun ComboEditContent(
 
         val noTarget = targetOptions.isEmpty()
         rules.forEachIndexed { index, rule ->
-            PreferenceSection("切换规则 ${index + 1}") {
+            PreferenceSection("切换规则${index + 1}".cjkDigitGap()) {
                 WindowDropdownPreference(
                     title = "目标作息",
                     items = if (noTarget) listOf("请先创建公共作息") else targetOptions,

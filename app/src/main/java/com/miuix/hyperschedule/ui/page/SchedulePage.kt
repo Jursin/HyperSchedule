@@ -30,6 +30,7 @@ import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_SECTION_TIMES
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import com.miuix.hyperschedule.schedule.MAX_TOTAL_WEEKS
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.parseDateOrNull
 import com.miuix.hyperschedule.theme.ScheduleStyle
@@ -371,7 +372,7 @@ fun SchedulePage(
             value = jumpWeek,
             onValueChange = { jumpWeek = it },
             range = 1..totalWeeks,
-            label = { "第${it}周" },
+            label = { "第${it}周".cjkDigitGap() },
             appBlur = appBlur,
             onDismiss = { showJumpDialog = false },
             onConfirm = {

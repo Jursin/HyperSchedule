@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
 import com.miuix.hyperschedule.ui.component.WeekdayRow
 import java.time.LocalDate
@@ -54,7 +55,7 @@ internal fun ScheduleTopBar(
             startDate == null -> "未设置开学日期"
             pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
-            else -> "第${pageWeek}周"
+            else -> "第${pageWeek}周".cjkDigitGap()
         }
     // 跳转按钮的图标与文字取同一尺寸
     val titleFontSize = MiuixTheme.textStyles.title3.fontSize

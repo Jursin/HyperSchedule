@@ -453,6 +453,16 @@ class ScheduleRepository(
             importParsed(data, tableId)
         }
 
+    /** 分享码 / 口令导入：解析结果与 JSON 文件走同一套落库流程 */
+    suspend fun importShareCode(
+        payload: CourseTableJson,
+        tableId: String,
+    ): Int =
+        withContext(Dispatchers.IO) {
+            payload.requireValidForImport()
+            importParsed(payload, tableId)
+        }
+
     /** 两种导入来源共用的落库流程；没有课程的文件不导入，避免把已有课表清空 */
     private suspend fun importParsed(
         data: CourseTableJson,

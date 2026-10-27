@@ -3,6 +3,7 @@ package com.miuix.hyperschedule.ui.page.courseedit
 import androidx.compose.ui.graphics.Color
 import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.ui.component.formatCredit
 import java.util.UUID
 
@@ -179,7 +180,7 @@ internal fun timeText(group: GroupDraft): String =
     } else {
         val start = group.startSection
         val end = group.endSection
-        if (start == end) "第${start}节" else "第${start}-${end}节"
+        (if (start == end) "第${start}节" else "第${start}-${end}节").cjkDigitGap()
     }
 
 /** 学分只保留数字与一个小数点，最多一位小数 */

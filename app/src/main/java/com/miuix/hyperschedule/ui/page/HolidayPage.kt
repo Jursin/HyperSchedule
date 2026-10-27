@@ -24,6 +24,7 @@ import com.miuix.hyperschedule.data.model.HolidayEntry
 import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import com.miuix.hyperschedule.schedule.adjustDate
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.formatDate
 import com.miuix.hyperschedule.schedule.parseDateOrNull
@@ -99,7 +100,7 @@ fun HolidayPage(
                             loading = false
                             Toast.makeText(
                                 context,
-                                result.fold({ "已更新 $it 条 $year 年数据" }, { "更新失败：${it.message ?: "网络错误"}" }),
+                                result.fold({ "已更新${it}条${year}年数据".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
                                 Toast.LENGTH_LONG,
                             ).show()
                         }
@@ -379,7 +380,7 @@ private fun FollowCourseField(
                     NumberWheelRow(
                         value = followWeek,
                         range = 1..totalWeeks,
-                        label = { "第${it}周" },
+                        label = { "第${it}周".cjkDigitGap() },
                         onValueChange = onWeekChange,
                         modifier = Modifier.weight(1f),
                     )
@@ -425,9 +426,9 @@ private fun displayDate(value: String): String = parseDateOrNull(value)?.let(::f
 private fun entrySummary(entry: HolidayEntry): String {
     val start = displayDate(entry.date)
     if (entry.type == HolidayEntry.TYPE_HOLIDAY) {
-        return if (entry.endDate.isBlank()) start else "$start 至 ${displayDate(entry.endDate)}"
+        return if (entry.endDate.isBlank()) start else "${start}至${displayDate(entry.endDate)}".cjkDigitGap()
     }
     val follow = parseDateOrNull(entry.followDate)
-    val tail = if (follow == null) "未设置跟随课程" else "上 ${follow.monthValue}月${follow.dayOfMonth}日 的课"
+    val tail = if (follow == null) "未设置跟随课程" else "上${follow.monthValue}月${follow.dayOfMonth}日的课".cjkDigitGap()
     return "$start · $tail"
 }

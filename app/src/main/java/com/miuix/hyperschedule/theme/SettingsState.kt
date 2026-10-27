@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -219,7 +220,7 @@ data class ReminderSettings(
         /** 自动勿扰的档位，下标即 [dndMode] */
         val DND_MODE_LABELS = listOf("完全勿扰", "静音模式", "勿扰模式")
 
-        fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "$minutes 分钟"
+        fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "${minutes}分钟".cjkDigitGap()
 
         /** 把存下来的分钟数收敛到最近的档位，避免落在一个滚轮里没有的值 */
         fun snapPreMinutes(minutes: Int): Int = PRE_MINUTE_OPTIONS.minBy { abs(it - minutes) }

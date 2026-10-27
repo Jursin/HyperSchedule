@@ -12,6 +12,7 @@ import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.ui.unit.sp
 import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.data.model.TimeSlot
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -89,7 +90,7 @@ internal fun Course.sectionLabel(): String {
     }
     val start = startSection ?: return "未设置节次"
     val end = endSection ?: start
-    return if (start == end) "第${start}节" else "第${start}-${end}节"
+    return (if (start == end) "第${start}节" else "第${start}-${end}节").cjkDigitGap()
 }
 
 internal fun startTimeOf(course: Course, slotMap: Map<Int, TimeSlot>): String? =
@@ -125,7 +126,7 @@ internal fun formatWeeks(weeks: List<Int>): String {
         prev = week
     }
     parts += if (start == prev) "$start" else "$start-$prev"
-    return "第${parts.joinToString(", ")}周"
+    return "第${parts.joinToString(", ")}周".cjkDigitGap()
 }
 
 /** 学分显示：整数不带小数点 */

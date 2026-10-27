@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.state.ToggleableState
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.formatMinutes
 import com.miuix.hyperschedule.schedule.parseMinutes
 import com.miuix.hyperschedule.ui.component.CheckLabel
@@ -131,7 +132,7 @@ internal fun TimeDialog(
                     NumberWheelRow(
                         value = startSection,
                         range = 1..sectionCount,
-                        label = { "第${it}节" },
+                        label = { "第${it}节".cjkDigitGap() },
                         onValueChange = { startSection = it },
                     )
                 }
@@ -151,7 +152,7 @@ internal fun TimeDialog(
                     NumberWheelRow(
                         value = endSection,
                         range = startSection..sectionCount,
-                        label = { "第${it}节" },
+                        label = { "第${it}节".cjkDigitGap() },
                         onValueChange = { endSection = it },
                     )
                 }

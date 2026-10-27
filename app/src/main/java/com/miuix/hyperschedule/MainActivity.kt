@@ -235,6 +235,7 @@ class MainActivity : ComponentActivity() {
                                 table = table,
                                 style = settings.todayStyle,
                                 onStyleChange = { newStyle -> settingsStore.update { it.copy(todayStyle = newStyle) } },
+                                reminder = settings.reminder,
                                 holidayRepository = holidayRepository,
                                 appBlur = settings.blur,
                                 onCourseClick = { name, week -> navigate(Page.CourseDetail(name, week)) },

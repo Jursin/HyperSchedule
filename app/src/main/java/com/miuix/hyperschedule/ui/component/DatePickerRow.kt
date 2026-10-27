@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 
 /** 日期选择器的年份范围，所有日期选择器统一取这里 */
 val DatePickerYearRange = 2000..2099
@@ -35,14 +36,14 @@ fun DatePickerRow(
         NumberWheelRow(
             value = month,
             range = 1..12,
-            label = { "${it}月" },
+            label = { "${it}月".cjkDigitGap() },
             onValueChange = onMonthChange,
             modifier = Modifier.weight(1f),
         )
         NumberWheelRow(
             value = day,
             range = 1..31,
-            label = { "${it}日" },
+            label = { "${it}日".cjkDigitGap() },
             onValueChange = onDayChange,
             modifier = Modifier.weight(1f),
         )

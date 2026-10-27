@@ -31,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.Course
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SheetBottomInset
 import com.miuix.hyperschedule.theme.SheetMaxHeight
@@ -226,6 +227,6 @@ private fun summaryText(course: Course, weeks: List<Int>): AnnotatedString =
                 append('\n')
             }
             infoIcon(InfoIconId.CREDIT, "学分")
-            fieldValue("${formatCredit(credit)}学分")
+            fieldValue("${formatCredit(credit)}学分".cjkDigitGap())
         }
     }

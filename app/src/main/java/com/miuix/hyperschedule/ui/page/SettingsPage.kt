@@ -10,6 +10,7 @@ import androidx.compose.runtime.setValue
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import com.miuix.hyperschedule.schedule.MAX_TOTAL_WEEKS
+import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.formatDate
 import com.miuix.hyperschedule.schedule.parseDateOrNull
@@ -73,7 +74,7 @@ fun SettingsPage(
             currentWeek == null -> "未设置"
             currentWeek < 1 -> "未开学"
             currentWeek > totalWeeks -> "学期已结束"
-            else -> "第${currentWeek}周"
+            else -> "第${currentWeek}周".cjkDigitGap()
         }
 
     PreferenceScreen(
@@ -103,7 +104,7 @@ fun SettingsPage(
             )
             ArrowPreference(
                 "本学期总周数",
-                endActions = { ValueLabel("共${totalWeeks}周") },
+                endActions = { ValueLabel("共${totalWeeks}周".cjkDigitGap()) },
                 onClick = {
                     totalWeeksDraft = totalWeeks
                     showTotalWeeksDialog = true
@@ -164,7 +165,7 @@ fun SettingsPage(
             value = weekDraft,
             onValueChange = { weekDraft = it },
             range = 1..totalWeeks,
-            label = { "第${it}周" },
+            label = { "第${it}周".cjkDigitGap() },
             appBlur = state.blur,
             onDismiss = { showCurrentWeekDialog = false },
             onConfirm = {
@@ -181,7 +182,7 @@ fun SettingsPage(
             value = totalWeeksDraft,
             onValueChange = { totalWeeksDraft = it },
             range = 1..MAX_TOTAL_WEEKS,
-            label = { "共${it}周" },
+            label = { "共${it}周".cjkDigitGap() },
             appBlur = state.blur,
             onDismiss = { showTotalWeeksDialog = false },
             onConfirm = {
