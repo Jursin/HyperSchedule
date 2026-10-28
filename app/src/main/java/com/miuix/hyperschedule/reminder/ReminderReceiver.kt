@@ -56,9 +56,15 @@ class ReminderReceiver : BroadcastReceiver() {
             }
             ReminderScheduler.TYPE_DAY_ROLLOVER -> ReminderScheduler.resyncNow(context)
             else -> {
-                // 上课那一刻收起课前那条；上课、下课与每分钟对账都只是对齐状态
-                if (type == ReminderScheduler.TYPE_CLASS_START) ReminderNotifier.cancelPreClass(context)
-                ReminderRuntime.sync(context, data.reminder, courses, now)
+                // 上课那一刻先收干净，之后挂哪条交给对账
+                if (type == ReminderScheduler.TYPE_CLASS_START) ReminderNotifier.cancelAll(context)
+                ReminderRuntime.sync(
+                    context = context,
+                    reminder = data.reminder,
+                    today = courses,
+                    now = now,
+                    periodic = type == ReminderScheduler.TYPE_LIVE_TICK,
+                )
             }
         }
     }

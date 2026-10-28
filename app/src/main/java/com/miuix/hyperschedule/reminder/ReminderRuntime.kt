@@ -12,27 +12,28 @@ internal object ReminderRuntime {
         reminder: ReminderSettings,
         today: List<DayCourse>,
         now: LocalDateTime,
+        periodic: Boolean = false,
     ) {
         val ongoing = today.filter { it.isOngoing(now) }.maxByOrNull { it.end ?: it.start }
         val preClassWindow = inPreClassWindow(today, now, reminder.preMinutes)
         val island = SuperIsland.canPost()
+        val inClass = if (reminder.inClass) ongoing else null
 
-        if (ongoing != null && reminder.inClass) {
-            // 课前那条用的是另一个 id，上课时换成下课倒计时
-            ReminderNotifier.notifyInClass(context, ongoing)
-        } else if (!preClassWindow) {
-            // 课前窗口内留着那条倒计时；出了窗口（下课、课被删）才收
+        if (inClass != null) {
+            // 岛自己走字，对账不重发
+            if (!periodic || !island) ReminderNotifier.notifyInClass(context, inClass)
+        } else if (preClassWindow) {
+            // 课前窗口只收课中那条
             ReminderNotifier.cancel(context, ReminderNotifier.IN_CLASS_ID)
+        } else {
+            // 下课或课被删，三条一起收
+            ReminderNotifier.cancelAll(context)
         }
-        // 授权没了以后残留下来的那条岛通知：实时动态接不了课前那条固定 id
+        // 授权没了残留的岛
         if (!island) ReminderNotifier.cancel(context, ReminderNotifier.PRE_CLASS_ID)
 
-        // 岛上的倒计时由系统自刷，只有实时动态那条需要应用每分钟重推一次进度
-        val ticking =
-            !island &&
-                ReminderPermissions.canPostPromotedNotifications(context) &&
-                (preClassWindow || (ongoing != null && reminder.inClass))
-        if (ticking) {
+        // 有东西可显示就每分钟对账
+        if (preClassWindow || inClass != null) {
             ReminderScheduler.scheduleLiveTick(context, now)
         } else {
             ReminderScheduler.cancelLiveTick(context)
@@ -47,9 +48,9 @@ internal object ReminderRuntime {
         }
     }
 
-    /** 关掉提醒时收拾现场：撤掉两条通知与对账闹钟，把勿扰还回去 */
+    /** 关掉提醒时收拾现场 */
     fun reset(context: Context) {
-        ReminderNotifier.cancelPreClass(context)
+        ReminderNotifier.cancelAll(context)
         ReminderScheduler.cancelLiveTick(context)
         ClassDnd.restore(context)
     }

@@ -115,7 +115,8 @@ fun MainScaffold(
         ) -> Unit = { _, _, _, _, _, _ -> },
     timeTableManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     courseTableManagePage: @Composable (onBack: () -> Unit) -> Unit = {},
-    scheduleImportPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    scheduleImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
+    eduImportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
@@ -301,7 +302,12 @@ fun MainScaffold(
                 }
                 entry<Page.ScheduleImport> {
                     NavEntry(interceptPredictiveBack, onBack) {
-                        scheduleImportPage(onBack)
+                        scheduleImportPage(navigate, onBack)
+                    }
+                }
+                entry<Page.EduImport> {
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        eduImportPage(onBack)
                     }
                 }
                 entry<Page.ScheduleExport> {

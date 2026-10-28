@@ -60,6 +60,7 @@ fun ScheduleImportPage(
     repository: ScheduleRepository,
     appBlur: Boolean = false,
     onSwitchTable: (String) -> Unit = {},
+    onOpenEduImport: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -163,7 +164,7 @@ fun ScheduleImportPage(
             ArrowPreference(
                 title = "教务系统导入",
                 summary = "从学校教务系统抓取课表导入",
-                onClick = {},
+                onClick = onOpenEduImport,
             )
         }
 

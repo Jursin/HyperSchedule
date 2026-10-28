@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -44,6 +45,7 @@ import com.miuix.hyperschedule.ui.component.ScheduleAppearanceSheet
 import com.miuix.hyperschedule.ui.component.ScheduleDragLayer
 import com.miuix.hyperschedule.ui.component.ScheduleLayout
 import com.miuix.hyperschedule.ui.component.isSameSlotAs
+import com.miuix.hyperschedule.ui.component.rememberStretchOverscrollState
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import com.miuix.hyperschedule.ui.navigation.LocalLastTapDown
 import com.miuix.hyperschedule.ui.navigation.LocalMainTabNavigating
@@ -51,15 +53,21 @@ import com.miuix.hyperschedule.ui.navigation.LocalPageIsCurrent
 import com.miuix.hyperschedule.ui.navigation.ProvideOverlay
 import com.miuix.hyperschedule.ui.page.schedule.EdgePages
 import com.miuix.hyperschedule.ui.page.schedule.HistoryFabColumn
+import com.miuix.hyperschedule.ui.page.schedule.PagerSettleSlot
 import com.miuix.hyperschedule.ui.page.schedule.PendingCell
 import com.miuix.hyperschedule.ui.page.schedule.ScheduleTopBar
+import com.miuix.hyperschedule.ui.page.schedule.ScheduleTouchState
 import com.miuix.hyperschedule.ui.page.schedule.ScheduleWeekPage
+import com.miuix.hyperschedule.ui.page.schedule.rememberEdgeAutoPager
 import com.miuix.hyperschedule.ui.page.schedule.rememberScheduleEditor
+import com.miuix.hyperschedule.ui.page.schedule.scheduleDragOwner
+import com.miuix.hyperschedule.ui.page.schedule.schedulePagerGesture
 import com.miuix.hyperschedule.ui.rememberHolidayPlan
 import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -78,14 +86,14 @@ fun SchedulePage(
     onAddCourse: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
     onManageCourses: () -> Unit = {},
     onManageTables: () -> Unit = {},
-    // 拖动改位置用：deletedIds 为覆盖掉的课程
+    // 拖动改位置用
     onSaveCourses: (deletedIds: List<String>, rows: List<Pair<Course, List<Int>>>) -> Unit = { _, _ -> },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
 
-    // 每分钟走一格：跨零点换天、当前节次高亮都要自己滚
+    // 每分钟走一格
     val now by
         produceState(initialValue = LocalDateTime.now()) {
             while (true) {
@@ -95,11 +103,11 @@ fun SchedulePage(
         }
     val today = now.toLocalDate()
 
-    // 导入的作息可能不是 8 节，节次列与网格高度都跟着它走
+    // 节次列与网格高度跟着作息走
     val sectionTimes = table?.sectionTimes ?: DEFAULT_SECTION_TIMES
     val config = table?.config
 
-    // 网格几何：特殊节次插空、午休/晚休分界线，页与列共用同一份
+    // 网格几何
     val specialBlocks = table?.specialBlocks.orEmpty()
     val morningSplit = table?.morningAfternoonSplit.orEmpty()
     val eveningSplit = table?.afternoonEveningSplit.orEmpty()
@@ -120,18 +128,23 @@ fun SchedulePage(
     val totalWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
     val currentWeek = remember(startDate, today) { startDate?.let { currentWeekOf(it, today) } }
 
-    // 放假 / 调休：整学期按（周次, 星期）算成一张索引表，翻页只查表
+    // 放假 / 调休
     val holidayPlan = rememberHolidayPlan(holidayRepository, startDate, totalWeeks)
 
-    // 拖动与撤销：改位置只在松手时落库，历史里只记网格内的移动
-    val editor = rememberScheduleEditor(layout, onSaveCourses)
+    // 拖动与撤销
+    val editor =
+        rememberScheduleEditor(
+            layout = layout,
+            isRemapped = { week, day -> holidayPlan.of(week, day).remapped },
+            onSave = onSaveCourses,
+        )
 
     fun pageOfWeek(week: Int): Int = EdgePages + week - 1
 
     val todayPage = currentWeek?.let { pageOfWeek(it) }
     val pageCount = EdgePages * 2 + MAX_TOTAL_WEEKS
     val lastPage = pageCount - 1
-    // 页数固定，学期设置变化时只影响内容，不动 pager 本身
+    // 页数固定，学期设置只影响内容
     val pagerState =
         remember {
             PagerState(
@@ -143,7 +156,7 @@ fun SchedulePage(
 
     var pendingCell by remember { mutableStateOf<PendingCell?>(null) }
     var detailAnchor by remember { mutableStateOf<Course?>(null) }
-    // 点开的那张卡属于哪一周（补课列可能是别的周），抽屉按它判断「本周生效」
+    // 点开的卡属于哪一周
     var detailWeek by remember { mutableIntStateOf(0) }
     var detailVisible by remember { mutableStateOf(false) }
     var appearanceVisible by remember { mutableStateOf(false) }
@@ -152,13 +165,21 @@ fun SchedulePage(
     var showJumpDialog by remember { mutableStateOf(false) }
     var jumpWeek by remember { mutableIntStateOf(1) }
     var historyVisible by remember { mutableStateOf(false) }
-    var dragLayerOrigin by remember { mutableStateOf(Offset.Zero) }
+    var dragLayerBounds by remember { mutableStateOf(Rect.Zero) }
 
     // 换页后原来的「+」不再属于当前视图
     LaunchedEffect(viewingPage) { pendingCell = null }
 
-    // 点击网格外任何一处都收起「+」；底栏在页面之外，靠 MainScaffold 记的全局按下位置覆盖
-    // 各页的网格范围分开记：左右邻页是偏移着布局的，共用一个变量会把范围带偏
+    // 纵向滚动与顶端拉伸全周共用一份
+    val pageScroll = rememberScrollState()
+    val stretch = rememberStretchOverscrollState()
+    // 抬手或回弹结束就收回去
+    LaunchedEffect(pageScroll, stretch) {
+        snapshotFlow { pageScroll.isScrollInProgress }
+            .collectLatest { scrolling -> if (!scrolling) stretch.settle() }
+    }
+
+    // 点击网格外收起「+」
     val dayColumnsBounds = remember { mutableStateMapOf<Int, Rect>() }
     val lastTapDown = LocalLastTapDown.current
     LaunchedEffect(Unit) {
@@ -172,11 +193,11 @@ fun SchedulePage(
 
     val pageIsCurrent = LocalPageIsCurrent.current
     val tabNavigating = LocalMainTabNavigating.current
-    // 离开过就记一笔，切回那一刻或导航结束时复位到本周
+    // 离开过就复位到本周
     var pendingReset by remember { mutableStateOf(false) }
     LaunchedEffect(pageIsCurrent, tabNavigating, todayPage) {
         if (!pageIsCurrent) pendingReset = true
-        // 导航结束（已在屏外）或刚切回（此刻 pager 还没动，本页仍在屏外）时复位
+        // 导航结束或刚切回时复位
         if (pendingReset && (pageIsCurrent || !tabNavigating)) {
             pagerState.scrollToPage((todayPage ?: pageOfWeek(1)).coerceIn(0, lastPage))
             pendingReset = false
@@ -185,15 +206,15 @@ fun SchedulePage(
 
     val pageWeek = viewingPage - EdgePages + 1
 
-    // 查看的周不是当前周时显示「今」按钮，待复位期间不显示
+    // 不在本周时显示「今」
     val showBackToNow = remember(todayPage) {
         derivedStateOf { !pendingReset && todayPage != null && todayPage != viewingPage }
     }
 
-    // 切课表后旧历史作废，避免撤销把另一张课表的课写回来
+    // 切课表后作废旧历史
     LaunchedEffect(table?.tableId) { editor.resetHistory() }
 
-    // 每次移动/撤销/重做都重置 3 秒；栈空时直接不显示
+    // 历史按钮 3 秒后隐藏
     LaunchedEffect(editor.undoStack.size, editor.redoStack.size) {
         if (!editor.hasHistory) {
             historyVisible = false
@@ -204,16 +225,28 @@ fun SchedulePage(
         historyVisible = false
     }
 
-    // 数据回流后收起灰卡
-    LaunchedEffect(allCourses) { editor.settleDrag(allCourses) }
-    LaunchedEffect(editor.dragReleased) {
-        if (editor.dragReleased) {
-            delay(1000.milliseconds)
-            editor.clearReleasedDrag()
-        }
+    // 数据回流后收起灰卡，数据没回来也要兜底
+    LaunchedEffect(allCourses, editor.dragReleased) {
+        if (!editor.dragReleased) return@LaunchedEffect
+        editor.settleDrag(allCourses)
+        delay(1000.milliseconds)
+        editor.clearReleasedDrag()
     }
 
-    // 采集放在页面最外层（周 pager 之外）：内层 pager 会打断「内容采集 → 顶栏取样」的对应关系
+    // 跨周拖课
+    val touchState = remember { ScheduleTouchState() }
+    val edgePager = rememberEdgeAutoPager()
+    val settleSlot = remember { PagerSettleSlot() }
+    // pager 在 root 里的左上角
+    var pagerOrigin by remember { mutableStateOf(Offset.Zero) }
+
+    // 兜底
+    val dragging = editor.drag != null
+    LaunchedEffect(dragging) {
+        if (!dragging && touchState.pointerId != null) touchState.end()
+    }
+
+    // 采集放在周 pager 之外
     Scaffold(
         topBar = {
             ScheduleTopBar(
@@ -238,18 +271,48 @@ fun SchedulePage(
             )
         },
     ) { paddingValues ->
-        // 拖动浮层与撤销按钮都挂在这一层：坐标统一按它换算
+        // 拖动浮层与撤销按钮都挂在这一层
         Box(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .onGloballyPositioned { coords -> dragLayerOrigin = coords.boundsInRoot().topLeft },
+                    .onGloballyPositioned { coords -> dragLayerBounds = coords.boundsInRoot() },
         ) {
             HorizontalPager(
                 state = pagerState,
-                modifier = Modifier.fillMaxSize(),
-                // 底部导航切页动画期间禁用手势，避免和过渡动画互抢
-                userScrollEnabled = !LocalMainTabNavigating.current,
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .onGloballyPositioned { pagerOrigin = it.boundsInRoot().topLeft }
+                        // 横滑翻周自己接管
+                        .schedulePagerGesture(
+                            pagerState = pagerState,
+                            settleSlot = settleSlot,
+                            enabled = { !tabNavigating },
+                            blockedPointer = { touchState.pointerId },
+                            // 手指带着课卡时只许停在学期内
+                            pages = {
+                                if (editor.drag != null) pageOfWeek(1)..pageOfWeek(totalWeeks) else 0..lastPage
+                            },
+                            onVerticalScroll = { dy -> pageScroll.dispatchRawDelta(-dy) },
+                        )
+                        // 跨周拖课
+                        .scheduleDragOwner(
+                            editor = editor,
+                            touchState = touchState,
+                            pagerState = pagerState,
+                            settleSlot = settleSlot,
+                            allCourses = { allCourses },
+                            validWeeks = { 1..totalWeeks },
+                            origin = { pagerOrigin },
+                            onMove = { centerX ->
+                                edgePager.update(centerX, dragLayerBounds, pageOfWeek(1)..pageOfWeek(totalWeeks), pagerState)
+                            },
+                            onEnd = { edgePager.stop() },
+                        ),
+                // 手势由上面接管
+                userScrollEnabled = false,
+                // 邻页不必预组合
                 beyondViewportPageCount = 1,
             ) { page ->
                 ScheduleWeekPage(
@@ -267,10 +330,17 @@ fun SchedulePage(
                     showNonCurrentWeek = showNonCurrentWeek,
                     blurBackdrop = blurBackdrop,
                     topPadding = paddingValues.calculateTopPadding(),
+                    pageScroll = pageScroll,
+                    stretch = stretch,
                     pendingCell = pendingCell,
                     onPendingCellChange = { pendingCell = it },
                     editor = editor,
-                    dayColumnsBounds = dayColumnsBounds,
+                    touchState = touchState,
+                    onGridPositioned = { rect ->
+                        dayColumnsBounds[page] = rect
+                        // 落点要按当前这一页的网格算
+                        if (page == pagerState.currentPage) editor.updateLiveGrid(rect)
+                    },
                     onCourseClick = { clicked, shownWeek ->
                         detailAnchor = clicked
                         detailWeek = shownWeek
@@ -280,9 +350,13 @@ fun SchedulePage(
                 )
             }
 
-            ScheduleDragLayer(visualProvider = { editor.dragVisual(dragLayerOrigin) }, style = style)
+            ScheduleDragLayer(
+                visualProvider = { editor.dragVisual(dragLayerBounds.topLeft) },
+                cardOrigin = { editor.cardOrigin(dragLayerBounds.topLeft) },
+                style = style,
+            )
 
-            // 不做淡入/缩放：给 FAB 加图层会把阴影按图层边界裁成直边，看起来先方后圆
+            // 不做淡入/缩放
             if (historyVisible) {
                 HistoryFabColumn(
                     canUndo = editor.undoStack.isNotEmpty(),
@@ -295,7 +369,6 @@ fun SchedulePage(
         }
     }
 
-    // 每次都从库里取：编辑页改完返回，抽屉内容立刻跟着更新
     val anchor = detailAnchor
     val anchorWeek = if (detailWeek > 0) detailWeek else pageWeek
     val detailItems =
@@ -316,7 +389,7 @@ fun SchedulePage(
             }
         }
 
-    // 两个抽屉挂同一个浮层槽（层级高于底部导航），分两次挂会互相覆盖
+    // 两个抽屉共用一个浮层槽
     if (appearanceMounted || detailItems.isNotEmpty()) {
         ProvideOverlay {
             if (appearanceMounted) {
@@ -355,7 +428,7 @@ fun SchedulePage(
         },
     )
 
-    // 落点已有课：覆盖或交换，返回键等同取消
+    // 落点已有课
     editor.conflict?.let { pending ->
         ConflictDialog(
             appBlur = appBlur,

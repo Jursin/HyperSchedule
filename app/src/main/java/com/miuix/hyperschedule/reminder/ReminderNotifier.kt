@@ -24,9 +24,12 @@ private const val PROGRESS_MAX = 100
 /** 通知的展示与取消 */
 internal object ReminderNotifier {
 
-    /** 课前与课中各一条固定 id：同一时间只会有一节课在讲 */
+    /** 课前与课中的固定 id */
     const val PRE_CLASS_ID = 0x1A11
     const val IN_CLASS_ID = 0x1A12
+
+    /** 实时动态课前倒计时的独立 id */
+    private const val LIVE_PRE_CLASS_ID = 0x1A13
 
     fun ensureChannels(context: Context) {
         val manager = notificationManager(context) ?: return
@@ -44,16 +47,16 @@ internal object ReminderNotifier {
         )
     }
 
-    /** 课前只有一条：先试岛，发不出去再挂实时动态 / 普通通知 */
+    /** 课前先试岛，失败再走通知 */
     fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime) {
         ensureChannels(context)
         if (SuperIsland.canPost() && SuperIsland.notifyPreClass(context, course, now)) return
-        // 岛没被系统收下：撤掉那条空壳，改走实时动态
+        // 岛没被收下，改走实时动态
         cancel(context, PRE_CLASS_ID)
         postPreClassCountdown(context, course)
     }
 
-    /** 课中：岛能挂就挂岛，其余设备换成下课倒计时 */
+    /** 课中先试岛，失败再走通知 */
     fun notifyInClass(context: Context, course: DayCourse) {
         ensureChannels(context)
         if (SuperIsland.canPost() && SuperIsland.notifyInClass(context, course)) return
@@ -61,9 +64,10 @@ internal object ReminderNotifier {
         postInClassCountdown(context, course)
     }
 
-    /** 上课那一刻收起课前那条：岛与实时动态用的是各自的固定 id */
-    fun cancelPreClass(context: Context) {
+    /** 三条一次收干净 */
+    fun cancelAll(context: Context) {
         cancel(context, PRE_CLASS_ID)
+        cancel(context, LIVE_PRE_CLASS_ID)
         cancel(context, IN_CLASS_ID)
     }
 
@@ -71,12 +75,12 @@ internal object ReminderNotifier {
         runCatching { notificationManager(context)?.cancel(id) }
     }
 
-    /** 课前倒计时挂到下课为止，倒计时指向上课 */
+    /** 课前倒计时指向上课 */
     private fun postPreClassCountdown(context: Context, course: DayCourse) {
         val startMillis = course.start.toEpochMillis()
         postCountdown(
             context = context,
-            id = PRE_CLASS_ID,
+            id = LIVE_PRE_CLASS_ID,
             course = course,
             head = preClassHead(course),
             targetMillis = startMillis,
@@ -85,7 +89,7 @@ internal object ReminderNotifier {
         )
     }
 
-    /** 课中倒计时指向下课，实时动态再多一条进度 */
+    /** 课中倒计时指向下课 */
     private fun postInClassCountdown(context: Context, course: DayCourse) {
         val endMillis = course.end?.toEpochMillis() ?: return
         if (endMillis <= System.currentTimeMillis()) return
@@ -101,10 +105,7 @@ internal object ReminderNotifier {
         )
     }
 
-    /**
-     * 课前与课中共用的倒计时通知。
-     * 两个提升 API 分别是 36 与 36.1 起才有，老 36.0 上直接跳过，通知照常按实时动态显示。
-     */
+    /** 课前与课中共用的倒计时通知 */
     @SuppressLint("NewApi")
     private fun postCountdown(
         context: Context,
@@ -123,7 +124,7 @@ internal object ReminderNotifier {
                 .setSmallIcon(R.drawable.ic_notification)
                 .setContentIntent(openApp(context))
                 .setContentTitle(course.name)
-                // 折叠态只放倒计时那行：地点与教师留在展开态，缺失时也不会只剩标题
+                // 折叠态只放倒计时
                 .setContentText(if (live) head else body)
                 .setStyle(Notification.BigTextStyle().bigText(body))
                 .setCategory(category)
@@ -151,7 +152,7 @@ internal object ReminderNotifier {
         runCatching { notificationManager(context)?.notify(id, builder.build()) }
     }
 
-    /** 系统的实时动态样式：单段百分制进度 + 应用图标当进度头 */
+    /** 实时动态样式 */
     private fun progressStyle(context: Context, progress: Int): Notification.Style {
         if (Build.VERSION.SDK_INT < 36) return Notification.BigTextStyle()
         return Notification.ProgressStyle()
@@ -160,7 +161,7 @@ internal object ReminderNotifier {
             .setProgressTrackerIcon(Icon.createWithResource(context, R.drawable.ic_notification))
     }
 
-    /** 进度按已上课的比例算，已过一半时间也不会超出两端 */
+    /** 进度按已上课比例算 */
     private fun progressPercent(startMillis: Long, endMillis: Long): Int {
         val totalMillis = endMillis - startMillis
         if (totalMillis <= 0L) return 0
@@ -168,7 +169,7 @@ internal object ReminderNotifier {
         return ((elapsed.coerceIn(0L, totalMillis) * PROGRESS_MAX) / totalMillis).toInt()
     }
 
-    /** 两条通知都只留这一个按钮：上课勿扰，再点一下还给用户 */
+    /** 上课勿扰按钮 */
     private fun dndAction(context: Context): Notification.Action =
         Notification.Action.Builder(
             null,

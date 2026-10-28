@@ -1,5 +1,6 @@
 package com.miuix.hyperschedule.ui.page.schedule
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,12 +10,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.PagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -34,17 +32,16 @@ import com.miuix.hyperschedule.ui.component.ScheduleGridLines
 import com.miuix.hyperschedule.ui.component.ScheduleLayout
 import com.miuix.hyperschedule.ui.component.SectionTimesColumn
 import com.miuix.hyperschedule.ui.component.SpecialBlockBands
-import com.miuix.hyperschedule.ui.component.rememberStretchOverscrollState
+import com.miuix.hyperschedule.ui.component.StretchOverscrollState
 import com.miuix.hyperschedule.ui.component.resolveWeekCourses
 import com.miuix.hyperschedule.ui.component.stretchOverscroll
 import com.miuix.hyperschedule.ui.effect.captureForBlur
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlinx.coroutines.flow.collectLatest
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-/** 课表的一页（一周）：时间列 + 7 个日期列，网格线画在所有内容下面 */
+/** 课表的一页（一周） */
 @Composable
 internal fun ScheduleWeekPage(
     page: Int,
@@ -61,26 +58,26 @@ internal fun ScheduleWeekPage(
     showNonCurrentWeek: Boolean,
     blurBackdrop: LayerBackdrop?,
     topPadding: Dp,
+    // 纵向滚动与拉伸全周共用一份
+    pageScroll: ScrollState,
+    stretch: StretchOverscrollState,
     pendingCell: PendingCell?,
     onPendingCellChange: (PendingCell?) -> Unit,
     editor: ScheduleEditor,
-    dayColumnsBounds: MutableMap<Int, Rect>,
+    // 页面级触控状态
+    touchState: ScheduleTouchState,
+    onGridPositioned: (rect: Rect) -> Unit,
     onCourseClick: (Course, Int) -> Unit,
     onAddCourse: (Int, Int, Int) -> Unit,
 ) {
     val week = page - EdgePages + 1
-    // 每页一套滚动 + 拉伸：左右邻页各滚各的，下拉的手感也不串
-    val pageScroll = rememberScrollState()
-    val stretch = rememberStretchOverscrollState()
-    // 手指抬起（或回弹结束）就弹回去；新的下拉会直接打断这段动画
-    LaunchedEffect(pageScroll, stretch) {
-        snapshotFlow { pageScroll.isScrollInProgress }
-            .collectLatest { scrolling -> if (!scrolling) stretch.settle() }
-    }
-    // 未开学 / 学期已结束：网格照常显示，只是不放任何课程
+    val draggingSlot = editor.draggingSlot
+    // 已经有一指在拖
+    val dragInProgress = editor.drag?.released == false
+    // 未开学 / 学期已结束
     val inSemester = week in 1..totalWeeks
     val currentSection = if (week == currentWeek) currentSectionAt(sectionTimes, now.toLocalTime()) else -1
-    // 这 7 天各自的放假 / 调休结论：调休列要看被调那一天的课，可能落在别的周
+    // 7 天各自的放假 / 调休
     val dayPlans =
         remember(holidayPlan, week) {
             List(DAY_NAMES.size) { index -> holidayPlan.of(week, index + 1) }
@@ -102,19 +99,16 @@ internal fun ScheduleWeekPage(
         modifier =
             Modifier
                 .fillMaxSize()
-                // 只让当前页往 backdrop 里录：一个 backdrop 只有一个采集点，多页同录会互相覆盖
-                // （顶栏若圈进来，模糊面会采样到自己 → 原生崩溃）
+                // 只让当前页往 backdrop 里录
                 .captureForBlur(blurBackdrop.takeIf { page == pagerState.currentPage })
                 .scrollEndHaptic()
-                // 顶端下拉用原地拉伸（StretchOverscroll）代替默认 overscroll：
-                // 顶栏为固定层，内容整体位移会和它露缝
+                // 顶端下拉用原地拉伸
                 .nestedScroll(stretch.connection)
                 .verticalScroll(pageScroll, overscrollEffect = null)
-                // 顶栏高度作为滚动内容的内边距：网格才能滚到顶栏下方，顶栏有东西可模糊
+                // 顶栏高度作为滚动内容的内边距
                 .padding(top = topPadding),
     ) {
-        // 网格线要连左侧时间列一起画，所以铺在这一层的后面
-        // 顶端下拉时整块网格以顶边为锚点纵向拉伸：上沿不动，不会和星期行之间裂开
+        // 网格线铺在时间列之后
         Box(
             modifier =
                 Modifier
@@ -130,21 +124,19 @@ internal fun ScheduleWeekPage(
                     currentSection = currentSection,
                     sectionTimes = sectionTimes,
                 )
-                // 7 个日期列这块矩形，页面据它判断点击是否落在网格外
+                // 7 个日期列这块矩形
                 Box(
                     modifier =
                         Modifier
                             .weight(1f)
-                            .onGloballyPositioned { coords ->
-                                dayColumnsBounds[page] = coords.boundsInRoot()
-                            },
+                            .onGloballyPositioned { coords -> onGridPositioned(coords.boundsInRoot()) },
                 ) {
-                    // 特殊节次作为背景带铺在课程卡后面
+                    // 特殊节次铺在课程卡后面
                     SpecialBlockBands(layout = layout, modifier = Modifier.matchParentSize())
                     Row {
                         for (day in 1..DAY_NAMES.size) {
                             val plan = dayPlans[day - 1]
-                            // 补课列画被调那一天的课；放假列照旧画本列的课，只是灰显
+                            // 补课列画被调那天的课
                             val shownWeek = plan.weekOr(week)
                             val shownDay = plan.dayOr(day)
                             DayGridColumn(
@@ -155,10 +147,12 @@ internal fun ScheduleWeekPage(
                                         .filter { it.course.day == shownDay },
                                 sectionTimes = sectionTimes,
                                 style = style,
+                                // 灰卡只认源周那一张
+                                draggingId = draggingSlot?.takeIf { it.second == shownWeek }?.first,
                                 isHoliday = plan.holiday,
                                 isWorkSwap = plan.workSwap,
-                                // 补课列里拖课会算错列（课属于别的星期），直接禁掉
-                                dragEnabled = !plan.remapped,
+                                // 补课列与拖拽中都不起拖
+                                dragEnabled = !plan.remapped && !dragInProgress,
                                 // 放假 / 补课列不落「+」
                                 pendingSection =
                                     if (plan.holiday || plan.remapped) {
@@ -166,28 +160,27 @@ internal fun ScheduleWeekPage(
                                     } else {
                                         pendingCell?.takeIf { it.day == day }?.section ?: -1
                                     },
-                                // 没设开学日期、或放假 / 补课列，都不给添加入口
+                                // 没开学或放补课列不给添加
                                 onCellTap =
                                     if (startDate != null && !plan.holiday && !plan.remapped) {
                                         { section -> onPendingCellChange(PendingCell(day, section)) }
                                     } else {
                                         null
                                     },
-                                // 点卡片只带出一门课，抽屉再按「同一格」把该格所有课程取出来
+                                // 点卡片只带一门课
                                 onCourseClick = { clicked -> onCourseClick(clicked, shownWeek) },
                                 // 再点一次「+」直接进新建课程页
                                 onPendingTap = { section -> onAddCourse(day, section, section) },
-                                // 拖动中的卡片原地按「本周不上」显示，由浮层代替它跟手
-                                draggingCourse = editor.draggingCourse,
-                                onDragStart = { course, position ->
-                                    editor.startDrag(page, course, position, allCourses, dayColumnsBounds)
+                                onDragStart = { course, position, pointerId ->
+                                    // 起拖成功才登记指针
+                                    if (editor.startDrag(week, course, position, allCourses)) {
+                                        touchState.begin(pointerId, position)
+                                    }
                                 },
-                                onDrag = { position -> editor.updateDrag(position) },
-                                onDragEnd = { editor.finishDrag(allCourses) },
                             )
                         }
                     }
-                    // 午休 / 晚休分界线：占一节之外的 24dp 缝，与网格共用同一套坐标
+                    // 午休 / 晚休分界线
                     layout.dividers.forEach { divider -> BreakDividerRow(divider = divider) }
                 }
             }

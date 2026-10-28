@@ -40,6 +40,9 @@ sealed class Page : NavKey {
     /** 课表导入：导入方式与文件入口 */
     @Serializable data object ScheduleImport : Page()
 
+    /** 教务系统导入，选择学校 */
+    @Serializable data object EduImport : Page()
+
     /** 课表导出：选择课表与导出格式 */
     @Serializable data object ScheduleExport : Page()
 

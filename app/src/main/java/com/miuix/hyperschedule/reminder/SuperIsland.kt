@@ -15,7 +15,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-/** 小米超级岛：把倒计时塞进 `miui.focus.param`，系统按这份 JSON 排版 */
+/** 小米超级岛 */
 internal object SuperIsland {
 
     private const val CHANNEL = "class_island"
@@ -23,8 +23,8 @@ internal object SuperIsland {
     /** 运营场景标识：系统按它归组同一门课的多条岛通知 */
     private const val BUSINESS_TAG = "course_reminder"
 
-    /** 岛的最长存活时间，秒；到点由系统自动收起，避免残留 */
-    private const val ISLAND_TIMEOUT_SECONDS = 3600
+    /** 岛存活时间的上界（秒） */
+    private const val ISLAND_TIMEOUT_MAX_SECONDS = 6 * 3600
 
     /** 澎湃 OS 自报是否有超级岛；`get(String)` 读不到属性，只能用 `getBoolean` */
     private const val KEY_ISLAND_FEATURE = "persist.sys.feature.island"
@@ -41,38 +41,38 @@ internal object SuperIsland {
                 .invoke(null, KEY_ISLAND_FEATURE, false) as? Boolean
         }.getOrNull() == true
 
-    /**
-     * 设备支持、且 Shizuku 授权在手，才能真的把岛发出去。
-     * 没授权时发岛必被系统拦，直接让实时动态接管，省掉一次注定失败的尝试。
-     */
+    /** 设备支持且 Shizuku 授权在手才能发岛 */
     fun canPost(): Boolean = isSupported() && ShizukuAccess.hasPermission
 
-    /** 课前：挂一个距上课的倒计时岛，收起态左课名右地点，提示行挂上课倒计时 */
-    fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime): Boolean =
-        post(
+    /** 课前倒计时岛 */
+    fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime): Boolean {
+        val expires = (course.end ?: course.start).toEpochMillis()
+        return post(
             context = context,
             id = ReminderNotifier.PRE_CLASS_ID,
             params =
                 params(
                     component = component(context),
                     course = course,
-                    // 课前弹一次悬浮窗，课中不再弹
+                    // 课前才弹悬浮窗
                     enableFloat = true,
                     hintContent = "即将上课",
                     timerTarget = course.start.toEpochMillis(),
                     nowMillis = now.toEpochMillis(),
                     collapsedRight = course.position,
+                    islandTimeout = islandSeconds(expires),
                 ),
             title = course.name,
-            // 岛没被系统接住时通知栏里就是这一行，与普通通知保持同一套文案
+            // 岛没被接住时的通知栏文案
             text = plainBodyOf(course, preClassHead(course)),
             ongoing = false,
+            expiresAtMillis = expires,
         )
+    }
 
-    /** 课中：换成距下课的倒计时岛，接替课前那条；收起态右侧说正在上课 */
+    /** 课中倒计时岛 */
     fun notifyInClass(context: Context, course: DayCourse): Boolean {
         val end = course.end?.toEpochMillis() ?: return false
-        ReminderNotifier.cancel(context, ReminderNotifier.PRE_CLASS_ID)
         return post(
             context = context,
             id = ReminderNotifier.IN_CLASS_ID,
@@ -85,10 +85,12 @@ internal object SuperIsland {
                     timerTarget = end,
                     nowMillis = System.currentTimeMillis(),
                     collapsedRight = "正在上课",
+                    islandTimeout = islandSeconds(end),
                 ),
             title = course.name,
             text = plainBodyOf(course, inClassHead(end)),
             ongoing = true,
+            expiresAtMillis = end,
         )
     }
 
@@ -104,6 +106,7 @@ internal object SuperIsland {
         timerTarget: Long,
         nowMillis: Long,
         collapsedRight: String,
+        islandTimeout: Int,
     ): String =
         buildJsonObject {
             put(
@@ -111,11 +114,11 @@ internal object SuperIsland {
                 buildJsonObject {
                     put("business", BUSINESS_TAG)
                     put("protocol", 1)
-                    // 课中不反复弹悬浮窗，只在课前弹一次
+                    // 课中不弹悬浮窗
                     if (!enableFloat) put("islandFirstFloat", true)
                     put("enableFloat", enableFloat)
                     put("updatable", true)
-                    // 岛展开时四周呼吸光效，系统认这一项就亮
+                    // 岛展开时的呼吸光效
                     put("outEffectSrc", "outer_glow")
                     put("reopen", "reopen")
                     put("sequence", sequence.incrementAndGet())
@@ -133,7 +136,7 @@ internal object SuperIsland {
                         "param_island",
                         buildJsonObject {
                             put("islandProperty", 1)
-                            put("islandTimeout", ISLAND_TIMEOUT_SECONDS)
+                            put("islandTimeout", islandTimeout)
                             put(
                                 "bigIslandArea",
                                 buildJsonObject {
@@ -167,7 +170,7 @@ internal object SuperIsland {
             )
         }.toString()
 
-    /** 主信息：标题课名、正文地点 */
+    /** 主信息 */
     private fun baseInfo(title: String, content: String) =
         buildJsonObject {
             put("type", 2)
@@ -186,7 +189,7 @@ internal object SuperIsland {
             put("colorContentDark", "#cccccc")
         }
 
-    /** 提示行：倒计时 + 右下角那栏放教师；没填教师就空着，不拿时间顶替 */
+    /** 提示行 */
     private fun hintInfo(
         content: String,
         timerTarget: Long,
@@ -243,6 +246,12 @@ internal object SuperIsland {
             )
         }
 
+    /** 岛存活时长贴着倒计时目标算 */
+    private fun islandSeconds(expiresAtMillis: Long): Int =
+        ((expiresAtMillis - System.currentTimeMillis()) / 1000)
+            .coerceIn(60L, ISLAND_TIMEOUT_MAX_SECONDS.toLong())
+            .toInt()
+
     /** 发岛：断网绕开系统校验后再 notify，返回是否真的绕行了 */
     private fun post(
         context: Context,
@@ -251,6 +260,7 @@ internal object SuperIsland {
         title: String,
         text: String,
         ongoing: Boolean,
+        expiresAtMillis: Long,
     ): Boolean {
         ensureChannel(context)
         val appIcon = Icon.createWithResource(context, R.mipmap.ic_launcher)
@@ -277,6 +287,9 @@ internal object SuperIsland {
                     },
                 )
         if (ongoing) builder.setOngoing(true) else builder.setAutoCancel(true)
+        // 到点由系统自动收起
+        val timeout = expiresAtMillis - System.currentTimeMillis()
+        if (timeout > 0) builder.setTimeoutAfter(timeout)
         val notification = builder.build()
         // 这份参数是系统读岛内容的唯一来源，只能 build 之后直接塞进 extras
         notification.extras.putString("miui.focus.param", params)

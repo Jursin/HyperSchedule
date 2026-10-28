@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -40,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -50,6 +53,7 @@ import com.miuix.hyperschedule.theme.ShortSheetMaxHeight
 import com.miuix.hyperschedule.theme.sheetPanelColor
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -72,6 +76,8 @@ private val HandleAreaHeight = 21.dp
 /** 标题行 */
 private val HeaderMinHeight = 46.dp
 private val HeaderHorizontalPadding = 20.dp
+/** 标题图标，对齐 title3 的字面高度 */
+private val TitleIconSize = 22.dp
 
 /** 标题与正文之间的间距 */
 private val HeaderToContentSpacing = 18.dp
@@ -105,12 +111,13 @@ fun SheetScaffold(
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
     subtitle: String? = null,
+    titleIcon: ImageVector? = null,
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val progress = remember { Animatable(0f) }
-    // 手指往下的位移：只影响抽屉与遮罩，不参与进出场动画
+    // 下拉位移，不参与进出场动画
     var dragY by remember { mutableFloatStateOf(0f) }
     var settleJob by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
@@ -127,8 +134,7 @@ fun SheetScaffold(
             currentOnDismissFinished()
         }
     }
-    // 完全收起且不再展示时整棵子树退出，避免无谓的合成层
-    // 只在「收起/展开」翻转时失效，动画每帧不会重组整个抽屉
+    // 完全收起后整棵子树退出，只在收起/展开翻转时失效
     val dismissed = remember { derivedStateOf { progress.value <= 0f } }
     if (dismissed.value && !show) return
 
@@ -144,7 +150,7 @@ fun SheetScaffold(
     val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val panelColor = sheetPanelColor()
     Box(modifier = Modifier.fillMaxSize()) {
-        // 遮罩：跟着下拉一起变淡
+        // 遮罩，跟着下拉一起变淡
         Box(
             modifier =
                 Modifier
@@ -175,7 +181,7 @@ fun SheetScaffold(
                         shape = shape,
                     ),
         ) {
-            // 顶部（拖动条 + 标题）才是可拖区域：内容区里的列表要能自己滚
+            // 只有顶部可拖，内容区列表要能自己滚
             Box(
                 modifier =
                     Modifier
@@ -189,7 +195,7 @@ fun SheetScaffold(
                                 if (passed || velocity > dismissVelocity) {
                                     onDismiss()
                                 } else {
-                                    // 没到分界线：带着手指的速度弹回去
+                                    // 没到分界线就带着速度弹回
                                     settleJob =
                                         scope.launch {
                                             animate(
@@ -233,14 +239,28 @@ fun SheetScaffold(
                             modifier = Modifier.align(Alignment.Center).padding(horizontal = 40.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                         ) {
-                            Text(
-                                text = title,
-                                style = MiuixTheme.textStyles.title3,
-                                fontWeight = FontWeight.Medium,
-                                color = MiuixTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
+                            ) {
+                                if (titleIcon != null) {
+                                    Icon(
+                                        imageVector = titleIcon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(TitleIconSize),
+                                        tint = MiuixTheme.colorScheme.onSurface,
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Text(
+                                    text = title,
+                                    style = MiuixTheme.textStyles.title3,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MiuixTheme.colorScheme.onSurface,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
                             if (subtitle != null) {
                                 Text(
                                     text = subtitle,
