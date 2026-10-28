@@ -33,12 +33,12 @@ import com.miuix.hyperschedule.ui.component.NumberPickerDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.ValueLabel
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val GrantedColor = Color(0xFF4CAF50)

@@ -229,7 +229,7 @@ data class ReminderSettings(
 data class ScheduleStyle(
     val gridLines: Boolean = false,
     val cardHeight: Int = 92,
-    val cardCorner: Int = 8,
+    val cardCorner: Int = 10,
     val cardBorder: Boolean = false,
     val contentCenter: Boolean = true,
     val textScale: Float = 1f,

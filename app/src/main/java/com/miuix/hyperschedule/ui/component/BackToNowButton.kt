@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -61,6 +62,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
 fun BackToNowButton(
@@ -89,8 +91,31 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
 
-    val fillColor = if (isDark) Color(0xCC3C81FFL) else Color(0xDB277AFFL)
-    val outerColor = if (isDark) Color(0xCC3C81FFL) else Color(0xCC277AFFL)
+    // 开了自定义颜色就跟随全局配色，没开保持默认配色
+    val dynamic = MiuixTheme.isDynamicColor
+    val accent = MiuixTheme.colorScheme.primary
+    val onAccent = MiuixTheme.colorScheme.onPrimary
+    val fillColor =
+        when {
+            dynamic -> accent.copy(alpha = if (isDark) 0.8f else 0.86f)
+            isDark -> Color(0xCC3C81FFL)
+            else -> Color(0xDB277AFFL)
+        }
+    val outerColor =
+        when {
+            dynamic -> accent.copy(alpha = 0.8f)
+            isDark -> Color(0xCC3C81FFL)
+            else -> Color(0xCC277AFFL)
+        }
+    val glowColor =
+        when {
+            dynamic -> accent.copy(alpha = if (isDark) 0.3f else 0.2f)
+            isDark -> Color(0x4D3482FFL)
+            else -> Color(0x333C81FFL)
+        }
+    // 内描边与文字都跟着底色走：浅色主色配深色前景才看得清
+    val innerBorderColor = if (dynamic) onAccent.copy(alpha = 0.2f) else Color(0x33FFFFFF)
+    val labelColor = if (dynamic) onAccent else Color.White
 
     var pressed by remember { mutableStateOf(false) }
     // 按钮像素尺寸：手势容差判定与光晕位图尺寸
@@ -109,7 +134,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
         )
 
     val glowImage =
-        remember(buttonSize, isDark) {
+        remember(buttonSize, glowColor) {
             buttonSize.takeIf { it != IntSize.Zero }?.let { size ->
                 buildGlowBitmap(
                         btnW = size.width,
@@ -117,7 +142,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                         pad = with(density) { BackToNowGlowPad.toPx() }.roundToInt(),
                         dy = with(density) { BackToNowGlowDy.toPx() },
                         radiusPx = with(density) { BackToNowCornerRadius.toPx() },
-                        color = if (isDark) GlowColorDark else GlowColorLight,
+                        color = glowColor.toArgb(),
                     )
                     .asImageBitmap()
             }
@@ -202,7 +227,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                             style = Stroke(s),
                         )
                         drawRoundRect(
-                            color = InnerBorderColor,
+                            color = innerBorderColor,
                             topLeft = Offset(s * 1.5f, s * 1.5f),
                             size = Size(size.width - 3 * s, size.height - 3 * s),
                             cornerRadius = CornerRadius(radius),
@@ -215,7 +240,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                 text = "今",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Medium,
-                color = Color.White,
+                color = labelColor,
             )
         }
     }
@@ -234,11 +259,6 @@ private const val BackToNowBlurRadius = 3f
 
 /** 光晕模糊半径（半分辨率位图，换算成全尺寸 σ） */
 private const val BackToNowGlowBlurPx = 40f
-
-/** 光晕颜色：浅色 / 深色 */
-private const val GlowColorLight = 0x333C81FF
-private const val GlowColorDark = 0x4D3482FF
-private val InnerBorderColor = Color(0x33FFFFFF)
 
 /** 按压缩放下限 */
 private const val BackToNowPressScale = 0.9f

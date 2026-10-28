@@ -11,8 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.theme.CardCornerRadius
+import com.miuix.hyperschedule.theme.CardInsidePadding
 import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.theme.SectionTitleVerticalPadding
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -21,7 +23,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 设置类页面：毛玻璃顶栏 + 12dp 间距的滚动内容，右下角可放 FAB */
+/** 设置类页面 */
 @Composable
 fun PreferenceScreen(
     title: String,
@@ -52,13 +54,13 @@ fun PreferenceScreen(
         PageScrollColumn(
             blurBackdrop = blurBackdrop,
             scrollBehavior = scrollBehavior,
-            contentPadding = paddingValues,
+            topInset = paddingValues.calculateTopPadding(),
             content = content,
         )
     }
 }
 
-/** 设置分组标题，页面与对话框内共用同一套内边距 */
+/** 设置分组标题 */
 @Composable
 fun SectionTitle(
     text: String,
@@ -67,36 +69,47 @@ fun SectionTitle(
     SmallTitle(
         text = text,
         modifier = modifier,
-        insideMargin = PaddingValues(16.dp, 8.dp, 16.dp, 0.dp),
+        insideMargin =
+            PaddingValues(
+                start = CardInsidePadding,
+                top = SectionTitleVerticalPadding,
+                end = CardInsidePadding,
+                bottom = SectionTitleVerticalPadding,
+            ),
     )
 }
 
-/** 一段设置：小标题 + 卡片，标题与卡片间距与设置页一致 */
+/** 一段设置 */
 @Composable
 fun PreferenceSection(
     title: String? = null,
     cardColor: Color = MiuixTheme.colorScheme.surfaceContainer,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (title != null) SectionTitle(title)
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(color = cardColor),
-    ) {
-        content()
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (title != null) SectionTitle(title)
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = CardCornerRadius,
+            colors = CardDefaults.defaultColors(color = cardColor),
+        ) {
+            content()
+        }
     }
 }
 
-/** 一段条目：小标题 + 每项各自一张卡片 */
+/** 一段条目 */
 @Composable
 fun PreferenceItemSection(
     title: String? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    if (title != null) SectionTitle(title)
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(SectionSpacing),
-        content = content,
-    )
+    Column(modifier = Modifier.fillMaxWidth()) {
+        if (title != null) SectionTitle(title)
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+            content = content,
+        )
+    }
 }

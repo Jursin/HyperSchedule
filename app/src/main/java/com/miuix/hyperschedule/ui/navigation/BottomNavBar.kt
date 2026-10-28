@@ -351,7 +351,7 @@ internal object NavBarMetrics {
     val barShadowRadius: Dp = 10.dp
     val liftShadowDelta: Dp = 8.dp // 拖动中额外抬升，对应日历 setElevation(8dp)
     const val LIFT_SHADOW_ALPHA = 0.8f // 抬升时投影浓度放大系数
-    const val BAR_BLUR_RADIUS = 25f // 模糊半径（dp）
+    const val BAR_BLUR_RADIUS = 20f // 模糊半径（dp），全分辨率高斯
 }
 
 /** 底栏配色，取日历底栏用到的 miuix 颜色资源 */
@@ -359,7 +359,8 @@ internal object NavBarColors {
     val Light =
         NavBarPalette(
             container = Color(0xFFFFFFFF), // surface_highest_light
-            blurTint = Color(0xFFFFFFFF).copy(0.92f),
+            // 蒙层要留出至少三成透明度，否则 blurred backdrop 被压成纯色，肉眼看就是实心白条
+            blurTint = Color(0xFFFFFFFF).copy(0.68f),
             selector = Color(0x0F000000), // black_level9
             selectorPressed = Color(0x29000000), // 按下 16%
             icon = Color(0xFF000000), // black_level1，选中不变色
@@ -371,7 +372,7 @@ internal object NavBarColors {
         NavBarPalette(
             // 实测容器为 21，对应 white_solid_20，而非 surface_highest 的 #2C2C2C
             container = Color(0xFF181818),
-            blurTint = Color(0xFF181818).copy(0.92f),
+            blurTint = Color(0xFF181818).copy(0.72f),
             selector = Color(0x1FFFFFFF), // white_level9
             selectorPressed = Color(0x42FFFFFF),
             icon = Color(0xF2FFFFFF), // white_level1_1

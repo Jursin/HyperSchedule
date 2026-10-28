@@ -15,7 +15,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.schedule.formatMinutes
 import com.miuix.hyperschedule.schedule.parseMinutes
-import com.miuix.hyperschedule.ui.component.IconHeaderDialog
+import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.TimeRangeRow
 import com.miuix.hyperschedule.ui.component.TimeWheelLabel
 import com.miuix.hyperschedule.ui.component.WeekdaySelectGrid
@@ -41,7 +41,7 @@ internal fun SpecialBlockDialog(
     val start = startHour * 60 + startMinute
     val end = endHour * 60 + endMinute
 
-    IconHeaderDialog(
+    ConfirmDialog(
         title = if (initial.name.isBlank()) "添加特殊节次" else "编辑特殊节次",
         appBlur = appBlur,
         confirmEnabled = name.isNotBlank() && days.isNotEmpty() && end > start,

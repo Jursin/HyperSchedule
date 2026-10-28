@@ -19,7 +19,7 @@ fun TableNameDialog(
     onConfirm: (String) -> Unit,
 ) {
     var name by remember { mutableStateOf(initialName) }
-    IconHeaderDialog(
+    ConfirmDialog(
         title = title,
         appBlur = appBlur,
         confirmEnabled = name.isNotBlank(),

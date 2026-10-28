@@ -22,12 +22,12 @@ import com.miuix.hyperschedule.ui.component.NumberPickerDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.ValueLabel
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 import com.miuix.hyperschedule.ui.rememberToday
 import java.time.LocalDate
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 @Composable
 fun SettingsPage(

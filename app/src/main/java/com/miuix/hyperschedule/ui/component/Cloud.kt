@@ -1,0 +1,32 @@
+package com.miuix.hyperschedule.ui.component
+
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.PathParser
+import androidx.compose.ui.graphics.vector.group
+import androidx.compose.ui.unit.dp
+
+/** 云图标 */
+internal val Cloud: ImageVector by lazy {
+    ImageVector.Builder(
+        name = "Cloud",
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).apply {
+        group(scaleX = 20f / 22f, scaleY = 20f / 22f, pivotX = 12f, pivotY = 12f) {
+            addPath(
+                pathData = PathParser().parsePathString(PATH_DATA).toNodes(),
+                fill = SolidColor(Color.Black),
+            )
+        }
+    }.build()
+}
+
+private const val PATH_DATA =
+    "M6.5 20q-2.275 0-3.887-1.575T1 14.575q0-1.95 1.175-3.475T5.25 9.15q.625-2.3 2.5-3.725T12 4" +
+        "q2.925 0 4.963 2.038T19 11q1.725.2 2.863 1.488T23 15.5q0 1.875-1.312 3.188T18.5 20zm0-2h12" +
+        "q1.05 0 1.775-.725T21 15.5t-.725-1.775T18.5 13H17v-2q0-2.075-1.463-3.538T12 6T8.463 7.463" +
+        "T7 11h-.5q-1.45 0-2.475 1.025T3 14.5t1.025 2.475T6.5 18m5.5-6"

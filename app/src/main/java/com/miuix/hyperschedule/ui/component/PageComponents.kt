@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.theme.PageBottomInset
+import com.miuix.hyperschedule.theme.PageHorizontalMargin
 import com.miuix.hyperschedule.theme.PageTopPadding
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.ui.effect.appBarBlur
@@ -41,6 +42,12 @@ import top.yukonga.miuix.kmp.icon.extended.Ok
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+
+/** 顶栏标题的左右内边距 */
+private val TopBarTitlePadding = 28.dp
+
+/** 顶栏图标的边距 */
+private val TopBarIconPadding = 14.dp
 
 @Composable
 fun BlurredTopAppBar(
@@ -71,8 +78,9 @@ fun BlurredTopAppBar(
             modifier = barModifier,
             color = barColor,
             scrollBehavior = scrollBehavior,
-            titlePadding = 28.dp,
-            navigationIconPadding = 20.dp,
+            titlePadding = TopBarTitlePadding,
+            navigationIconPadding = TopBarIconPadding,
+            actionIconPadding = TopBarIconPadding,
             navigationIcon = navigationIcon,
             actions = actions,
             bottomContent = bottomContent,
@@ -83,8 +91,9 @@ fun BlurredTopAppBar(
             modifier = barModifier,
             color = barColor,
             scrollBehavior = scrollBehavior,
-            titlePadding = 28.dp,
-            navigationIconPadding = 20.dp,
+            titlePadding = TopBarTitlePadding,
+            navigationIconPadding = TopBarIconPadding,
+            actionIconPadding = TopBarIconPadding,
             navigationIcon = navigationIcon,
             actions = actions,
             bottomContent = bottomContent,
@@ -92,12 +101,12 @@ fun BlurredTopAppBar(
     }
 }
 
-/** 页面内容列：毛玻璃、滚动手势与统一内边距 */
+/** 页面内容列 */
 @Composable
 fun PageScrollColumn(
     blurBackdrop: LayerBackdrop?,
     scrollBehavior: ScrollBehavior,
-    contentPadding: PaddingValues,
+    topInset: Dp,
     topPadding: Dp = PageTopPadding,
     bottomPadding: Dp = PageBottomInset,
     content: @Composable ColumnScope.() -> Unit,
@@ -110,9 +119,12 @@ fun PageScrollColumn(
                 .pageScroll(blurBackdrop, scrollBehavior)
                 .clearFocusOnPress(focusManager)
                 .verticalScroll(rememberScrollState())
-                .padding(contentPadding)
-                .padding(horizontal = 12.dp)
-                .padding(top = topPadding, bottom = bottomPadding),
+                .padding(
+                    start = PageHorizontalMargin,
+                    top = topInset + topPadding,
+                    end = PageHorizontalMargin,
+                    bottom = bottomPadding,
+                ),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         content = content,
     )
@@ -129,12 +141,12 @@ fun Modifier.pageScroll(
         .overScrollVertical()
         .nestedScroll(scrollBehavior.nestedScrollConnection)
 
-/** 页面内容统一内边距：左右 12dp，顶部与顶栏留 4dp，底部由页面决定 */
+/** 页面内容统一内边距 */
 fun pageContentPadding(paddingValues: PaddingValues, bottom: Dp): PaddingValues =
     PaddingValues(
-        start = 12.dp,
+        start = PageHorizontalMargin,
         top = paddingValues.calculateTopPadding() + PageTopPadding,
-        end = 12.dp,
+        end = PageHorizontalMargin,
         bottom = bottom,
     )
 

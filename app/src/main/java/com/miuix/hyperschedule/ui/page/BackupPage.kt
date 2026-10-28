@@ -20,8 +20,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.ui.component.Cloud
+import com.miuix.hyperschedule.ui.component.Person
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 import java.net.URI
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -29,14 +34,9 @@ import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.CloudFill
-import top.yukonga.miuix.kmp.icon.extended.Contacts
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Show
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val KeepCountOptions = listOf("3", "5", "10")
@@ -107,7 +107,7 @@ private fun WebDavBackupTab(draft: BackupDraft) {
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     interactionSource = urlInteraction,
-                    leadingIcon = { FieldLeadingIcon(MiuixIcons.CloudFill, "云端") },
+                    leadingIcon = { FieldLeadingIcon(Cloud, "云端") },
                 )
                 if (urlError) {
                     Text(
@@ -124,7 +124,7 @@ private fun WebDavBackupTab(draft: BackupDraft) {
                 label = "用户名",
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
-                leadingIcon = { FieldLeadingIcon(MiuixIcons.Contacts, "用户") },
+                leadingIcon = { FieldLeadingIcon(Person, "用户") },
             )
             TextField(
                 value = draft.password,

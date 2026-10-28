@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.mikepenz.aboutlibraries.entity.Library
 import com.mikepenz.aboutlibraries.ui.compose.produceLibraries
 import com.mikepenz.aboutlibraries.ui.compose.util.author
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SheetMaxHeight
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
@@ -135,6 +136,7 @@ fun LicensePage(
                     items(library.licenses.toList()) { license ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = CardCornerRadius,
                             colors =
                                 CardDefaults.defaultColors(
                                     color = MiuixTheme.colorScheme.surfaceContainerHighest,
@@ -172,6 +174,7 @@ private fun LibraryCard(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = CardCornerRadius,
         onClick = onClick,
         pressFeedbackType = PressFeedbackType.Sink,
     ) {
@@ -212,6 +215,7 @@ private fun LibraryCard(
 
             library.licenses.forEach { license ->
                 Card(
+                    cornerRadius = CardCornerRadius,
                     colors =
                         CardDefaults.defaultColors(
                             color = MiuixTheme.colorScheme.primaryContainer.copy(alpha = 0.2f),

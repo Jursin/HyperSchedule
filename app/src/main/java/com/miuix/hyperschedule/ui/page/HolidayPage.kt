@@ -29,17 +29,19 @@ import com.miuix.hyperschedule.schedule.currentWeekOf
 import com.miuix.hyperschedule.schedule.formatDate
 import com.miuix.hyperschedule.schedule.parseDateOrNull
 import com.miuix.hyperschedule.schedule.weekDatesOf
-import com.miuix.hyperschedule.theme.PageHorizontalPadding
+import com.miuix.hyperschedule.theme.CardCornerRadius
+import com.miuix.hyperschedule.theme.CardInsidePadding
 import com.miuix.hyperschedule.ui.CourseTableData
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.DAY_NAMES
 import com.miuix.hyperschedule.ui.component.DatePickerRow
-import com.miuix.hyperschedule.ui.component.IconHeaderDialog
 import com.miuix.hyperschedule.ui.component.NumberWheelRow
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.SectionTitle
 import com.miuix.hyperschedule.ui.component.WideActionButton
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Button
@@ -55,8 +57,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Refresh
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val HolidayYears = 2024..2035
@@ -275,7 +275,7 @@ private fun HolidayEditDialog(
             else -> "编辑调休工作日"
         }
 
-    IconHeaderDialog(
+    ConfirmDialog(
         title = title,
         appBlur = appBlur,
         confirmEnabled = canSave,
@@ -355,7 +355,7 @@ private fun FollowCourseField(
             SectionTitle("跟随课程")
             Text(
                 text = "请先在设置中填写「开始上课日期」",
-                modifier = Modifier.fillMaxWidth().padding(horizontal = PageHorizontalPadding),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = CardInsidePadding),
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 style = MiuixTheme.textStyles.body2,
             )
@@ -375,7 +375,10 @@ private fun FollowCourseField(
                     )
                 }
             }
-            Card(modifier = Modifier.fillMaxWidth()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = CardCornerRadius,
+            ) {
                 Row(modifier = Modifier.fillMaxWidth()) {
                     NumberWheelRow(
                         value = followWeek,
@@ -407,7 +410,10 @@ private fun DateField(
 ) {
     Column {
         SectionTitle(label)
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = CardCornerRadius,
+        ) {
             DatePickerRow(
                 year = date.year,
                 onYearChange = { onDateChange(adjustDate(date, year = it)) },

@@ -39,6 +39,7 @@ import com.miuix.hyperschedule.ui.component.SaveFab
 import com.miuix.hyperschedule.ui.component.TimeRangeDialog
 import com.miuix.hyperschedule.ui.component.ValueLabel
 import com.miuix.hyperschedule.ui.component.formatWeekdays
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import com.miuix.hyperschedule.ui.component.rememberEditBackGuard
 import com.miuix.hyperschedule.ui.component.toast
 import java.util.UUID
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 编辑作息：所有改动留在内存，点保存才写入；直接返回会丢弃 */

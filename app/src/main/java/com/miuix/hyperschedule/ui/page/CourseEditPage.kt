@@ -28,13 +28,16 @@ import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.PageBottomInset
 import com.miuix.hyperschedule.theme.PresetColors
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.isDarkTheme
 import com.miuix.hyperschedule.ui.CourseTableData
 import com.miuix.hyperschedule.ui.component.AddFab
+import com.miuix.hyperschedule.ui.component.AwardStar
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
+import com.miuix.hyperschedule.ui.component.Book
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.SaveFab
 import com.miuix.hyperschedule.ui.component.courseColorOf
@@ -64,9 +67,6 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Create
-import top.yukonga.miuix.kmp.icon.extended.File
 
 /**
  * 课程编辑页：所有改动都留在内存，点保存才一次写入；直接返回会丢弃。
@@ -231,12 +231,15 @@ fun CourseEditPage(
                 overscrollEffect = null,
             ) {
                 item(key = "basic") {
-                    Card(modifier = Modifier.fillMaxWidth()) {
-                        InfoRow(icon = MiuixIcons.File, label = "课程名称") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = CardCornerRadius,
+                    ) {
+                        InfoRow(icon = Book, label = "课程名称") {
                             InlineField(value = name, onValueChange = { name = it }, hint = "必填")
                         }
                         ThinDivider()
-                        InfoRow(icon = MiuixIcons.Create, label = "学分") {
+                        InfoRow(icon = AwardStar, label = "学分") {
                             InlineField(
                                 value = credit,
                                 onValueChange = { credit = sanitizeCredit(it) },

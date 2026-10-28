@@ -13,11 +13,12 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -41,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.theme.SectionSpacing
@@ -62,6 +64,19 @@ private val DismissVelocity = 800.dp
 /** 遮罩颜色 */
 private val ScrimColor = Color.Black.copy(alpha = 0.32f)
 
+/** 拖动条 */
+private val HandleWidth = 60.dp
+private val HandleHeight = 3.dp
+private val HandleAreaHeight = 21.dp
+
+/** 标题行 */
+private val HeaderMinHeight = 46.dp
+private val HeaderHorizontalPadding = 20.dp
+
+/** 标题与正文之间的间距 */
+private val HeaderToContentSpacing = 18.dp
+private val HeaderToContentSpacingNoSubtitle = 10.dp
+
 /** 抽屉内可滚动的内容列：高度上限、下拉回弹、统一内边距 */
 @Composable
 fun SheetScrollColumn(
@@ -76,25 +91,22 @@ fun SheetScrollColumn(
                 .overScrollVertical()
                 .scrollEndHaptic()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 4.dp),
+                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         content = content,
     )
 }
 
-/**
- * 底部抽屉外壳：遮罩、拖动条、标题、弹簧进出。[content] 里只放列表或设置项本身。
- *
- * 不用系统 Dialog（每次打开都要创建窗口，首帧会掉），直接叠在宿主页面上做位移 + 弹簧动画。
- * 从顶部拖动条往下拉时跟手移动：过了 [DismissDistance] 才收起，否则弹回原位。
- */
+/** 底部抽屉外壳 */
 @Composable
 fun SheetScaffold(
     title: String,
     show: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
-    titleAction: (@Composable BoxScope.() -> Unit)? = null,
+    subtitle: String? = null,
+    startAction: (@Composable () -> Unit)? = null,
+    endAction: (@Composable () -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val progress = remember { Animatable(0f) }
@@ -196,28 +208,61 @@ fun SheetScaffold(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     // 拖动条
                     Box(
-                        modifier =
-                            Modifier
-                                .padding(top = 8.dp)
-                                .size(width = 36.dp, height = 4.dp)
-                                .clip(RoundedCornerShape(percent = 50))
-                                .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f))
-                                .align(Alignment.CenterHorizontally),
-                    )
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                        modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = title,
-                            fontSize = MiuixTheme.textStyles.title4.fontSize,
-                            fontWeight = FontWeight.Medium,
-                            color = MiuixTheme.colorScheme.onSurface,
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(width = HandleWidth, height = HandleHeight)
+                                    .clip(RoundedCornerShape(percent = 50))
+                                    .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f)),
                         )
-                        titleAction?.invoke(this)
+                    }
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = HeaderMinHeight)
+                                .padding(horizontal = HeaderHorizontalPadding),
+                    ) {
+                        startAction?.let { action ->
+                            Box(modifier = Modifier.align(Alignment.CenterStart)) { action() }
+                        }
+                        Column(
+                            modifier = Modifier.align(Alignment.Center).padding(horizontal = 40.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                        ) {
+                            Text(
+                                text = title,
+                                style = MiuixTheme.textStyles.title3,
+                                fontWeight = FontWeight.Medium,
+                                color = MiuixTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (subtitle != null) {
+                                Text(
+                                    text = subtitle,
+                                    style = MiuixTheme.textStyles.body2,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                        }
+                        endAction?.let { action ->
+                            Box(modifier = Modifier.align(Alignment.CenterEnd)) { action() }
+                        }
                     }
                 }
             }
+            Spacer(
+                modifier =
+                    Modifier.height(
+                        if (subtitle == null) HeaderToContentSpacingNoSubtitle else HeaderToContentSpacing,
+                    ),
+            )
             content()
         }
     }

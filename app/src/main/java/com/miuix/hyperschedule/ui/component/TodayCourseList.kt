@@ -27,6 +27,7 @@ import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.data.model.TimeSlot
 import com.miuix.hyperschedule.schedule.cjkDigitGap
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.TimeLabelFontSize
 import com.miuix.hyperschedule.theme.TodayStyle
 import com.miuix.hyperschedule.ui.rememberToday
@@ -92,7 +93,10 @@ fun TodayCourseList(
                     if (items.isEmpty()) return@forEach
                     SectionPill(title)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Card(modifier = Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = CardCornerRadius,
+                    ) {
                         Column {
                             items.forEach { item ->
                                 TodayCourseRow(
@@ -117,7 +121,10 @@ fun TodayCourseList(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 groups.forEach { (_, items) ->
                     items.forEach { item ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth(),
+                            cornerRadius = CardCornerRadius,
+                        ) {
                             TodayCourseRow(
                                 item,
                                 slotMap,

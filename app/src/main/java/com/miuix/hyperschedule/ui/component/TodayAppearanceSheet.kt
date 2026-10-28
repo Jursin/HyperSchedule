@@ -7,7 +7,7 @@ import androidx.compose.ui.Modifier
 import com.miuix.hyperschedule.theme.SheetBottomInset
 import com.miuix.hyperschedule.theme.TodayStyle
 import com.miuix.hyperschedule.theme.sheetCardColor
-import top.yukonga.miuix.kmp.preference.SwitchPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 
 /** 今日课表外观抽屉：课程卡信息行显示哪些字段，改动即时生效 */
 @Composable

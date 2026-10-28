@@ -6,6 +6,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.theme.CardCornerRadius
+import com.miuix.hyperschedule.theme.CardItemPadding
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -26,10 +28,14 @@ fun SelectableEditRow(
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = CardCornerRadius,
+    ) {
         BasicComponent(
             title = title,
             summary = summary,
+            insideMargin = CardItemPadding,
             startAction = {
                 RadioButton(selected = selected, onClick = onSelect)
             },

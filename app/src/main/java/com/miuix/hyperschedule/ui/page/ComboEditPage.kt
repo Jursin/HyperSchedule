@@ -35,6 +35,8 @@ import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.SaveFab
 import com.miuix.hyperschedule.ui.component.ValueLabel
 import com.miuix.hyperschedule.ui.component.WideActionButton
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.WindowDropdownPreference
 import com.miuix.hyperschedule.ui.component.rememberEditBackGuard
 import com.miuix.hyperschedule.ui.component.toast
 import java.time.LocalDate
@@ -43,8 +45,6 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 整页快照，用于判断是否有未保存改动 */

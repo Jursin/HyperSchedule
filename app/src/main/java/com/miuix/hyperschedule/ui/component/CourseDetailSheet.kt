@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.schedule.cjkDigitGap
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SheetBottomInset
 import com.miuix.hyperschedule.theme.SheetMaxHeight
@@ -72,7 +73,7 @@ fun CourseDetailSheet(
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
-        titleAction = {
+        endAction = {
             IconButton(
                 onClick = {
                     items.firstOrNull()?.let { item ->
@@ -82,14 +83,11 @@ fun CourseDetailSheet(
                         onAdd(course.day, start, (course.endSection ?: start).coerceAtLeast(start))
                     }
                 },
-                modifier = Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
-                minWidth = 40.dp,
-                minHeight = 40.dp,
             ) {
                 Icon(
                     imageVector = MiuixIcons.Add,
                     contentDescription = "添加课程",
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(24.dp),
                     tint = MiuixTheme.colorScheme.onSurface,
                 )
             }
@@ -127,6 +125,7 @@ private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
     val cardColor = sheetCardColor()
     Card(
         modifier = Modifier.fillMaxWidth(),
+        cornerRadius = CardCornerRadius,
         insideMargin = PaddingValues(0.dp),
         pressFeedbackType = PressFeedbackType.None,
         colors =

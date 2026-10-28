@@ -2,7 +2,6 @@ package com.miuix.hyperschedule.ui.page
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -197,7 +196,7 @@ fun TodayPage(
                     blurBackdrop = null,
                     scrollBehavior = scrollBehavior,
                     // 顶栏（含日期行）高度作为滚动内容的内边距：内容才能滚到它下方，顶栏有东西可模糊
-                    contentPadding = PaddingValues(top = paddingValues.calculateTopPadding()),
+                    topInset = paddingValues.calculateTopPadding(),
                     topPadding = 0.dp,
                 ) {
                     // 放假这天不上课：不列课程，直接走下面的空状态

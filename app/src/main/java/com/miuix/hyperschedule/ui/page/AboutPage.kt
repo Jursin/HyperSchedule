@@ -55,7 +55,9 @@ import androidx.core.graphics.createBitmap
 import com.miuix.hyperschedule.R
 import com.miuix.hyperschedule.getAppVersion
 import com.miuix.hyperschedule.getAppVersionCode
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.isDarkTheme
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import com.miuix.hyperschedule.ui.effect.BgEffectBackground
 import com.miuix.hyperschedule.ui.effect.appBarBlur
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
@@ -76,7 +78,6 @@ import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronBackward
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -400,7 +401,7 @@ private fun AboutContentBody(
                                     if (cardBackdrop != null) {
                                         Modifier.textureBlur(
                                             backdrop = cardBackdrop,
-                                            shape = RoundedCornerShape(16.dp),
+                                            shape = RoundedCornerShape(CardCornerRadius),
                                             blurRadius = 60f,
                                             colors = BlurColors(blendColors = cardBlend),
                                         )
@@ -408,6 +409,7 @@ private fun AboutContentBody(
                                         Modifier
                                     }
                                 ),
+                        cornerRadius = CardCornerRadius,
                         colors =
                             CardDefaults.defaultColors(
                                 if (cardBackdrop != null) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,

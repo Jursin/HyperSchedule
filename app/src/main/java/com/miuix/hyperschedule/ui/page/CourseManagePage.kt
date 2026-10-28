@@ -35,11 +35,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.CourseWithWeeks
 import com.miuix.hyperschedule.schedule.cjkDigitGap
+import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.CourseTintAlpha
 import com.miuix.hyperschedule.theme.PageBottomInset
 import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.ui.component.AwardStar
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
+import com.miuix.hyperschedule.ui.component.Person
 import com.miuix.hyperschedule.ui.component.formatCredit
 import com.miuix.hyperschedule.ui.component.pageContentPadding
 import com.miuix.hyperschedule.ui.component.pageScroll
@@ -57,8 +60,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.Close
 import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Contacts
-import top.yukonga.miuix.kmp.icon.extended.Create
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -217,6 +218,7 @@ private fun CourseManageCard(
     Box(modifier = Modifier.fillMaxWidth()) {
         Card(
             modifier = Modifier.fillMaxWidth(),
+            cornerRadius = CardCornerRadius,
             insideMargin = PaddingValues(14.dp),
             colors = CardDefaults.defaultColors(color = color.copy(alpha = CourseTintAlpha)),
             onClick = onClick,
@@ -262,11 +264,11 @@ private fun CourseManageCard(
                 }
                 if (teacher.isNotBlank()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    MetaRow(icon = MiuixIcons.Contacts, text = teacher)
+                    MetaRow(icon = Person, text = teacher)
                 }
                 if (credit != null) {
                     Spacer(modifier = Modifier.height(if (teacher.isNotBlank()) 4.dp else 10.dp))
-                    MetaRow(icon = MiuixIcons.Create, text = "${formatCredit(credit)}学分".cjkDigitGap())
+                    MetaRow(icon = AwardStar, text = "${formatCredit(credit)}学分".cjkDigitGap())
                 }
             }
         }

@@ -31,9 +31,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.miuix.hyperschedule.theme.PageHorizontalPadding
+import com.miuix.hyperschedule.theme.CardCornerRadius
+import com.miuix.hyperschedule.theme.CardInsidePadding
 import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.ui.component.Clock
 import com.miuix.hyperschedule.ui.component.CoursePalette
+import com.miuix.hyperschedule.ui.component.Location
+import com.miuix.hyperschedule.ui.component.Person
 import com.miuix.hyperschedule.ui.component.WideActionButton
 import com.miuix.hyperschedule.ui.component.dayLabel
 import com.miuix.hyperschedule.ui.component.formatWeeks
@@ -43,12 +47,9 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Background
-import top.yukonga.miuix.kmp.icon.extended.Contacts
 import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.icon.extended.Location
-import top.yukonga.miuix.kmp.icon.extended.Notes
+import top.yukonga.miuix.kmp.icon.extended.File
 import top.yukonga.miuix.kmp.icon.extended.Weeks
-import top.yukonga.miuix.kmp.icon.extended.WorldClock
 import top.yukonga.miuix.kmp.icon.extended.Years
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.squircle.squircleClip
@@ -65,16 +66,19 @@ internal fun GroupCard(
     onDelete: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            cornerRadius = CardCornerRadius,
+        ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                InfoRow(icon = MiuixIcons.Location, label = "地点") {
+                InfoRow(icon = Location, label = "地点") {
                     InlineField(
                         value = group.position,
                         onValueChange = { onChange(group.copy(position = it)) },
                         hint = "选填",
                     )
                 }
-                InfoRow(icon = MiuixIcons.Contacts, label = "教师") {
+                InfoRow(icon = Person, label = "教师") {
                     InlineField(
                         value = group.teacher,
                         onValueChange = { onChange(group.copy(teacher = it)) },
@@ -92,7 +96,7 @@ internal fun GroupCard(
                 InfoRow(icon = MiuixIcons.Weeks, label = "上课星期", onClick = onPickDay) {
                     ValueText(dayLabel(group.day))
                 }
-                InfoRow(icon = MiuixIcons.WorldClock, label = "上课时间", onClick = onPickTime) {
+                InfoRow(icon = Clock, label = "上课时间", onClick = onPickTime) {
                     val text = timeText(group)
                     if (text.isEmpty()) ValueText("必填", placeholder = true) else ValueText(text)
                 }
@@ -101,10 +105,10 @@ internal fun GroupCard(
                     modifier =
                         Modifier
                             .fillMaxWidth()
-                            .padding(start = PageHorizontalPadding, end = PageHorizontalPadding, top = 14.dp),
+                            .padding(start = CardInsidePadding, end = CardInsidePadding, top = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FieldIcon(MiuixIcons.Notes)
+                    FieldIcon(MiuixIcons.File)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "备注",
@@ -162,7 +166,7 @@ internal fun InfoRow(
                         Modifier
                     }
                 )
-                .padding(start = PageHorizontalPadding, end = PageHorizontalPadding, top = top, bottom = bottom),
+                .padding(start = CardInsidePadding, end = CardInsidePadding, top = top, bottom = bottom),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FieldIcon(icon)
@@ -278,7 +282,7 @@ internal fun ThinDivider() {
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(horizontal = PageHorizontalPadding)
+                .padding(horizontal = CardInsidePadding)
                 .height(0.5.dp)
                 .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.07f)),
     )
@@ -292,15 +296,19 @@ internal fun ColorCard(
     onPick: (index: Int, argb: Int?) -> Unit,
     onPickCustom: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth(), insideMargin = PaddingValues(top = 14.dp)) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        cornerRadius = CardCornerRadius,
+        insideMargin = PaddingValues(top = 14.dp),
+    ) {
         Row(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .padding(start = PageHorizontalPadding, end = PageHorizontalPadding, bottom = 10.dp),
+                    .padding(start = CardInsidePadding, end = CardInsidePadding, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FieldIcon(MiuixIcons.Background)
+            FieldIcon(MiuixIcons.Medium.Background)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "课程颜色",

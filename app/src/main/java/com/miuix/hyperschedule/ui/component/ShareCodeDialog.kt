@@ -23,7 +23,7 @@ fun ShareCodeDialog(
     onSubmit: (String) -> Unit,
 ) {
     var input by remember { mutableStateOf("") }
-    IconHeaderDialog(
+    ConfirmDialog(
         title = title,
         appBlur = appBlur,
         confirmEnabled = input.isNotBlank() && !busy,

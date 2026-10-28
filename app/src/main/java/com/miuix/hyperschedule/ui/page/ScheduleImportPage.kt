@@ -25,19 +25,19 @@ import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.data.repository.TableSummary
 import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.ui.CourseTableData
-import com.miuix.hyperschedule.ui.component.IconHeaderDialog
+import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.SelectableEditRow
 import com.miuix.hyperschedule.ui.component.ShareCodeDialog
 import com.miuix.hyperschedule.ui.component.TableNameDialog
 import com.miuix.hyperschedule.ui.component.WideActionButton
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 
 /** 文件导入来源：决定用哪个解析器 */
 private enum class ImportSource {
@@ -202,7 +202,7 @@ fun ScheduleImportPage(
 
     val picked = pending
     if (showPicker && picked != null) {
-        IconHeaderDialog(
+        ConfirmDialog(
             title = "导入到课表",
             appBlur = appBlur,
             onDismiss = {

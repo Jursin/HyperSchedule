@@ -9,13 +9,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.miuix.hyperschedule.theme.SettingsStore
-import com.miuix.hyperschedule.ui.component.IconHeaderDialog
+import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
+import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.preference.ArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
 
 @Composable
 fun UpdatePage(store: SettingsStore, onBack: () -> Unit, onCheckUpdate: () -> Unit) {
@@ -59,7 +59,7 @@ fun UpdatePage(store: SettingsStore, onBack: () -> Unit, onCheckUpdate: () -> Un
         }
     }
     if (showProxyDialog) {
-        IconHeaderDialog(
+        ConfirmDialog(
             title = "设置 GitHub 加速地址",
             appBlur = state.blur,
             onDismiss = { showProxyDialog = false },

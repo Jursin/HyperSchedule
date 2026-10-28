@@ -20,8 +20,8 @@ import com.miuix.hyperschedule.theme.SettingsStore
 import com.miuix.hyperschedule.theme.ThemeMode
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference
-import top.yukonga.miuix.kmp.preference.SwitchPreference
+import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
 
 @Composable
 fun ThemePage(store: SettingsStore, onBack: () -> Unit) {

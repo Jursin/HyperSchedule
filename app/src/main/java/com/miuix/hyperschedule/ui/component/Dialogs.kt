@@ -11,19 +11,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.ui.effect.WindowBlurEffect
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Close
-import top.yukonga.miuix.kmp.icon.extended.Ok
-import top.yukonga.miuix.kmp.theme.LocalContentColor
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
@@ -92,61 +84,6 @@ fun ConfirmDialog(
                         )
                     }
                 }
-            }
-        },
-    )
-}
-
-/** 标题栏图标形态的对话框骨架：左上取消、右上确定，正文自行排版（编辑表单类用） */
-@Composable
-fun IconHeaderDialog(
-    title: String,
-    appBlur: Boolean,
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    confirmEnabled: Boolean = true,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    WindowDialog(
-        show = true,
-        onDismissRequest = onDismiss,
-        // 标题文案自绘，左右才有位置放图标按钮
-        title = null,
-        content = {
-            WindowBlurEffect(useBlur = appBlur)
-            Column(verticalArrangement = Arrangement.spacedBy(DialogContentSpacing)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    IconButton(onClick = onDismiss) {
-                        Icon(imageVector = MiuixIcons.Close, contentDescription = "取消")
-                    }
-                    Text(
-                        text = title,
-                        modifier = Modifier.weight(1f),
-                        fontSize = MiuixTheme.textStyles.title4.fontSize,
-                        fontWeight = FontWeight.Medium,
-                        textAlign = TextAlign.Center,
-                        color = MiuixTheme.colorScheme.onBackground,
-                    )
-                    IconButton(
-                        onClick = { if (confirmEnabled) onConfirm() },
-                        enabled = confirmEnabled,
-                    ) {
-                        Icon(
-                            imageVector = MiuixIcons.Ok,
-                            contentDescription = if (confirmEnabled) "确定" else "请先完成必填项",
-                            tint =
-                                if (confirmEnabled) {
-                                    LocalContentColor.current
-                                } else {
-                                    MiuixTheme.colorScheme.onSurfaceVariantSummary
-                                },
-                        )
-                    }
-                }
-                content()
             }
         },
     )

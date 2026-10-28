@@ -14,17 +14,18 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
+import com.miuix.hyperschedule.theme.CardItemPadding
 import com.miuix.hyperschedule.theme.ScheduleStyle
 import com.miuix.hyperschedule.theme.SheetBottomInset
 import com.miuix.hyperschedule.theme.sheetCardColor
+import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
+import com.miuix.hyperschedule.ui.component.pref.WindowDropdownPreference
 import java.util.Locale
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Slider
 import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.preference.SwitchPreference
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 课程表外观抽屉：改动即时生效，不需要「应用」按钮 */
@@ -167,6 +168,7 @@ private fun StyleSlider(
     val currentOnFinished = rememberUpdatedState(onValueChangeFinished)
     BasicComponent(
         title = title,
+        insideMargin = CardItemPadding,
         endActions = {
             Text(
                 text = valueText,
