@@ -1,16 +1,19 @@
 package com.miuix.hyperschedule.data.importer.edu
 
 import android.content.Context
-import com.miuix.hyperschedule.data.remote.httpGetBytes
+import com.miuix.hyperschedule.data.remote.httpGetGiteeRaw
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** 教务学校索引，内置文件打底，更新后缓存到 files/edu */
+/** 教务学校索引，内置离线索引打底，同步后缓存到 files/edu/repo */
 class SchoolRepository(
     private val context: Context,
+    private val repoStore: EduRepoStore,
 ) {
-    private val indexFile = File(context.filesDir, "edu/school_index.pb")
+    private val indexDir = File(context.filesDir, "$EduRepoRoot/index")
+    private val indexFile = File(indexDir, "school_index.pb")
+    private val sourceFile = File(indexDir, "school_index.source")
 
     @Volatile
     private var cached: SchoolIndex? = null
@@ -25,14 +28,18 @@ class SchoolRepository(
     /** 拉一次远端索引，返回是否换了新版本；失败抛异常 */
     suspend fun update(): Boolean =
         withContext(Dispatchers.IO) {
-            val bytes = download()
+            val url = repoStore.indexUrl()
+            val bytes = httpGetGiteeRaw(url)
             val remote = SchoolIndexParser.parse(bytes)
             require(remote.schools.isNotEmpty() && remote.versionId.isNotBlank()) { "索引内容不完整" }
-            // 版本号是 TIME_yyyyMMddHHmmss_xxx，回滚或不变都不写入
+            require(remote.protocolVersion <= SUPPORTED_PROTOCOL_VERSION) { "索引协议不兼容，请更新应用" }
+            // 版本号是 TIME_yyyyMMddHHmmss_xxx，同一仓库回滚或不变都不写入；换了仓库则直接接受
             val local = load().versionId
-            if (local.isNotEmpty() && remote.versionId <= local) return@withContext false
+            val sameSource = sourceFile.exists() && sourceFile.readText() == url
+            if (sameSource && local.isNotEmpty() && remote.versionId <= local) return@withContext false
             indexFile.parentFile?.mkdirs()
             indexFile.writeBytes(bytes)
+            sourceFile.writeText(url)
             cached = remote
             true
         }
@@ -52,21 +59,11 @@ class SchoolRepository(
 
     private fun assetBytes(): ByteArray = context.assets.open(INDEX_ASSET).use { it.readBytes() }
 
-    /** gitee raw 可能先返回带签名的拦截页 */
-    private fun download(): ByteArray {
-        val bytes = httpGetBytes(INDEX_URL)
-        val head = if (bytes.size <= 2048) bytes.decodeToString().trimStart() else ""
-        if (!head.startsWith("<") || !head.contains("raw.giteeusercontent.com")) return bytes
-        val signed =
-            Regex("href=\"([^\"]+)\"").find(head)?.groupValues?.get(1)?.replace("&amp;", "&")
-                ?: error("索引地址被拦截")
-        return httpGetBytes(signed)
-    }
-
     private companion object {
-        const val INDEX_ASSET = "eduloader/school_index.pb"
-        const val INDEX_URL =
-            "https://gitee.com/XingHeYuZhuan-gh/shiguang_warehouse/raw/index-pb-release/school_index.pb"
+        const val INDEX_ASSET = "offline_repo/index/school_index.pb"
+
+        /** 解析器能处理的索引协议上限 */
+        const val SUPPORTED_PROTOCOL_VERSION = 2
         val ImportCategories = setOf(Adapter.TOOL, Adapter.BACHELOR, Adapter.POSTGRADUATE)
     }
 }

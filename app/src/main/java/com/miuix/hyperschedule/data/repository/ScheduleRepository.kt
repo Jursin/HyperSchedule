@@ -11,6 +11,7 @@ import com.miuix.hyperschedule.data.importer.CourseTableJson
 import com.miuix.hyperschedule.data.importer.CourseTableConfigJson
 import com.miuix.hyperschedule.data.importer.CourseTableJsonParser
 import com.miuix.hyperschedule.data.importer.IcsImport
+import com.miuix.hyperschedule.data.importer.TimeSlotJson
 import com.miuix.hyperschedule.data.importer.requireValidForImport
 import com.miuix.hyperschedule.data.model.Course
 import com.miuix.hyperschedule.data.model.CourseTable
@@ -479,6 +480,59 @@ class ScheduleRepository(
             payload.requireValidForImport()
             importParsed(payload, tableId)
         }
+
+    /** 教务脚本导入的课程：颜色按课程名重新分配，备注清空，覆盖目标课表的课程与周次 */
+    suspend fun importEduCourses(
+        tableId: String,
+        courses: List<CourseJson>,
+    ): Int =
+        withContext(Dispatchers.IO) {
+            require(courses.isNotEmpty()) { "脚本没有返回课程" }
+            // 脚本带的自定义色和备注不采用，颜色统一按课程名分配
+            val sanitized = courses.map { it.copy(color = null, colorArgb = null, remark = null) }
+            CourseTableJson(courses = sanitized).requireValidForImport()
+            db.withTransaction {
+                ensureSideTables(tableId)
+                importCourses(tableId, sanitized)
+            }
+            sanitized.size
+        }
+
+    /** 教务脚本导入的节次时间：覆盖课表专属作息 */
+    suspend fun importEduTimeSlots(
+        tableId: String,
+        slots: List<TimeSlotJson>,
+    ) = withContext(Dispatchers.IO) {
+        val payload = CourseTableJson(timeSlots = slots)
+        payload.requireValidForImport()
+        db.withTransaction {
+            ensureSideTables(tableId)
+            importSlots(tableId, payload)
+        }
+    }
+
+    /** 教务脚本导入的学期设置 */
+    suspend fun importEduConfig(
+        tableId: String,
+        config: CourseTableConfigJson,
+    ) = withContext(Dispatchers.IO) {
+        db.withTransaction {
+            ensureSideTables(tableId)
+            importConfig(tableId, config)
+        }
+    }
+
+    /** 教务脚本导入的组合作息 */
+    suspend fun importEduCombo(
+        tableId: String,
+        combo: ComboScheduleJson,
+    ) = withContext(Dispatchers.IO) {
+        CourseTableJson(comboSchedule = combo).requireValidForImport()
+        db.withTransaction {
+            ensureSideTables(tableId)
+            importCombo(tableId, combo)
+        }
+    }
 
     /** 两种导入来源共用的落库流程；没有课程的文件不导入，避免把已有课表清空 */
     private suspend fun importParsed(

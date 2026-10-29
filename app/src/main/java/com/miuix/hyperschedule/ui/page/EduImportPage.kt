@@ -1,6 +1,5 @@
 package com.miuix.hyperschedule.ui.page
 
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -17,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -28,6 +28,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -40,16 +41,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.miuix.hyperschedule.data.importer.edu.Adapter
+import com.miuix.hyperschedule.data.importer.edu.EduRepo
+import com.miuix.hyperschedule.data.importer.edu.EduRepoStore
 import com.miuix.hyperschedule.data.importer.edu.School
 import com.miuix.hyperschedule.data.importer.edu.SchoolRepository
 import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.SheetMaxHeight
 import com.miuix.hyperschedule.theme.sheetCardColor
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
+import com.miuix.hyperschedule.ui.component.EduRepoSheet
 import com.miuix.hyperschedule.ui.component.Person
 import com.miuix.hyperschedule.ui.component.School as SchoolIcon
 import com.miuix.hyperschedule.ui.component.SheetScaffold
 import com.miuix.hyperschedule.ui.component.SheetScrollColumn
+import com.miuix.hyperschedule.ui.component.toast
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -60,6 +65,7 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
@@ -67,9 +73,9 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -100,7 +106,9 @@ private sealed interface SchoolRow {
 @Composable
 fun EduImportPage(
     repository: SchoolRepository,
+    repoStore: EduRepoStore,
     appBlur: Boolean = false,
+    onOpenAdapter: (school: School, adapter: Adapter) -> Unit = { _, _ -> },
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -117,25 +125,30 @@ fun EduImportPage(
     // 抽屉内容跟着学校走，收起动画期间不清空
     var sheetSchool by remember { mutableStateOf<School?>(null) }
     var sheetVisible by remember { mutableStateOf(false) }
+    var moreVisible by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        schools = withContext(Dispatchers.IO) { repository.schools() }
-    }
-
-    fun update() {
+    // 拉索引并刷新列表，notify 为真时把结果提示出来
+    fun sync(notify: Boolean) {
         if (updating) return
         updating = true
         scope.launch {
             val result = runCatching { repository.update() }
             if (result.isSuccess) schools = withContext(Dispatchers.IO) { repository.schools() }
             updating = false
+            if (!notify) return@launch
             val text =
                 result.fold(
                     onSuccess = { if (it) "学校列表已更新" else "已是最新版本" },
                     onFailure = { "更新失败，${it.message ?: "网络不可用"}" },
                 )
-            Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+            context.toast(text)
         }
+    }
+
+    LaunchedEffect(Unit) {
+        schools = withContext(Dispatchers.IO) { repository.schools() }
+        // 进入页面时自动同步保持静默
+        if (repoStore.state.autoSync) sync(notify = false)
     }
 
     val shown =
@@ -202,10 +215,15 @@ fun EduImportPage(
                     blurBackdrop = blurBackdrop,
                     scrollBehavior = scrollBehavior,
                     onBack = onBack,
+                    actions = {
+                        IconButton(onClick = { moreVisible = true }) {
+                            Icon(imageVector = MiuixIcons.More, contentDescription = "更多")
+                        }
+                    },
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { update() }) {
+                FloatingActionButton(onClick = { sync(notify = true) }) {
                     if (updating) {
                         CircularProgressIndicator(
                             size = 24.dp,
@@ -254,7 +272,16 @@ fun EduImportPage(
                 Box(modifier = Modifier.fillMaxSize()) {
                     when {
                         schools == null -> LoadingHint("正在读取学校列表", showProgress = true)
-                        rows.isEmpty() -> LoadingHint(if (query.isBlank()) "暂无学校数据" else "没有匹配的学校")
+                        rows.isEmpty() ->
+                            LoadingHint(
+                                text =
+                                    when {
+                                        query.isNotBlank() -> "没有匹配的学校"
+                                        updating -> "正在同步学校列表"
+                                        else -> "暂无学校数据"
+                                    },
+                                showProgress = query.isBlank() && updating,
+                            )
                         else -> {
                             LazyColumn(
                                 state = listState,
@@ -316,18 +343,36 @@ fun EduImportPage(
             AdapterSheet(
                 school = school,
                 show = sheetVisible,
+                onOpen = { adapter ->
+                    sheetVisible = false
+                    onOpenAdapter(school, adapter)
+                },
                 onDismiss = { sheetVisible = false },
                 onDismissFinished = { sheetSchool = null },
             )
         }
+
+        EduRepoSheet(
+            show = moreVisible,
+            config = repoStore.state,
+            onApply = { config ->
+                // 留空的自定义仓库不生效，提示一下免得以为没保存
+                if (config.repo == EduRepo.CUSTOM && config.customUrl.isBlank()) {
+                    context.toast("未填写仓库地址，已保留上次设置")
+                }
+                if (repoStore.update { config }) sync(notify = true)
+            },
+            onDismiss = { moreVisible = false },
+        )
     }
 }
 
-/** 适配器抽屉，条目暂不接后续动作 */
+/** 适配器抽屉，点一个适配器进入网页导入 */
 @Composable
 private fun AdapterSheet(
     school: School,
     show: Boolean,
+    onOpen: (Adapter) -> Unit,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
 ) {
@@ -353,7 +398,7 @@ private fun AdapterSheet(
             }
         } else {
             SheetScrollColumn(maxHeight = SheetMaxHeight) {
-                adapters.forEach { AdapterCard(it) }
+                adapters.forEach { adapter -> AdapterCard(adapter) { onOpen(adapter) } }
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
@@ -362,12 +407,15 @@ private fun AdapterSheet(
 
 /** 适配器卡片，名称、分类、描述与贡献者 */
 @Composable
-private fun AdapterCard(adapter: Adapter) {
+private fun AdapterCard(adapter: Adapter, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(CardCornerRadius))
+                .clickable(onClick = onClick),
         cornerRadius = CardCornerRadius,
         insideMargin = PaddingValues(0.dp),
-        pressFeedbackType = PressFeedbackType.None,
         colors =
             CardDefaults.defaultColors(
                 color = sheetCardColor(),
@@ -442,6 +490,7 @@ private fun SchoolItem(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .clip(RoundedCornerShape(CardCornerRadius))
                 .clickable {
                     haptic.performHapticFeedback(HapticFeedbackType.VirtualKey)
                     onClick()

@@ -3,21 +3,13 @@ package com.miuix.hyperschedule.ui.page
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.importer.CourseTableJson
 import com.miuix.hyperschedule.data.importer.share.ShareCodeImport
 import com.miuix.hyperschedule.data.importer.share.ShareCodeSource
@@ -25,19 +17,15 @@ import com.miuix.hyperschedule.data.repository.ScheduleRepository
 import com.miuix.hyperschedule.data.repository.TableSummary
 import com.miuix.hyperschedule.schedule.cjkDigitGap
 import com.miuix.hyperschedule.ui.CourseTableData
-import com.miuix.hyperschedule.ui.component.ConfirmDialog
+import com.miuix.hyperschedule.ui.component.CreateTableDialog
+import com.miuix.hyperschedule.ui.component.ImportTablePickerDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
-import com.miuix.hyperschedule.ui.component.SelectableEditRow
 import com.miuix.hyperschedule.ui.component.ShareCodeDialog
-import com.miuix.hyperschedule.ui.component.TableNameDialog
-import com.miuix.hyperschedule.ui.component.WideActionButton
 import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
 
 /** 文件导入来源：决定用哪个解析器 */
 private enum class ImportSource {
@@ -203,40 +191,19 @@ fun ScheduleImportPage(
 
     val picked = pending
     if (showPicker && picked != null) {
-        ConfirmDialog(
-            title = "导入到课表",
+        ImportTablePickerDialog(
+            tables = tables,
+            selectedTableId = selectedTableId,
             appBlur = appBlur,
+            onSelect = { selectedTableId = it },
             onDismiss = {
                 showPicker = false
                 pending = null
             },
             onConfirm = { selectedTableId?.let(::importInto) },
-            confirmEnabled = selectedTableId != null && !busy,
-        ) {
-            Column(
-                modifier = Modifier.fillMaxWidth().heightIn(max = 300.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                tables.forEach { summary ->
-                    SelectableEditRow(
-                        title = summary.table.name.ifBlank { "未命名" },
-                        summary =
-                            if (summary.courseCount > 0) {
-                                "共${summary.courseCount}门课程，导入后将被覆盖".cjkDigitGap()
-                            } else {
-                                "暂无课程"
-                            },
-                        selected = summary.table.id == selectedTableId,
-                        onSelect = { selectedTableId = summary.table.id },
-                    )
-                }
-            }
-            WideActionButton(
-                text = "添加课表",
-                icon = MiuixIcons.Add,
-                onClick = { showNameDialog = true },
-            )
-        }
+            busy = busy,
+            onAddTable = { showNameDialog = true },
+        )
     }
 
     shareSource?.let { source ->
@@ -256,22 +223,17 @@ fun ScheduleImportPage(
     }
 
     if (showNameDialog) {
-        TableNameDialog(
-            title = "新建课表",
+        CreateTableDialog(
+            repository = repository,
             appBlur = appBlur,
             onDismiss = { showNameDialog = false },
-            onConfirm = { name ->
+            onCreated = { tableId ->
                 showNameDialog = false
-                if (busy) return@TableNameDialog
-                busy = true
-                scope.launch {
-                    val created = runCatching { repository.createTable(name) }
-                    busy = false
-                    created.fold(
-                        onSuccess = { tableId -> importInto(tableId) },
-                        onFailure = { toast("新建课表失败：${it.message ?: "未知错误"}") },
-                    )
-                }
+                importInto(tableId)
+            },
+            onFailed = {
+                showNameDialog = false
+                showPicker = true
             },
         )
     }

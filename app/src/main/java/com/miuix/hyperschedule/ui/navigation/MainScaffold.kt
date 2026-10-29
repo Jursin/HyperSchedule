@@ -116,7 +116,10 @@ fun MainScaffold(
     timeTableManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     courseTableManagePage: @Composable (onBack: () -> Unit) -> Unit = {},
     scheduleImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    eduImportPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    eduImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
+    eduImportWebPage:
+        @Composable (schoolId: String, adapterId: String, onBack: () -> Unit, onImported: () -> Unit) -> Unit =
+        { _, _, _, _ -> },
     scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
@@ -150,6 +153,16 @@ fun MainScaffold(
     val navigate: (Page) -> Unit =
         remember(backStack) {
             { page -> if (backStack.lastOrNull() != page) backStack.add(page) }
+        }
+
+    // 教务导入完成后直接回到「课表导入」页
+    val backToScheduleImport: () -> Unit =
+        remember(backStack) {
+            {
+                while (backStack.size > 1 && backStack.lastOrNull() != Page.ScheduleImport) {
+                    backStack.removeLastOrNull()
+                }
+            }
         }
 
     val interceptPredictiveBack = !predictiveBackEnabled && backStack.size > 1
@@ -307,7 +320,12 @@ fun MainScaffold(
                 }
                 entry<Page.EduImport> {
                     NavEntry(interceptPredictiveBack, onBack) {
-                        eduImportPage(onBack)
+                        eduImportPage(navigate, onBack)
+                    }
+                }
+                entry<Page.EduImportWeb> { key ->
+                    NavEntry(interceptPredictiveBack, onBack) {
+                        eduImportWebPage(key.schoolId, key.adapterId, onBack, backToScheduleImport)
                     }
                 }
                 entry<Page.ScheduleExport> {

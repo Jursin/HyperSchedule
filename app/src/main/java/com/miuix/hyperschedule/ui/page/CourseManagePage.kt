@@ -63,6 +63,7 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
 /** 课程管理：同名课程聚合成一张卡，点击进入编辑；长按进入多选，可批量删除 */
 @Composable
@@ -221,6 +222,7 @@ private fun CourseManageCard(
             cornerRadius = CardCornerRadius,
             insideMargin = PaddingValues(14.dp),
             colors = CardDefaults.defaultColors(color = color.copy(alpha = CourseTintAlpha)),
+            pressFeedbackType = PressFeedbackType.Sink,
             onClick = onClick,
             onLongPress = onLongClick,
         ) {

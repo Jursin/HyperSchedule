@@ -18,15 +18,16 @@ import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Edit
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 单选行：左侧单选，右侧编辑与删除；[onEdit]、[onDelete] 为空时不显示对应按钮 */
+/** 单选行，[radioAtEnd] 为真时单选放到右侧，编辑删除按钮始终在右侧 */
 @Composable
 fun SelectableEditRow(
     title: String,
-    summary: String,
+    summary: String? = null,
     selected: Boolean,
     onSelect: () -> Unit,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    radioAtEnd: Boolean = false,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -36,9 +37,12 @@ fun SelectableEditRow(
             title = title,
             summary = summary,
             insideMargin = CardItemPadding,
-            startAction = {
-                RadioButton(selected = selected, onClick = onSelect)
-            },
+            startAction =
+                if (radioAtEnd) {
+                    null
+                } else {
+                    { RadioButton(selected = selected, onClick = onSelect) }
+                },
             endActions = {
                 if (onEdit != null) {
                     IconButton(onClick = onEdit) {
@@ -59,6 +63,9 @@ fun SelectableEditRow(
                             tint = MiuixTheme.colorScheme.error,
                         )
                     }
+                }
+                if (radioAtEnd) {
+                    RadioButton(selected = selected, onClick = onSelect)
                 }
             },
             onClick = onSelect,

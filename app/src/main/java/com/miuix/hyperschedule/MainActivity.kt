@@ -11,6 +11,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import com.miuix.hyperschedule.data.db.AppDatabase
+import com.miuix.hyperschedule.data.importer.edu.EduRepoStore
+import com.miuix.hyperschedule.data.importer.edu.EduScriptRepository
 import com.miuix.hyperschedule.data.importer.edu.SchoolRepository
 import com.miuix.hyperschedule.data.repository.HolidayRepository
 import com.miuix.hyperschedule.data.repository.ScheduleRepository
@@ -28,6 +30,7 @@ import com.miuix.hyperschedule.ui.page.CourseReminderPage
 import com.miuix.hyperschedule.ui.page.CourseTableManagePage
 import com.miuix.hyperschedule.ui.page.CourseWeeksPage
 import com.miuix.hyperschedule.ui.page.EduImportPage
+import com.miuix.hyperschedule.ui.page.EduImportWebPage
 import com.miuix.hyperschedule.ui.page.HolidayPage
 import com.miuix.hyperschedule.ui.page.ScheduleExportPage
 import com.miuix.hyperschedule.ui.page.ScheduleImportPage
@@ -61,7 +64,9 @@ class MainActivity : ComponentActivity() {
             val coroutineScope = rememberCoroutineScope()
             val repository = remember { ScheduleRepository(AppDatabase.get(applicationContext)) }
             val holidayRepository = remember { HolidayRepository(applicationContext) }
-            val schoolRepository = remember { SchoolRepository(applicationContext) }
+            val eduRepoStore = remember { EduRepoStore(applicationContext) }
+            val schoolRepository = remember { SchoolRepository(applicationContext, eduRepoStore) }
+            val scriptRepository = remember { EduScriptRepository(applicationContext, eduRepoStore) }
             // 课表级数据在这里常驻订阅：进入课程详情页时无需再等一次数据库
             val table = rememberCourseTableData(repository, settingsStore)
             val allCourses = rememberCoursesWithWeeks(repository, table?.tableId)
@@ -209,11 +214,32 @@ class MainActivity : ComponentActivity() {
                             onBack = onBack,
                         )
                     },
-                    eduImportPage = { onBack ->
+                    eduImportPage = { navigate, onBack ->
                         EduImportPage(
                             repository = schoolRepository,
+                            repoStore = eduRepoStore,
+                            appBlur = settings.blur,
+                            onOpenAdapter = { school, adapter ->
+                                navigate(Page.EduImportWeb(school.id, adapter.id))
+                            },
+                            onBack = onBack,
+                        )
+                    },
+                    eduImportWebPage = { schoolId, adapterId, onBack, onImported ->
+                        EduImportWebPage(
+                            schoolRepository = schoolRepository,
+                            scriptRepository = scriptRepository,
+                            repository = repository,
+                            schoolId = schoolId,
+                            adapterId = adapterId,
+                            tables = rememberTableSummaries(repository),
+                            currentTableId = table?.tableId,
                             appBlur = settings.blur,
                             onBack = onBack,
+                            onImported = onImported,
+                            onSwitchTable = { tableId ->
+                                settingsStore.update { it.copy(currentTableId = tableId) }
+                            },
                         )
                     },
                     scheduleExportPage = { onBack ->

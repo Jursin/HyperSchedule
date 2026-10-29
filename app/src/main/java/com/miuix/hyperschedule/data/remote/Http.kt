@@ -12,6 +12,18 @@ internal fun httpGet(url: String, accept: String? = null): String =
 internal fun httpGetBytes(url: String): ByteArray =
     httpGetResult(url, accept = null) { it.use { stream -> stream.readBytes() } }
 
+/** gitee raw 偶发返回反盗链签名页，跟随签名链接再取一次 */
+internal fun httpGetGiteeRaw(url: String): ByteArray {
+    val bytes = httpGetBytes(url)
+    if (bytes.size > 2048) return bytes
+    val head = bytes.decodeToString().trimStart()
+    if (!head.startsWith("<") || !head.contains("raw.giteeusercontent.com")) return bytes
+    val signed =
+        Regex("href=\"([^\"]+)\"").find(head)?.groupValues?.get(1)?.replace("&amp;", "&")
+            ?: error("gitee 地址被拦截")
+    return httpGetBytes(signed)
+}
+
 private fun <T> httpGetResult(
     url: String,
     accept: String?,
