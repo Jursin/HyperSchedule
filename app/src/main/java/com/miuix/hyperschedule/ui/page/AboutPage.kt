@@ -308,7 +308,7 @@ private fun AboutContentBody(
             }
 
             Text(
-                text = "澎湃课程表",
+                text = "HyperSchedule",
                 modifier =
                     Modifier
                         .padding(top = 12.dp, bottom = 5.dp)

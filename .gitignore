@@ -1,6 +1,7 @@
 *.iml
 .gradle
 .kotlin
+/.idea/.name
 /.idea/assetWizardSettings.xml
 /.idea/caches
 /.idea/deploymentTargetSelector.xml

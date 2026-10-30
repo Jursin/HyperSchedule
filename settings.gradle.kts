@@ -22,6 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "澎湃课程表"
+rootProject.name = "HyperSchedule"
 include(":app")
- 
