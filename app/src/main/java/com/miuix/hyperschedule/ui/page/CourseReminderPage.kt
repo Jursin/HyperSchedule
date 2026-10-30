@@ -183,14 +183,16 @@ fun CourseReminderPage(
                     },
                 )
             }
-            ArrowPreference(
-                title = "精确闹钟权限",
-                summary = "确保提醒准时触发，不受省电策略影响",
-                endActions = { GrantedLabel(perms.exactAlarm) },
-                onClick = {
-                    if (!perms.exactAlarm) ReminderPermissions.openExactAlarmSettings(context)
-                },
-            )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                ArrowPreference(
+                    title = "精确闹钟权限",
+                    summary = "确保提醒准时触发，不受省电策略影响",
+                    endActions = { GrantedLabel(perms.exactAlarm) },
+                    onClick = {
+                        if (!perms.exactAlarm) ReminderPermissions.openExactAlarmSettings(context)
+                    },
+                )
+            }
             ArrowPreference(
                 title = "电池优化",
                 summary = "关闭电池优化以确保提醒准时送达",

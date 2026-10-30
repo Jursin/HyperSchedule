@@ -15,12 +15,12 @@ import java.util.zip.InflaterInputStream
 
 /** 请求体登记表，id 由页面 JS 生成，重放时取走 */
 internal object EduPostBodyRegistry {
-    private const val MaxEntries = 32
+    private const val MAX_ENTRIES = 32
 
     private val bodies =
         object : LinkedHashMap<String, Pair<String, String>>(16, 0.75f, false) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, Pair<String, String>>?): Boolean =
-                size > MaxEntries
+                size > MAX_ENTRIES
         }
 
     fun put(id: String, body: String, contentType: String) {

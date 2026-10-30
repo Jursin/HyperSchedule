@@ -17,7 +17,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /** 节假日与调休：按年份存 SharedPreferences，远端数据源为 holiday-calendar */
-class HolidayRepository(context: Context) {
+class HolidayRepository private constructor(context: Context) {
     private val preferences = context.getSharedPreferences("holiday_settings", Context.MODE_PRIVATE)
 
     /** 数据版本；写入后自增，[observe] 据此重新读取 */
@@ -141,6 +141,21 @@ class HolidayRepository(context: Context) {
     }
 
     private fun key(year: Int) = "entries_$year"
+
+    /** 从磁盘重读，恢复备份后调用 */
+    fun reload() {
+        revisionFlow.update { it + 1 }
+    }
+
+    companion object {
+        @Volatile private var instance: HolidayRepository? = null
+
+        /** 进程级单例，恢复备份后各处看到同一份 */
+        fun get(context: Context): HolidayRepository =
+            instance ?: synchronized(this) {
+                instance ?: HolidayRepository(context.applicationContext).also { instance = it }
+            }
+    }
 }
 
 private fun yearOf(date: String): Int? = runCatching { LocalDate.parse(date).year }.getOrNull()

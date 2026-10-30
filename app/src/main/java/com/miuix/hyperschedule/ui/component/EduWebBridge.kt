@@ -17,7 +17,6 @@ import org.json.JSONObject
 
 /** 教务脚本桥，对应页面里的 window.AndroidBridge，方法名与参数顺序是脚本契约 */
 @Keep
-@Suppress("unused", "UNUSED_PARAMETER")
 class EduWebBridge(
     private val context: Context,
     private val webView: WebView,

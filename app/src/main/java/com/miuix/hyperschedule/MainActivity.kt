@@ -2,14 +2,19 @@ package com.miuix.hyperschedule
 
 import android.os.Build
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.miuix.hyperschedule.data.backup.BackupAuto
+import com.miuix.hyperschedule.data.backup.BackupRepository
 import com.miuix.hyperschedule.data.db.AppDatabase
 import com.miuix.hyperschedule.data.importer.edu.EduRepoStore
 import com.miuix.hyperschedule.data.importer.edu.EduScriptRepository
@@ -40,20 +45,21 @@ import com.miuix.hyperschedule.ui.page.ThemePage
 import com.miuix.hyperschedule.ui.page.TimeTableEditPage
 import com.miuix.hyperschedule.ui.page.TimeTableManagePage
 import com.miuix.hyperschedule.ui.page.TodayPage
+import com.miuix.hyperschedule.ui.page.UpdateDialogs
 import com.miuix.hyperschedule.ui.page.UpdatePage
 import com.miuix.hyperschedule.ui.rememberCourseTableData
 import com.miuix.hyperschedule.ui.rememberCoursesWithWeeks
 import com.miuix.hyperschedule.ui.rememberScheduleOverview
 import com.miuix.hyperschedule.ui.rememberTableSummaries
-import com.miuix.hyperschedule.update.checkLatestRelease
+import com.miuix.hyperschedule.update.AppForeground
+import com.miuix.hyperschedule.update.UpdateController
 import kotlin.time.Duration.Companion.milliseconds
-import kotlinx.coroutines.Dispatchers
+import java.time.LocalDate
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class MainActivity : ComponentActivity() {
-    private val settingsStore by lazy { SettingsStore(applicationContext) }
+    private val settingsStore by lazy { SettingsStore.get(applicationContext) }
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,8 +69,9 @@ class MainActivity : ComponentActivity() {
             val settings = settingsStore.state
             val coroutineScope = rememberCoroutineScope()
             val repository = remember { ScheduleRepository(AppDatabase.get(applicationContext)) }
-            val holidayRepository = remember { HolidayRepository(applicationContext) }
-            val eduRepoStore = remember { EduRepoStore(applicationContext) }
+            val holidayRepository = remember { HolidayRepository.get(applicationContext) }
+            val eduRepoStore = remember { EduRepoStore.get(applicationContext) }
+            val backupRepository = remember { BackupRepository(applicationContext, AppDatabase.get(applicationContext)) }
             val schoolRepository = remember { SchoolRepository(applicationContext, eduRepoStore) }
             val scriptRepository = remember { EduScriptRepository(applicationContext, eduRepoStore) }
             // 课表级数据在这里常驻订阅：进入课程详情页时无需再等一次数据库
@@ -74,21 +81,40 @@ class MainActivity : ComponentActivity() {
             LaunchedEffect(settings.reminder, settings.currentTableId, allCourses) {
                 ReminderScheduler.resync(applicationContext)
             }
-            val checkUpdate: () -> Unit = {
-                coroutineScope.launch {
-                    val message = runCatching {
-                        withContext(Dispatchers.IO) {
-                            checkLatestRelease(settings.githubProxyUrl, getAppVersion(this@MainActivity))
+            val updateController = UpdateController.of(applicationContext)
+            val lifecycleOwner = LocalLifecycleOwner.current
+            DisposableEffect(lifecycleOwner) {
+                val observer =
+                    LifecycleEventObserver { _, event ->
+                        when (event) {
+                            Lifecycle.Event.ON_RESUME -> {
+                                AppForeground.resumed = true
+                                updateController.onAppResumed()
+                            }
+
+                            Lifecycle.Event.ON_STOP -> AppForeground.resumed = false
+                            else -> Unit
                         }
-                    }.getOrElse { "检查更新失败：${it.message ?: "网络错误"}" }
-                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
-                }
+                    }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
             }
             LaunchedEffect(Unit) {
-                if (settings.checkUpdateOnStart) {
-                    delay(1500.milliseconds)
-                    checkUpdate()
-                }
+                val today = LocalDate.now().toString()
+                if (!settings.checkUpdateOnStart || settings.lastUpdateCheck == today) return@LaunchedEffect
+                delay(1500.milliseconds)
+                // 静默检查每天最多一次；手动检查不受限制
+                settingsStore.update { it.copy(lastUpdateCheck = today) }
+                updateController.checkForUpdate(
+                    settings.updateSource,
+                    settings.acceptPrerelease,
+                    settings.githubProxyUrl,
+                    silent = true,
+                )
+            }
+            // 启动时自动备份，内容没变就不写文件
+            LaunchedEffect(Unit) {
+                BackupAuto.runIfNeeded(applicationContext, settingsStore, backupRepository)
             }
             AppTheme(settings = settings) {
                 MainScaffold(
@@ -96,7 +122,7 @@ class MainActivity : ComponentActivity() {
                     predictiveBackEnabled = settings.predictiveBack,
                     initialPage = settings.launchPage,
                     themePage = { onBack -> ThemePage(settingsStore, onBack) },
-                    updatePage = { onBack -> UpdatePage(settingsStore, onBack, checkUpdate) },
+                    updatePage = { onBack -> UpdatePage(settingsStore, updateController, onBack) },
                     aboutPage = { onBack, onLicenseClick -> AboutPage(onBack, onLicenseClick, appBlur = settings.blur) },
                     courseDetailPage = { name, week, onBack ->
                         CourseWeeksPage(
@@ -253,7 +279,7 @@ class MainActivity : ComponentActivity() {
                             onBack = onBack,
                         )
                     },
-                    backupPage = { onBack -> BackupPage(appBlur = settings.blur, onBack = onBack) },
+                    backupPage = { onBack -> BackupPage(settingsStore, appBlur = settings.blur, onBack = onBack) },
                     holidayPage = { onBack ->
                         HolidayPage(
                             repository = holidayRepository,
@@ -322,6 +348,7 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+                UpdateDialogs(updateController, settings.blur)
             }
         }
     }

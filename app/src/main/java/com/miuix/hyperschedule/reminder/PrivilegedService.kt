@@ -5,7 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.ServiceConnection
 import android.os.IBinder
+import android.os.ParcelFileDescriptor
 import android.util.Log
+import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import rikka.shizuku.Shizuku
@@ -79,17 +81,31 @@ internal object PrivilegedService {
             .daemon(false)
             .processNameSuffix("privileged")
             .debuggable(false)
-            .version(1)
+            .version(2)
 }
 
-/**
- * `IConnectivityManager$Stub` 的类名。`\u0024` 就是 `$`，写成转义免得被当成字符串插值前缀。
- * 隐藏 API 只能按名字反射拿，两个文件共用这一份。
- */
-internal const val CONNECTIVITY_STUB_CLASS = "android.net.IConnectivityManager\u0024Stub"
+/** 隐藏 API 只能按名字反射拿，$$ 让 $ 不被当成插值前缀 */
+internal const val CONNECTIVITY_STUB_CLASS = $$"android.net.IConnectivityManager$Stub"
 
 /** 由 Shizuku 以 shell 身份拉起的服务实现 */
 class PrivilegedServiceImpl : IPrivilegedService.Stub() {
+
+    /** 收下 APK 后交给 pm 安装；返回 pm 的输出，含 Success 即成功 */
+    override fun installApk(source: ParcelFileDescriptor): String {
+        val temp = File("/data/local/tmp/hyperschedule-update.apk")
+        return runCatching {
+                ParcelFileDescriptor.AutoCloseInputStream(source).use { input ->
+                    temp.outputStream().use { output -> input.copyTo(output) }
+                }
+                val process =
+                    ProcessBuilder("/system/bin/pm", "install", "-r", temp.absolutePath)
+                        .redirectErrorStream(true)
+                        .start()
+                process.inputStream.bufferedReader().readText().also { process.waitFor() }
+            }
+            .getOrElse { it.message ?: "安装失败" }
+            .also { temp.delete() }
+    }
 
     /** shell 侧不受隐藏 API 限制，防火墙只能靠反射调 */
     @SuppressLint("PrivateApi")

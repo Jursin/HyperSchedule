@@ -1,17 +1,29 @@
 package com.miuix.hyperschedule.ui.component.pref
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.theme.CardItemPadding
+import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.BasicComponentColors
 import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
 import top.yukonga.miuix.kmp.basic.DropdownColors
 import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.SwitchColors
 import top.yukonga.miuix.kmp.basic.SwitchDefaults
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.ArrowPreference as MiuixArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference as MiuixOverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference as MiuixSwitchPreference
@@ -48,6 +60,45 @@ fun ArrowPreference(
         holdDownState = holdDownState,
         enabled = enabled,
     )
+}
+
+/** 摘要可多行、超出省略的箭头条目 */
+@Composable
+fun MultilineArrowPreference(
+    title: String,
+    summary: String,
+    modifier: Modifier = Modifier,
+    maxLines: Int = 2,
+    insideMargin: PaddingValues = CardItemPadding,
+    onClick: (() -> Unit)? = null,
+) {
+    BasicComponent(
+        modifier = modifier,
+        insideMargin = insideMargin,
+        onClick = onClick,
+        endActions = {
+            Image(
+                modifier = Modifier.size(width = 10.dp, height = 16.dp).align(Alignment.CenterVertically),
+                imageVector = MiuixIcons.Basic.ArrowRight,
+                contentDescription = null,
+                colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurfaceVariantActions),
+            )
+        },
+    ) {
+        Text(
+            text = title,
+            fontSize = MiuixTheme.textStyles.headline1.fontSize,
+            fontWeight = FontWeight.Medium,
+            color = MiuixTheme.colorScheme.onBackground,
+        )
+        Text(
+            text = summary,
+            fontSize = MiuixTheme.textStyles.body2.fontSize,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            maxLines = maxLines,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

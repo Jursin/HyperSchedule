@@ -1,3 +1,6 @@
+@file:Suppress("UnstableApiUsage")
+
+import com.android.build.api.variant.FilterConfiguration
 import java.util.Properties
 
 plugins {
@@ -17,6 +20,11 @@ aboutLibraries {
         outputFile = file("src/main/assets/aboutlibraries.json")
         prettyPrint = true
     }
+}
+
+// 构建前自动刷新库信息，避免依赖变了 json 还是旧的
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn("exportLibraryDefinitions")
 }
 
 val localProps = Properties().apply {
@@ -70,6 +78,50 @@ android {
     buildFeatures {
         compose = true
         aidl = true
+    }
+
+    // 只保留中文与英文资源，其余语言不参与编译
+    androidResources {
+        localeFilters += listOf("zh", "en")
+    }
+
+    packaging {
+        resources {
+            excludes +=
+                listOf(
+                    "META-INF/*.version",
+                    "META-INF/androidx/**/LICENSE.txt",
+                    "META-INF/org/**/LICENSE.txt",
+                    "META-INF/com/android/build/**",
+                    "META-INF/com/mikepenz/**",
+                    "META-INF/version-control-info.textproto",
+                    "DebugProbesKt.bin",
+                    "kotlin/**",
+                )
+        }
+    }
+
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a", "x86_64")
+            isUniversalApk = false
+        }
+    }
+}
+
+// 产物按架构命名
+androidComponents {
+    onVariants { variant ->
+        val buildType = variant.buildType ?: variant.name
+        variant.outputs.forEach { output ->
+            val abi =
+                output.filters
+                    .firstOrNull { it.filterType == FilterConfiguration.FilterType.ABI }
+                    ?.identifier
+            output.outputFileName.set("hyperschedule-${abi ?: "universal"}-$buildType.apk")
+        }
     }
 }
 

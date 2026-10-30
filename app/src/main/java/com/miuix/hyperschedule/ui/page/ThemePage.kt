@@ -1,5 +1,6 @@
 package com.miuix.hyperschedule.ui.page
 
+import android.os.Build
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -22,10 +23,15 @@ import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
 import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
+import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
 
 @Composable
 fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
     val state = store.state
+    // 各开关依赖的系统能力不同，不支持的版本直接不显示
+    val supportsBlur = isRuntimeShaderSupported()
+    val supportsDynamicColor = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val supportsPredictiveBack = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
     PreferenceScreen(title = "外观与主题", appBlur = state.blur, onBack = onBack) {
         PreferenceSection {
             OverlayDropdownPreference(
@@ -34,13 +40,17 @@ fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
                 selectedIndex = ThemeMode.entries.indexOf(state.themeMode),
                 onSelectedIndexChange = { index -> store.update { state -> state.copy(themeMode = ThemeMode.entries[index]) } },
             )
-            SwitchPreference(checked = state.blur, onCheckedChange = { store.update { it.copy(blur = !it.blur) } }, title = "模糊效果", summary = "为应用启用模糊效果")
-            SwitchPreference(
-                checked = state.predictiveBack,
-                onCheckedChange = { store.update { it.copy(predictiveBack = !it.predictiveBack) } },
-                title = "预测性返回动画",
-                summary = "返回滑动前提前预览即将跳转至的界面",
-            )
+            if (supportsBlur) {
+                SwitchPreference(checked = state.blur, onCheckedChange = { store.update { it.copy(blur = !it.blur) } }, title = "模糊效果", summary = "为应用启用模糊效果")
+            }
+            if (supportsPredictiveBack) {
+                SwitchPreference(
+                    checked = state.predictiveBack,
+                    onCheckedChange = { store.update { it.copy(predictiveBack = !it.predictiveBack) } },
+                    title = "预测性返回动画",
+                    summary = "返回滑动前提前预览即将跳转至的界面",
+                )
+            }
             SwitchPreference(
                 checked = state.customColor,
                 onCheckedChange = { store.update { it.copy(customColor = !it.customColor) } },
@@ -48,19 +58,21 @@ fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
                 summary = "自定义应用主题配色方案",
             )
             if (state.customColor) {
-                SwitchPreference(
-                    checked = state.dynamicColor,
-                    onCheckedChange = { store.update { it.copy(dynamicColor = !it.dynamicColor) } },
-                    title = "动态取色",
-                    summary = "基于系统壁纸颜色生成配色方案",
-                )
+                if (supportsDynamicColor) {
+                    SwitchPreference(
+                        checked = state.dynamicColor,
+                        onCheckedChange = { store.update { it.copy(dynamicColor = !it.dynamicColor) } },
+                        title = "动态取色",
+                        summary = "基于系统壁纸颜色生成配色方案",
+                    )
+                }
                 OverlayDropdownPreference(
                     title = "调色板风格",
                     items = PaletteStyle.entries.map { it.title },
                     selectedIndex = PaletteStyle.entries.indexOf(state.paletteStyle),
                     onSelectedIndexChange = { index -> store.update { state -> state.copy(paletteStyle = PaletteStyle.entries[index]) } },
                 )
-                if (!state.dynamicColor) {
+                if (!supportsDynamicColor || !state.dynamicColor) {
                     PresetColorGrid(state.paletteStyle, state.seedColor) { color ->
                         store.update { it.copy(seedColor = color) }
                     }

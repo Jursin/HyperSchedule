@@ -43,14 +43,14 @@ internal class ReminderData(
     companion object {
         /** 课表或学期日期没设好时返回 null —— 没有可提醒的东西，也不该在这里替用户建表 */
         suspend fun load(context: Context): ReminderData? {
-            val state = SettingsStore(context).state
+            val state = SettingsStore.get(context).state
             val repository = ScheduleRepository(AppDatabase.get(context))
             val tableId = repository.existingTableIdOnce(state.currentTableId) ?: return null
             val config = repository.configOnce(tableId) ?: return null
             val startDate = config.semesterStartDate?.let(::parseDateOrNull) ?: return null
             val totalWeeks = config.semesterTotalWeeks.coerceAtLeast(1)
             val semesterEnd = semesterStartMonday(startDate).plusWeeks(totalWeeks.toLong()).minusDays(1)
-            val holidays = HolidayRepository(context).entriesIn(startDate, semesterEnd)
+            val holidays = HolidayRepository.get(context).entriesIn(startDate, semesterEnd)
             return ReminderData(
                 reminder = state.reminder,
                 startDate = startDate,

@@ -6,12 +6,18 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import com.miuix.hyperschedule.data.backup.PrefsSnapshot
+import com.miuix.hyperschedule.data.backup.putAll
 import com.miuix.hyperschedule.schedule.cjkDigitGap
+import com.miuix.hyperschedule.update.UpdateSource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
-/** 一条设置：读写各自知道键与默认值，[Prefs] 是唯一的键清单 */
+/** 一条设置，[backedUp] 为 false 的键是本机状态，不进备份 */
 private class Setting(
+    val key: String,
+    val backedUp: Boolean = true,
+    val secret: Boolean = false,
     val write: (SharedPreferences.Editor, SettingsState) -> Unit,
     val read: (SharedPreferences, SettingsState) -> SettingsState,
 )
@@ -20,8 +26,11 @@ private fun boolSetting(
     key: String,
     default: Boolean,
     get: (SettingsState) -> Boolean,
+    backedUp: Boolean = true,
     set: (SettingsState, Boolean) -> SettingsState,
 ) = Setting(
+    key = key,
+    backedUp = backedUp,
     write = { editor, state -> editor.putBoolean(key, get(state)) },
     read = { prefs, state -> set(state, prefs.getBoolean(key, default)) },
 )
@@ -31,8 +40,11 @@ private fun intSetting(
     default: Int,
     get: (SettingsState) -> Int,
     coerce: (Int) -> Int = { it },
+    backedUp: Boolean = true,
     set: (SettingsState, Int) -> SettingsState,
 ) = Setting(
+    key = key,
+    backedUp = backedUp,
     write = { editor, state -> editor.putInt(key, get(state)) },
     read = { prefs, state -> set(state, coerce(prefs.getInt(key, default))) },
 )
@@ -41,8 +53,13 @@ private fun stringSetting(
     key: String,
     default: String?,
     get: (SettingsState) -> String?,
+    backedUp: Boolean = true,
+    secret: Boolean = false,
     set: (SettingsState, String?) -> SettingsState,
 ) = Setting(
+    key = key,
+    backedUp = backedUp,
+    secret = secret,
     write = { editor, state -> editor.putString(key, get(state)) },
     read = { prefs, state -> set(state, prefs.getString(key, default)) },
 )
@@ -53,6 +70,7 @@ private inline fun <reified T : Enum<T>> enumSetting(
     crossinline get: (SettingsState) -> T,
     crossinline set: (SettingsState, T) -> SettingsState,
 ) = Setting(
+    key = key,
     write = { editor, state -> editor.putString(key, get(state).name) },
     read = { prefs, state ->
         val saved = prefs.getString(key, null)
@@ -74,6 +92,11 @@ private val Prefs =
         },
         intSetting("seedColor", 0xFF6750A4.toInt(), { it.seedColor }) { s, v -> s.copy(seedColor = v) },
         boolSetting("checkUpdateOnStart", true, { it.checkUpdateOnStart }) { s, v -> s.copy(checkUpdateOnStart = v) },
+        enumSetting("updateSource", UpdateSource.GitHub, { it.updateSource }) { s, v -> s.copy(updateSource = v) },
+        boolSetting("acceptPrerelease", false, { it.acceptPrerelease }) { s, v -> s.copy(acceptPrerelease = v) },
+        stringSetting("lastUpdateCheck", "", { it.lastUpdateCheck }, backedUp = false) { s, v ->
+            s.copy(lastUpdateCheck = v.orEmpty())
+        },
         stringSetting("githubProxyUrl", "", { it.githubProxyUrl }) { s, v -> s.copy(githubProxyUrl = v.orEmpty()) },
         enumSetting("paletteStyle", PaletteStyle.TonalSpot, { it.paletteStyle }) { s, v -> s.copy(paletteStyle = v) },
         boolSetting("showNonCurrentWeek", true, { it.showNonCurrentWeek }) { s, v -> s.copy(showNonCurrentWeek = v) },
@@ -90,6 +113,7 @@ private val Prefs =
             s.copy(style = s.style.copy(contentCenter = v))
         },
         Setting(
+            key = "cardTextScale",
             write = { editor, state -> editor.putFloat("cardTextScale", state.style.textScale) },
             read = { prefs, state ->
                 val scale = ScheduleStyle.snapTextScale(prefs.getFloat("cardTextScale", 1f))
@@ -147,10 +171,78 @@ private val Prefs =
             { it.reminder.dndMode },
             coerce = { it.coerceIn(ReminderSettings.DND_MODE_LABELS.indices) },
         ) { s, v -> s.copy(reminder = s.reminder.copy(dndMode = v)) },
+        // 这几项都是本机状态，不进备份
+        boolSetting("backupAuto", false, { it.backup.autoBackup }) { s, v ->
+            s.copy(backup = s.backup.copy(autoBackup = v))
+        },
+        intSetting(
+            "backupKeep",
+            BackupSettings.Default.keepCount,
+            { it.backup.keepCount },
+            coerce = { BackupSettings.coerceKeep(it) },
+            backedUp = false,
+        ) { s, v -> s.copy(backup = s.backup.copy(keepCount = v)) },
+        stringSetting("backupLocation", "", { it.backup.location }, backedUp = false) { s, v ->
+            s.copy(backup = s.backup.copy(location = v.orEmpty()))
+        },
+        stringSetting("backupLocationLabel", "", { it.backup.locationLabel }, backedUp = false) { s, v ->
+            s.copy(backup = s.backup.copy(locationLabel = v.orEmpty()))
+        },
+        stringSetting("backupLastHash", "", { it.backup.lastHash }, backedUp = false) { s, v ->
+            s.copy(backup = s.backup.copy(lastHash = v.orEmpty()))
+        },
+        stringSetting("backupLastTime", "", { it.backup.lastTime }, backedUp = false) { s, v ->
+            s.copy(backup = s.backup.copy(lastTime = v.orEmpty()))
+        },
+        stringSetting("backupLastError", "", { it.backup.lastError }, backedUp = false) { s, v ->
+            s.copy(backup = s.backup.copy(lastError = v.orEmpty()))
+        },
+        // WebDAV 配置全部是本机状态，账号密码绝不能进备份
+        boolSetting("webdavAuto", false, { it.webDav.autoBackup }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(autoBackup = v))
+        },
+        intSetting(
+            "webdavKeep",
+            WebDavSettings.DEFAULT_KEEP,
+            { it.webDav.keepCount },
+            coerce = { WebDavSettings.coerceKeep(it) },
+            backedUp = false,
+        ) { s, v -> s.copy(webDav = s.webDav.copy(keepCount = v)) },
+        stringSetting("webdavServer", "", { it.webDav.serverUrl }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(serverUrl = v.orEmpty()))
+        },
+        stringSetting("webdavUser", "", { it.webDav.username }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(username = v.orEmpty()))
+        },
+        stringSetting("webdavPassword", "", { it.webDav.password }, backedUp = false, secret = true) { s, v ->
+            s.copy(webDav = s.webDav.copy(password = v.orEmpty()))
+        },
+        stringSetting("webdavLastHash", "", { it.webDav.lastHash }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(lastHash = v.orEmpty()))
+        },
+        stringSetting("webdavLastTime", "", { it.webDav.lastTime }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(lastTime = v.orEmpty()))
+        },
+        stringSetting("webdavLastError", "", { it.webDav.lastError }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(lastError = v.orEmpty()))
+        },
     )
 
-class SettingsStore(context: Context) {
+class SettingsStore private constructor(context: Context) {
     private val preferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    /** 密码单独存一份，系统自动备份带走整个 sharedpref 时也不会泄露 */
+    private val secrets = context.getSharedPreferences("secret", Context.MODE_PRIVATE)
+
+    init {
+        // 旧版本把密码写在 settings 里，搬到 secret 后清掉
+        preferences.getString("webdavPassword", null)?.takeIf { it.isNotEmpty() }?.let { old ->
+            if (secrets.getString("webdavPassword", null).isNullOrEmpty()) {
+                secrets.edit { putString("webdavPassword", old) }
+            }
+            preferences.edit { remove("webdavPassword") }
+        }
+    }
 
     var state by mutableStateOf(load())
         private set
@@ -167,11 +259,39 @@ class SettingsStore(context: Context) {
 
     /** 把当前状态整体写入 SharedPreferences */
     fun save() {
-        preferences.edit { Prefs.forEach { it.write(this, state) } }
+        preferences.edit { Prefs.forEach { if (!it.secret) it.write(this, state) } }
+        secrets.edit { Prefs.forEach { if (it.secret) it.write(this, state) } }
+    }
+
+    /** 从磁盘重读，恢复备份后调用 */
+    fun reload() {
+        state = load()
+    }
+
+    /** 导出可备份的设置项，排除本机状态键 */
+    fun snapshot(): PrefsSnapshot = PrefsSnapshot.of(preferences.all, backedUpKeys)
+
+    /** 恢复设置；快照里没有的键保持当前值 */
+    fun restore(snapshot: PrefsSnapshot) {
+        preferences.edit { putAll(snapshot) }
+        reload()
     }
 
     private fun load(): SettingsState =
-        Prefs.fold(SettingsState()) { state, setting -> setting.read(preferences, state) }
+        Prefs.fold(SettingsState()) { state, setting -> setting.read(if (setting.secret) secrets else preferences, state) }
+
+    companion object {
+        /** 允许进备份的键 */
+        private val backedUpKeys: Set<String> = Prefs.filter { it.backedUp }.map { it.key }.toSet()
+
+        @Volatile private var instance: SettingsStore? = null
+
+        /** 进程级单例，重复构造会重复解析整张表 */
+        fun get(context: Context): SettingsStore =
+            instance ?: synchronized(this) {
+                instance ?: SettingsStore(context.applicationContext).also { instance = it }
+            }
+    }
 }
 
 /** 设置项；默认值同时作为读写缺失时的兜底 */
@@ -184,6 +304,9 @@ data class SettingsState(
     val floatingNav: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
+    val updateSource: UpdateSource = UpdateSource.GitHub,
+    val acceptPrerelease: Boolean = false,
+    val lastUpdateCheck: String = "", // 上次静默检查更新的日期，用于每日节流
     val githubProxyUrl: String = "",
     val paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     val seedColor: Int = 0xFF6750A4.toInt(),
@@ -192,7 +315,61 @@ data class SettingsState(
     val style: ScheduleStyle = ScheduleStyle(), // 课程表外观
     val todayStyle: TodayStyle = TodayStyle(), // 今日课表外观
     val reminder: ReminderSettings = ReminderSettings(), // 课程提醒
+    val backup: BackupSettings = BackupSettings(), // 备份与恢复
+    val webDav: WebDavSettings = WebDavSettings(), // WebDAV 云端备份
 )
+
+/** 备份设置，只有 [autoBackup] 跟着备份走，其余都是本机状态 */
+data class BackupSettings(
+    val autoBackup: Boolean = false,
+    val keepCount: Int = DEFAULT_KEEP,
+    val location: String = "",
+    val locationLabel: String = "",
+    val lastHash: String = "",
+    val lastTime: String = "",
+    val lastError: String = "",
+) {
+    val configured: Boolean get() = location.isNotBlank()
+
+    companion object {
+        const val DEFAULT_KEEP = 5
+
+        val Default = BackupSettings()
+
+        /** 保留份数候选，下拉直接用它 */
+        val KEEP_OPTIONS = listOf(3, 5, 10)
+
+        fun coerceKeep(value: Int): Int = if (value in KEEP_OPTIONS) value else DEFAULT_KEEP
+
+        fun keepIndexOf(value: Int): Int = KEEP_OPTIONS.indexOf(coerceKeep(value))
+    }
+}
+
+/** WebDAV 备份设置，全部是本机状态，账号密码绝不进备份文件 */
+data class WebDavSettings(
+    val serverUrl: String = "",
+    val username: String = "",
+    val password: String = "",
+    val autoBackup: Boolean = false,
+    val keepCount: Int = DEFAULT_KEEP,
+    val lastHash: String = "",
+    val lastTime: String = "",
+    val lastError: String = "",
+) {
+    /** 账号信息填全了才有得谈连接 */
+    val configured: Boolean
+        get() = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+
+    companion object {
+        const val DEFAULT_KEEP = 5
+
+        val Default = WebDavSettings()
+
+        fun coerceKeep(value: Int): Int = BackupSettings.coerceKeep(value)
+
+        fun keepIndexOf(value: Int): Int = BackupSettings.keepIndexOf(value)
+    }
+}
 
 /** 课程提醒设置 */
 data class ReminderSettings(

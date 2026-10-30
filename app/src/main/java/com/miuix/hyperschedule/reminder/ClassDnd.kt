@@ -112,7 +112,7 @@ class ClassDndReceiver : BroadcastReceiver() {
             Toast.makeText(context, "请先在课程提醒里授予勿扰权限", Toast.LENGTH_SHORT).show()
             return
         }
-        val applied = ClassDnd.toggle(context, SettingsStore(context).state.reminder.dndMode)
+        val applied = ClassDnd.toggle(context, SettingsStore.get(context).state.reminder.dndMode)
         Toast.makeText(context, if (applied) "已开启勿扰" else "已关闭勿扰", Toast.LENGTH_SHORT).show()
     }
 

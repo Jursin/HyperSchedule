@@ -1,5 +1,6 @@
 package com.miuix.hyperschedule.data.importer.edu
 
+import android.annotation.SuppressLint
 import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,13 +30,23 @@ data class EduRepoConfig(
 )
 
 /** 教务仓库设置存储，学校索引与适配脚本都从这里取地址 */
-class EduRepoStore(
+class EduRepoStore private constructor(
     private val context: Context,
 ) {
     private val preferences = context.getSharedPreferences("edu_repo", Context.MODE_PRIVATE)
 
     var state by mutableStateOf(load())
         private set
+
+    /** 从磁盘重读，恢复备份后调用 */
+    fun reload() {
+        val before = state
+        state = load()
+        // 仓库变了，旧脚本缓存作废
+        if (before.repo != state.repo || before.customUrl != state.customUrl || before.customBranch != state.customBranch) {
+            File(context.filesDir, EduScriptsPath).deleteRecursively()
+        }
+    }
 
     /** 写入设置，返回仓库或分支是否发生变化 */
     fun update(transform: (EduRepoConfig) -> EduRepoConfig): Boolean {
@@ -105,5 +116,16 @@ class EduRepoStore(
         if (trimmed.isEmpty()) return ""
         val hasScheme = trimmed.startsWith("http://", true) || trimmed.startsWith("https://", true)
         return if (hasScheme) trimmed else "https://$trimmed"
+    }
+
+    companion object {
+        @SuppressLint("StaticFieldLeak")
+        @Volatile private var instance: EduRepoStore? = null
+
+        /** 进程级单例，恢复备份后各处看到同一份 */
+        fun get(context: Context): EduRepoStore =
+            instance ?: synchronized(this) {
+                instance ?: EduRepoStore(context.applicationContext).also { instance = it }
+            }
     }
 }

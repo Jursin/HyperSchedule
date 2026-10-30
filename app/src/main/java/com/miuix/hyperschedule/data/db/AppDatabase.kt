@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import com.miuix.hyperschedule.data.db.dao.BackupDao
 import com.miuix.hyperschedule.data.db.dao.CourseDao
 import com.miuix.hyperschedule.data.db.dao.CourseTableDao
 import com.miuix.hyperschedule.data.db.dao.TimeTableComboDao
@@ -43,6 +44,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun timeTableDao(): TimeTableDao
 
     abstract fun timeTableComboDao(): TimeTableComboDao
+
+    abstract fun backupDao(): BackupDao
 
     companion object {
         private const val NAME = "hyperschedule.db"

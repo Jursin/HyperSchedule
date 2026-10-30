@@ -1,7 +1,7 @@
 package com.miuix.hyperschedule
 
 import android.content.Context
-import android.os.Build
+import androidx.core.content.pm.PackageInfoCompat
 
 fun getAppVersion(context: Context): String =
     runCatching {
@@ -11,12 +11,5 @@ fun getAppVersion(context: Context): String =
 fun getAppVersionCode(context: Context): String =
     runCatching {
         val packageInfo = context.packageManager.getPackageInfo(context.packageName, 0)
-        val versionCode =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                packageInfo.longVersionCode
-            } else {
-                @Suppress("DEPRECATION")
-                packageInfo.versionCode.toLong()
-            }
-        versionCode.toString()
+        PackageInfoCompat.getLongVersionCode(packageInfo).toString()
     }.getOrDefault("unknown")
