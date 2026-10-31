@@ -158,6 +158,8 @@ fun SchedulePage(
     var detailAnchor by remember { mutableStateOf<Course?>(null) }
     // 点开的卡属于哪一周
     var detailWeek by remember { mutableIntStateOf(0) }
+    // 那一格的放假 / 调休角标
+    var detailMark by remember { mutableStateOf<String?>(null) }
     var detailVisible by remember { mutableStateOf(false) }
     var appearanceVisible by remember { mutableStateOf(false) }
     // 收起动画跑完才卸载抽屉
@@ -341,9 +343,10 @@ fun SchedulePage(
                         // 落点要按当前这一页的网格算
                         if (page == pagerState.currentPage) editor.updateLiveGrid(rect)
                     },
-                    onCourseClick = { clicked, shownWeek ->
+                    onCourseClick = { clicked, shownWeek, mark ->
                         detailAnchor = clicked
                         detailWeek = shownWeek
+                        detailMark = mark
                         detailVisible = true
                     },
                     onAddCourse = onAddCourse,
@@ -405,6 +408,7 @@ fun SchedulePage(
             if (detailItems.isNotEmpty()) {
                 CourseDetailSheet(
                     items = detailItems,
+                    mark = detailMark,
                     show = detailVisible,
                     onEdit = onEditCourse,
                     onAdd = onAddCourse,
@@ -413,6 +417,7 @@ fun SchedulePage(
                     onDismissFinished = {
                         detailAnchor = null
                         detailWeek = 0
+                        detailMark = null
                     },
                 )
             }

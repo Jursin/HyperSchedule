@@ -61,6 +61,8 @@ fun CourseDetailSheet(
     show: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
+    // 被点那一格的放假 / 调休角标
+    mark: String? = null,
     onEdit: (Course) -> Unit = {},
     onAdd: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
 ) {
@@ -106,7 +108,7 @@ fun CourseDetailSheet(
             verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         ) {
             items(items, key = { it.course.id }) { item ->
-                CourseDetailCard(item, onEdit = { onEdit(item.course) })
+                CourseDetailCard(item, mark = mark, onEdit = { onEdit(item.course) })
             }
             // 卡片下方留白，最后一张也能完整滚出来
             item { Spacer(modifier = Modifier.height(SheetBottomInset)) }
@@ -115,7 +117,7 @@ fun CourseDetailSheet(
 }
 
 @Composable
-private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
+private fun CourseDetailCard(item: CourseDetailItem, mark: String?, onEdit: () -> Unit) {
     val course = item.course
     val cardColor = sheetCardColor()
     Card(
@@ -134,12 +136,24 @@ private fun CourseDetailCard(item: CourseDetailItem, onEdit: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = if (item.activeInWeek) course.name else "${course.name}（非本周）",
-                    style = MiuixTheme.textStyles.headline1,
-                    fontWeight = FontWeight.Medium,
-                    color = MiuixTheme.colorScheme.onSurface,
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = if (item.activeInWeek) course.name else "${course.name}（非本周）",
+                        style = MiuixTheme.textStyles.headline1,
+                        fontWeight = FontWeight.Medium,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (mark != null) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        HolidayMarkBadge(
+                            mark = mark,
+                            course = course,
+                            accent = item.activeInWeek,
+                            fontSize = MiuixTheme.textStyles.footnote1.fontSize,
+                        )
+                    }
+                }
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = summaryText(course, item.weeks),

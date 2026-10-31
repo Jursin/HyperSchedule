@@ -404,12 +404,12 @@ private fun AboutContentBody(
                             ),
                     ) {
                         ArrowPreference(
-                            title = "查看源代码",
-                            summary = "在 GitHub 上查看源代码",
+                            title = "GitHub 仓库",
+                            summary = RepositoryUrl,
                             onClick = { uriHandler.openUri(RepositoryUrl) },
                         )
                         ArrowPreference(
-                            title = "查看源代码许可",
+                            title = "开放源代码许可",
                             summary = "查看应用所使用的第三方开源库及其许可证信息",
                             onClick = onLicenseClicked,
                         )

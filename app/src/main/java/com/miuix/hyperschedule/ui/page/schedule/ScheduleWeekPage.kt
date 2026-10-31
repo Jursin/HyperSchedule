@@ -33,6 +33,7 @@ import com.miuix.hyperschedule.ui.component.ScheduleLayout
 import com.miuix.hyperschedule.ui.component.SectionTimesColumn
 import com.miuix.hyperschedule.ui.component.SpecialBlockBands
 import com.miuix.hyperschedule.ui.component.StretchOverscrollState
+import com.miuix.hyperschedule.ui.component.markOrNull
 import com.miuix.hyperschedule.ui.component.resolveWeekCourses
 import com.miuix.hyperschedule.ui.component.stretchOverscroll
 import com.miuix.hyperschedule.ui.effect.captureForBlur
@@ -67,7 +68,7 @@ internal fun ScheduleWeekPage(
     // 页面级触控状态
     touchState: ScheduleTouchState,
     onGridPositioned: (rect: Rect) -> Unit,
-    onCourseClick: (Course, Int) -> Unit,
+    onCourseClick: (Course, Int, String?) -> Unit,
     onAddCourse: (Int, Int, Int) -> Unit,
 ) {
     val week = page - EdgePages + 1
@@ -167,8 +168,8 @@ internal fun ScheduleWeekPage(
                                     } else {
                                         null
                                     },
-                                // 点卡片只带一门课
-                                onCourseClick = { clicked -> onCourseClick(clicked, shownWeek) },
+                                // 点卡片只带一门课，顺带这一格的放假 / 调休角标
+                                onCourseClick = { clicked -> onCourseClick(clicked, shownWeek, plan.markOrNull()) },
                                 // 再点一次「+」直接进新建课程页
                                 onPendingTap = { section -> onAddCourse(day, section, section) },
                                 onDragStart = { course, position, pointerId ->

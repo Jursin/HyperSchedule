@@ -16,6 +16,7 @@ import com.miuix.hyperschedule.theme.CardInsidePadding
 import com.miuix.hyperschedule.theme.PageHorizontalMargin
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SectionTitleVerticalPadding
+import com.miuix.hyperschedule.theme.useLargeScreenWindow
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -37,6 +38,8 @@ fun PreferenceScreen(
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val titlePadding = LocalPageHorizontalMargin.current + (TopBarTitlePadding - PageHorizontalMargin)
+    // 平板上标题常驻，不随滚动从大标题收成小标题
+    val pinnedTitle = useLargeScreenWindow()
     Scaffold(
         topBar = {
             BlurredTopAppBar(
@@ -45,6 +48,7 @@ fun PreferenceScreen(
                 scrollBehavior = scrollBehavior,
                 onBack = onBack,
                 actions = actions,
+                pinnedTitle = pinnedTitle,
                 titlePadding = titlePadding,
             )
         },

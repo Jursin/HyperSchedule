@@ -615,7 +615,7 @@ private fun BackupFileSection(
 /** 恢复前的风险提示 */
 @Composable
 private fun RestoreHint() {
-    InfoCard(text = "恢复会覆盖当前全部课表与设置，覆盖前会自动保存一份当前数据。", type = InfoCardType.Important)
+    InfoCard(text = "恢复会覆盖当前全部课表与设置，覆盖前会自动备份一次。", type = InfoCardType.Important)
 }
 
 @Composable

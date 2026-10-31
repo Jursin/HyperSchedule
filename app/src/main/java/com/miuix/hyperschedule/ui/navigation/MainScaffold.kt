@@ -174,7 +174,7 @@ private fun NavEntry(
     interceptPredictiveBack: Boolean,
     onBack: () -> Unit,
     onDismissToHome: () -> Unit = onBack,
-    windowed: Boolean = true,
+    windowed: Boolean,
     content: @Composable () -> Unit,
 ) {
     val state = rememberNavigationEventState(NavigationEventInfo.None)
@@ -183,7 +183,7 @@ private fun NavEntry(
         isBackEnabled = interceptPredictiveBack,
         onBackCompleted = onBack,
     )
-    // 宽屏下整页收成居中浮窗，只有首页自己铺满；点浮窗外区域即关闭整个浮窗
+    // 宽屏下整页收成居中浮窗，手机和首页始终铺满；点浮窗外区域即关闭整个浮窗
     if (windowed) WidePageWindow(onDismiss = onDismissToHome) { content() } else content()
 }
 
@@ -479,14 +479,14 @@ fun MainScaffold(
                                 }
                             }
                             // 遮罩只在主页这层：栈里有浮窗页时压暗主页，浮窗自身始终原色
-                            WindowScrim(backStack, windowDismissState)
+                            if (windowed) WindowScrim(backStack, windowDismissState)
                             // 浮层（课表详情抽屉等）画在最上层，宽屏时也盖住侧栏
                             overlayHost.content?.invoke()
                         }
                     }
                 }
                 entry<Page.License> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         LicensePage(
                             appBlur = appBlur,
                             onBack = onBack,
@@ -494,83 +494,87 @@ fun MainScaffold(
                     }
                 }
                 entry<Page.Appearance> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) { themePage(onBack) }
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        themePage(onBack)
+                    }
                 }
                 entry<Page.Update> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) { updatePage(onBack) }
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        updatePage(onBack)
+                    }
                 }
                 entry<Page.About> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         aboutPage(onBack) { navigate(Page.License) }
                     }
                 }
                 entry<Page.CourseDetail> { key ->
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         courseDetailPage(key.name, key.week, onBack)
                     }
                 }
                 entry<Page.CourseManage> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         courseManagePage(navigate, onBack)
                     }
                 }
                 entry<Page.CourseEdit> { key ->
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         courseEditPage(key.name, key.day, key.startSection, key.endSection, key.focusId, onBack)
                     }
                 }
                 entry<Page.TimeTableManage> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         timeTableManagePage(navigate, onBack)
                     }
                 }
                 entry<Page.CourseTableManage> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         courseTableManagePage(onBack)
                     }
                 }
                 entry<Page.ScheduleImport> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         scheduleImportPage(navigate, onBack)
                     }
                 }
                 entry<Page.EduImport> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         eduImportPage(navigate, onBack)
                     }
                 }
                 entry<Page.EduImportWeb> { key ->
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         eduImportWebPage(key.schoolId, key.adapterId, onBack, backToScheduleImport)
                     }
                 }
                 entry<Page.ScheduleExport> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         scheduleExportPage(onBack)
                     }
                 }
                 entry<Page.Backup> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         backupPage(onBack)
                     }
                 }
                 entry<Page.Holiday> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         holidayPage(onBack)
                     }
                 }
                 entry<Page.Reminder> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         reminderPage(onBack)
                     }
                 }
                 entry<Page.TimeTableEdit> { key ->
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         timeTableEditPage(key.planId, onBack)
                     }
                 }
                 entry<Page.ComboEdit> { key ->
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome) {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         comboEditPage(key.comboId, onBack)
                     }
                 }
