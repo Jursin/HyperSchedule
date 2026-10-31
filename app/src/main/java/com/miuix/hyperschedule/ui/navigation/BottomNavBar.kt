@@ -67,6 +67,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Months
 import top.yukonga.miuix.kmp.icon.extended.Settings
 import top.yukonga.miuix.kmp.icon.extended.Years
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal data class Tab(val label: String, val icon: ImageVector)
 
@@ -118,7 +119,16 @@ internal fun BottomNavBar(
     val tabsCount = tabs.size
 
     val isDark = isDarkTheme()
-    val colors = if (isDark) NavBarColors.Dark else NavBarColors.Light
+    // 自定义配色时容器和蒙层跟着主题走
+    val colors =
+        (if (isDark) NavBarColors.Dark else NavBarColors.Light).run {
+            if (MiuixTheme.isDynamicColor) {
+                val container = MiuixTheme.colorScheme.surfaceContainer
+                copy(container = container, blurTint = container.copy(blurTint.alpha))
+            } else {
+                this
+            }
+        }
 
     val labelTextStyle =
         remember(density) {

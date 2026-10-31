@@ -2,8 +2,10 @@ package com.miuix.hyperschedule.ui.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,6 +15,7 @@ import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -24,6 +27,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -40,7 +44,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
@@ -49,15 +52,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.theme.SectionSpacing
+import com.miuix.hyperschedule.theme.PanelCorner
+import com.miuix.hyperschedule.theme.SheetLargeMaxWidth
 import com.miuix.hyperschedule.theme.ShortSheetMaxHeight
+import com.miuix.hyperschedule.theme.panelOutlineColor
 import com.miuix.hyperschedule.theme.sheetPanelColor
+import com.miuix.hyperschedule.theme.useLargeScreenWindow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.anim.DecelerateEasing
+import top.yukonga.miuix.kmp.anim.folmeSpring
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** 拉到这条分界线以下才收起，没到就弹回去 */
 private val DismissDistance = 150.dp
@@ -65,8 +72,8 @@ private val DismissDistance = 150.dp
 /** 甩得够快时不必非要拉过 [DismissDistance] */
 private val DismissVelocity = 800.dp
 
-/** 遮罩颜色 */
-private val ScrimColor = Color.Black.copy(alpha = 0.32f)
+/** 居中浮层与屏幕边缘的距离 */
+private val OutsideMargin = 12.dp
 
 /** 拖动条 */
 private val HandleWidth = 60.dp
@@ -94,8 +101,7 @@ fun SheetScrollColumn(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxHeight)
-                .overScrollVertical()
-                .scrollEndHaptic()
+                .bouncyScroll()
                 .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
@@ -125,18 +131,14 @@ fun SheetScaffold(
     val dismissDistance = remember(density) { with(density) { DismissDistance.toPx() } }
     val dismissVelocity = remember(density) { with(density) { DismissVelocity.toPx() } }
     val currentOnDismissFinished by rememberUpdatedState(onDismissFinished)
-    LaunchedEffect(show) {
-        if (show) {
-            dragY = 0f
-            progress.animateTo(1f, spring(dampingRatio = 0.86f, stiffness = 520f))
-        } else {
-            progress.animateTo(0f, spring(dampingRatio = 0.95f, stiffness = 620f))
-            currentOnDismissFinished()
-        }
-    }
-    // 完全收起后整棵子树退出，只在收起/展开翻转时失效
+    // 展开过才算收起完成
+    var opened by remember { mutableStateOf(false) }
     val dismissed = remember { derivedStateOf { progress.value <= 0f } }
-    if (dismissed.value && !show) return
+    if (dismissed.value && !show) {
+        // 通知外层卸载，放进动画协程会被这里的提前返回取消
+        LaunchedEffect(Unit) { if (opened) currentOnDismissFinished() }
+        return
+    }
 
     BackHandler(enabled = show) { onDismiss() }
 
@@ -147,10 +149,42 @@ fun SheetScaffold(
             dragY = (dragY + delta).coerceAtLeast(0f)
         }
 
-    val shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
     val panelColor = sheetPanelColor()
-    Box(modifier = Modifier.fillMaxSize()) {
-        // 遮罩，跟着下拉一起变淡
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        // 居中浮层 / 贴底，判定和对话框一致
+        val largeScreen = useLargeScreenWindow()
+        val screenHeightPx = constraints.maxHeight.toFloat()
+        val showSpec: AnimationSpec<Float> =
+            if (largeScreen) {
+                folmeSpring(damping = 0.9f, response = 0.3f)
+            } else {
+                spring(dampingRatio = 0.86f, stiffness = 520f)
+            }
+        val hideSpec: AnimationSpec<Float> =
+            if (largeScreen) {
+                tween(durationMillis = 260, easing = DecelerateEasing(1.5f))
+            } else {
+                spring(dampingRatio = 0.95f, stiffness = 620f)
+            }
+        LaunchedEffect(show, largeScreen) {
+            if (show) {
+                opened = true
+                dragY = 0f
+                progress.animateTo(targetValue = 1f, animationSpec = showSpec)
+            } else {
+                progress.animateTo(targetValue = 0f, animationSpec = hideSpec)
+            }
+        }
+
+        val shape =
+            if (largeScreen) {
+                RoundedCornerShape(PanelCorner)
+            } else {
+                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+            }
+        // 遮罩跟着下拉一起变淡，强度取 windowDimming
+        val dimming = MiuixTheme.colorScheme.windowDimming
         Box(
             modifier =
                 Modifier
@@ -159,7 +193,7 @@ fun SheetScaffold(
                         val remain = 1f - (dragY / dismissDistance).coerceIn(0f, 1f)
                         alpha = progress.value * remain
                     }
-                    .background(ScrimColor)
+                    .background(dimming)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -169,17 +203,30 @@ fun SheetScaffold(
         Column(
             modifier =
                 Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .graphicsLayer { translationY = (1f - progress.value) * size.height + dragY }
+                    .align(if (largeScreen) Alignment.Center else Alignment.BottomCenter)
+                    .then(
+                        // 宽屏固定宽度居中，窄屏贴底铺满
+                        if (largeScreen) {
+                            Modifier
+                                .padding(horizontal = OutsideMargin)
+                                .widthIn(max = SheetLargeMaxWidth)
+                                .heightIn(max = maxHeight * 2f / 3f)
+                        } else {
+                            Modifier.fillMaxWidth()
+                        },
+                    )
+                    .graphicsLayer {
+                        translationY = if (largeScreen) {
+                            // 居中层同样从屏幕底边滑入滑出
+                            (1f - progress.value) * (screenHeightPx + size.height) / 2f + dragY
+                        } else {
+                            (1f - progress.value) * size.height + dragY
+                        }
+                    }
                     .clip(shape)
                     .background(panelColor)
                     // 顶边一道极淡的高光，避免深色下和背景黏在一起
-                    .border(
-                        width = 1.dp,
-                        color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f),
-                        shape = shape,
-                    ),
+                    .border(width = 1.dp, color = panelOutlineColor(), shape = shape),
         ) {
             // 只有顶部可拖，内容区列表要能自己滚
             Box(
@@ -212,7 +259,7 @@ fun SheetScaffold(
                         ),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // 拖动条
+                    // 拖动条：贴底抽屉和居中浮层都画，两种形态都有「往下拉收起」的手势
                     Box(
                         modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
                         contentAlignment = Alignment.Center,
@@ -222,7 +269,9 @@ fun SheetScaffold(
                                 Modifier
                                     .size(width = HandleWidth, height = HandleHeight)
                                     .clip(RoundedCornerShape(percent = 50))
-                                    .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f)),
+                                    .background(
+                                        MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f),
+                                    ),
                         )
                     }
                     Box(

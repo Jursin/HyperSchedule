@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.getAppVersion
 import com.miuix.hyperschedule.getAppVersionCode
 import com.miuix.hyperschedule.theme.SettingsStore
+import com.miuix.hyperschedule.theme.useLargeScreenWindow
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
@@ -160,6 +161,8 @@ private fun StatusDialog(title: String, text: String, appBlur: Boolean) {
     WindowDialog(
         show = true,
         title = title,
+        // 平板（横竖屏）居中弹出，手机贴底
+        largeScreen = useLargeScreenWindow(),
         content = {
             WindowBlurEffect(useBlur = appBlur)
             Text(text = text)

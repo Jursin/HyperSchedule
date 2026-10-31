@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.schedule.formatMinutes
 import com.miuix.hyperschedule.schedule.parseMinutes
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
+import com.miuix.hyperschedule.ui.component.DialogDeleteAction
 import com.miuix.hyperschedule.ui.component.TimeRangeRow
 import com.miuix.hyperschedule.ui.component.TimeWheelLabel
 import com.miuix.hyperschedule.ui.component.WeekdaySelectGrid
@@ -26,8 +27,10 @@ import top.yukonga.miuix.kmp.basic.TextField
 internal fun SpecialBlockDialog(
     initial: SpecialDraft,
     appBlur: Boolean,
+    canDelete: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (SpecialDraft) -> Unit,
+    onDelete: () -> Unit,
 ) {
     var name by remember(initial.id) { mutableStateOf(initial.name) }
     var days by remember(initial.id) { mutableStateOf(initial.days) }
@@ -40,11 +43,19 @@ internal fun SpecialBlockDialog(
 
     val start = startHour * 60 + startMinute
     val end = endHour * 60 + endMinute
+    // 编辑已有条目才给删除入口，放在标题右侧
+    val deleteAction: (@Composable () -> Unit)? =
+        if (canDelete) {
+            { DialogDeleteAction(onClick = onDelete) }
+        } else {
+            null
+        }
 
     ConfirmDialog(
-        title = if (initial.name.isBlank()) "添加特殊节次" else "编辑特殊节次",
+        title = if (canDelete) "编辑特殊节次" else "添加特殊节次",
         appBlur = appBlur,
         confirmEnabled = name.isNotBlank() && days.isNotEmpty() && end > start,
+        endAction = deleteAction,
         onDismiss = onDismiss,
         onConfirm = {
             onConfirm(

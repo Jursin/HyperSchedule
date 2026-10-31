@@ -54,6 +54,7 @@ import com.miuix.hyperschedule.ui.component.Person
 import com.miuix.hyperschedule.ui.component.School as SchoolIcon
 import com.miuix.hyperschedule.ui.component.SheetScaffold
 import com.miuix.hyperschedule.ui.component.SheetScrollColumn
+import com.miuix.hyperschedule.ui.component.bouncyScroll
 import com.miuix.hyperschedule.ui.component.toast
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import kotlinx.coroutines.Dispatchers
@@ -76,8 +77,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** 首字母索引条的字母表 */
 private val IndexLetters = ('A'..'Z').map { it.toString() }
@@ -289,8 +288,7 @@ fun EduImportPage(
                                     Modifier
                                         .fillMaxSize()
                                         .nestedScroll(scrollBehavior.nestedScrollConnection)
-                                        .overScrollVertical()
-                                        .scrollEndHaptic(),
+                                        .bouncyScroll(),
                                 contentPadding = PaddingValues(bottom = 96.dp),
                             ) {
                                 items(rows.size) { index ->

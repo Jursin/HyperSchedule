@@ -6,7 +6,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
@@ -56,31 +55,28 @@ import com.miuix.hyperschedule.R
 import com.miuix.hyperschedule.getAppVersion
 import com.miuix.hyperschedule.getAppVersionCode
 import com.miuix.hyperschedule.theme.CardCornerRadius
+import com.miuix.hyperschedule.theme.PageBottomInset
 import com.miuix.hyperschedule.theme.isDarkTheme
+import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
+import com.miuix.hyperschedule.ui.component.LocalPageHorizontalMargin
+import com.miuix.hyperschedule.ui.component.LocalPageTopPadding
+import com.miuix.hyperschedule.ui.component.SectionTitle
+import com.miuix.hyperschedule.ui.component.bouncyScroll
 import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import com.miuix.hyperschedule.ui.effect.BgEffectBackground
-import com.miuix.hyperschedule.ui.effect.appBarBlur
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
 import top.yukonga.miuix.kmp.blur.BlurColors
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.ChevronBackward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 private const val RepositoryUrl = "https://github.com/Jursin/HyperSchedule"
 
@@ -125,27 +121,20 @@ fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean =
 
     Scaffold(
         topBar = {
-            SmallTopAppBar(
-                modifier =
-                    if (topBarBackdrop != null && scrollProgress == 1f) {
-                        Modifier.appBarBlur(topBarBackdrop)
-                    } else {
-                        Modifier
-                    },
+            // 滚到顶时才有底色：有模糊时交给毛玻璃，没有模糊时铺不透明 surface
+            BlurredTopAppBar(
                 title = "关于",
+                blurBackdrop = if (scrollProgress == 1f) topBarBackdrop else null,
                 scrollBehavior = topAppBarScrollBehavior,
+                onBack = onBack,
+                pinnedTitle = true,
                 color =
-                    if (topBarBackdrop != null && scrollProgress == 1f) {
-                        Color.Transparent
+                    if (scrollProgress == 1f && topBarBackdrop == null) {
+                        MiuixTheme.colorScheme.surface
                     } else {
-                        MiuixTheme.colorScheme.surface.copy(alpha = if (scrollProgress == 1f) 1f else 0f)
+                        Color.Transparent
                     },
                 titleColor = MiuixTheme.colorScheme.onSurface.copy(alpha = scrollProgress),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(imageVector = MiuixIcons.ChevronBackward, contentDescription = "返回")
-                    }
-                },
             )
         },
     ) { innerPadding ->
@@ -222,22 +211,24 @@ private fun AboutContentBody(
     var logoHeightDp by remember { mutableStateOf(300.dp) }
     val displayCutoutInsets = WindowInsets.displayCutout.asPaddingValues()
     val horizontalSafeInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()
+    val pageMargin = LocalPageHorizontalMargin.current
+    val pageTopPadding = LocalPageTopPadding.current
 
     val listContentPadding =
         PaddingValues(
             start =
                 horizontalSafeInsets.calculateStartPadding(layoutDirection) +
-                    displayCutoutInsets.calculateLeftPadding(layoutDirection),
-            top = padding.calculateTopPadding(),
+                    displayCutoutInsets.calculateLeftPadding(layoutDirection) + pageMargin,
+            top = padding.calculateTopPadding() + pageTopPadding,
             end =
                 horizontalSafeInsets.calculateEndPadding(layoutDirection) +
-                    displayCutoutInsets.calculateRightPadding(layoutDirection),
-            bottom = padding.calculateBottomPadding(),
+                    displayCutoutInsets.calculateRightPadding(layoutDirection) + pageMargin,
+            bottom = padding.calculateBottomPadding() + PageBottomInset,
         )
 
     val logoPadding =
         PaddingValues(
-            top = padding.calculateTopPadding() + 40.dp,
+            top = padding.calculateTopPadding() + pageTopPadding + 40.dp,
             start =
                 horizontalSafeInsets.calculateStartPadding(layoutDirection) +
                     displayCutoutInsets.calculateLeftPadding(layoutDirection),
@@ -331,7 +322,7 @@ private fun AboutContentBody(
                                 Modifier
                             }
                         ),
-                fontWeight = FontWeight.Bold,
+                fontWeight = FontWeight.ExtraBold,
                 fontSize = 35.sp,
             )
 
@@ -362,8 +353,7 @@ private fun AboutContentBody(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .scrollEndHaptic()
-                    .overScrollVertical()
+                    .bouncyScroll()
                     .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
             contentPadding = listContentPadding,
         ) {
@@ -390,14 +380,11 @@ private fun AboutContentBody(
                             .fillParentMaxHeight()
                             .padding(bottom = listContentPadding.calculateBottomPadding()),
                 ) {
-                    SmallTitle("关于")
+                    SectionTitle("关于")
 
                     Card(
                         modifier =
-                            Modifier
-                                .padding(horizontal = 12.dp)
-                                .padding(bottom = 12.dp)
-                                .then(
+                            Modifier.then(
                                     if (cardBackdrop != null) {
                                         Modifier.textureBlur(
                                             backdrop = cardBackdrop,
@@ -427,7 +414,6 @@ private fun AboutContentBody(
                             onClick = onLicenseClicked,
                         )
                     }
-                    Spacer(modifier = Modifier.height(12.dp))
                 }
             }
         }

@@ -3,10 +3,8 @@ package com.miuix.hyperschedule.ui.page
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -35,6 +33,7 @@ import com.miuix.hyperschedule.ui.CourseTableData
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
 import com.miuix.hyperschedule.ui.component.DAY_NAMES
 import com.miuix.hyperschedule.ui.component.DatePickerRow
+import com.miuix.hyperschedule.ui.component.DialogDeleteAction
 import com.miuix.hyperschedule.ui.component.NumberWheelRow
 import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
@@ -44,8 +43,6 @@ import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
 import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
 import java.time.LocalDate
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
@@ -55,7 +52,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -275,10 +271,19 @@ private fun HolidayEditDialog(
             else -> "编辑调休工作日"
         }
 
+    // 只有编辑已有条目才给删除入口，放在标题右侧
+    val deleteAction: (@Composable () -> Unit)? =
+        if (entry == null) {
+            null
+        } else {
+            { DialogDeleteAction(onClick = onDelete) }
+        }
+
     ConfirmDialog(
         title = title,
         appBlur = appBlur,
         confirmEnabled = canSave,
+        endAction = deleteAction,
         onDismiss = onDismiss,
         onConfirm = {
             onSave(
@@ -319,22 +324,6 @@ private fun HolidayEditDialog(
                 onWeekChange = { followWeek = it },
                 onWeekdayChange = { followWeekday = it },
             )
-        }
-
-        if (entry != null) {
-            Button(
-                onClick = onDelete,
-                modifier = Modifier.fillMaxWidth(),
-                colors =
-                    ButtonDefaults.buttonColors(
-                        color = MiuixTheme.colorScheme.secondaryVariant,
-                        contentColor = MiuixTheme.colorScheme.error,
-                    ),
-            ) {
-                Icon(imageVector = MiuixIcons.Delete, contentDescription = null)
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(text = "删除", style = MiuixTheme.textStyles.button)
-            }
         }
     }
 }

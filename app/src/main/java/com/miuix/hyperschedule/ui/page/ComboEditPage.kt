@@ -1,5 +1,6 @@
 package com.miuix.hyperschedule.ui.page
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -96,7 +97,13 @@ fun ComboEditPage(
 
     val loaded = detail
     if (loaded == null) {
-        Box(modifier = Modifier.fillMaxSize())
+        // 加载态必须铺不透明底色，否则浮窗投影会透出一整块黑
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MiuixTheme.colorScheme.surface),
+        )
     } else {
         ComboEditContent(loaded, comboId.isBlank(), publics, repository, appBlur, onBack)
     }

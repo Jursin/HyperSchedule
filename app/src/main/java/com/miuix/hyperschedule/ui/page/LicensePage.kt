@@ -34,6 +34,7 @@ import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SheetMaxHeight
 import com.miuix.hyperschedule.ui.component.BlurredTopAppBar
 import com.miuix.hyperschedule.ui.component.ConfirmDialog
+import com.miuix.hyperschedule.ui.component.bouncyScroll
 import com.miuix.hyperschedule.ui.component.pageContentPadding
 import com.miuix.hyperschedule.ui.component.pageScroll
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
@@ -46,8 +47,6 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 @Composable
 fun LicensePage(
@@ -127,8 +126,7 @@ fun LicensePage(
                         Modifier
                             .fillMaxWidth()
                             .weight(1f, fill = false)
-                            .scrollEndHaptic()
-                            .overScrollVertical(),
+                            .bouncyScroll(),
                     contentPadding = PaddingValues(bottom = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(SectionSpacing),
                     overscrollEffect = null,

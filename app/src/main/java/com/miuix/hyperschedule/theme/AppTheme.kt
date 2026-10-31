@@ -75,7 +75,10 @@ fun AppTheme(
             ThemeController(if (isDark) ColorSchemeMode.Dark else ColorSchemeMode.Light)
         }
     }
-    MiuixTheme(controller = controller, textStyles = TabularTextStyles, content = content)
+    // 再套一层只为覆盖遮罩强度，弹窗和抽屉都读这个值
+    MiuixTheme(controller = controller, textStyles = TabularTextStyles) {
+        MiuixTheme(colors = MiuixTheme.colorScheme.copy(windowDimming = WindowScrimColor)) { content() }
+    }
 }
 
 enum class ThemeMode(val title: String) {

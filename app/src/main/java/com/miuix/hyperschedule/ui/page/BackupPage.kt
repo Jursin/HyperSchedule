@@ -578,7 +578,7 @@ private fun LocalBackupTab(
     BackupFileSection(
         hint =
             when {
-                dirLabel.isBlank() -> "还未选择备份目录，选好文件夹后这里会列出每次备份"
+                dirLabel.isBlank() -> "还未选择备份目录"
                 dirUsable == false -> "备份目录已失效（文件夹被删除或授权被系统回收），请重新选择"
                 else -> null
             },
@@ -779,6 +779,7 @@ private fun WebDavBackupTab(
     BackupFileSection(
         hint =
             when {
+                !settings.configured -> "还未配置账号信息"
                 error.isNotBlank() -> error
                 loading && files == null -> "正在读取…"
                 else -> null

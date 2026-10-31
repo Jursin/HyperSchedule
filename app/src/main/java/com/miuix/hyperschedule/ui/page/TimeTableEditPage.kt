@@ -1,16 +1,9 @@
 package com.miuix.hyperschedule.ui.page
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,11 +13,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.miuix.hyperschedule.data.model.SpecialTimeBlock
 import com.miuix.hyperschedule.data.model.TimeSlot
 import com.miuix.hyperschedule.data.repository.PlanDetail
@@ -44,12 +35,7 @@ import com.miuix.hyperschedule.ui.component.rememberEditBackGuard
 import com.miuix.hyperschedule.ui.component.toast
 import java.util.UUID
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 编辑作息：所有改动留在内存，点保存才写入；直接返回会丢弃 */
@@ -76,7 +62,13 @@ fun TimeTableEditPage(
 
     val loaded = detail
     if (loaded == null) {
-        Box(modifier = Modifier.fillMaxSize())
+        // 加载态必须铺不透明底色，否则浮窗投影会透出一整块黑
+        Box(
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .background(MiuixTheme.colorScheme.surface),
+        )
     } else {
         PlanEditContent(loaded, planId.isBlank(), repository, appBlur, onBack)
     }
@@ -250,7 +242,6 @@ private fun PlanEditContent(
         SpecialCourseSection(
             specials = specials,
             onEdit = { editingSpecial = it },
-            onDelete = { target -> specials.removeAll { it.id == target.id } },
             onAdd = {
                 editingSpecial = SpecialDraft(UUID.randomUUID().toString(), "", "07:00", "07:40")
             },
@@ -336,6 +327,12 @@ private fun PlanEditContent(
         SpecialBlockDialog(
             initial = special,
             appBlur = appBlur,
+            // 已经在列表里的才算已有条目
+            canDelete = specials.any { it.id == special.id },
+            onDelete = {
+                specials.removeAll { it.id == special.id }
+                editingSpecial = null
+            },
             onDismiss = { editingSpecial = null },
             onConfirm = { updated ->
                 val index = specials.indexOfFirst { it.id == updated.id }
@@ -378,15 +375,15 @@ private fun SectionTimeSections(
 private fun SpecialCourseSection(
     specials: List<SpecialDraft>,
     onEdit: (SpecialDraft) -> Unit,
-    onDelete: (SpecialDraft) -> Unit,
     onAdd: () -> Unit,
 ) {
     PreferenceSection("特殊节次") {
         specials.forEach { special ->
-            SpecialRow(
-                special = special,
-                onEdit = { onEdit(special) },
-                onDelete = { onDelete(special) },
+            ArrowPreference(
+                title = special.name,
+                summary = formatWeekdays(special.days),
+                endActions = { ValueLabel("${special.start} – ${special.end}") },
+                onClick = { onEdit(special) },
             )
         }
         ArrowPreference(
@@ -394,49 +391,5 @@ private fun SpecialCourseSection(
             summary = "早自习、晚自习等不占节次的固定时段",
             onClick = onAdd,
         )
-    }
-}
-
-/** 特殊课程行：名称 + 时间，右侧删除 */
-@Composable
-private fun SpecialRow(
-    special: SpecialDraft,
-    onEdit: () -> Unit,
-    onDelete: () -> Unit,
-) {
-    Row(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                    onClick = onEdit,
-                )
-                .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = special.name.ifBlank { "未命名" },
-                style = MiuixTheme.textStyles.headline1,
-                fontWeight = FontWeight.Medium,
-                color = MiuixTheme.colorScheme.onSurface,
-            )
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = "${special.start} – ${special.end} · ${formatWeekdays(special.days)}",
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = MiuixIcons.Delete,
-                contentDescription = "删除特殊课程",
-                modifier = Modifier.size(20.dp),
-                tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
     }
 }

@@ -23,8 +23,8 @@ import com.miuix.hyperschedule.ui.component.PreferenceScreen
 import com.miuix.hyperschedule.ui.component.PreferenceSection
 import com.miuix.hyperschedule.ui.component.ValueLabel
 import com.miuix.hyperschedule.ui.component.pref.ArrowPreference
-import com.miuix.hyperschedule.ui.component.pref.OverlayDropdownPreference
 import com.miuix.hyperschedule.ui.component.pref.SwitchPreference
+import com.miuix.hyperschedule.ui.component.pref.WindowDropdownPreference
 import com.miuix.hyperschedule.ui.rememberToday
 import java.time.LocalDate
 import kotlinx.coroutines.launch
@@ -115,7 +115,7 @@ fun SettingsPage(
                 onCheckedChange = { checked -> store.update { it.copy(showNonCurrentWeek = checked) } },
                 title = "显示非本周课程",
             )
-            OverlayDropdownPreference(
+            WindowDropdownPreference(
                 title = "启动页面",
                 items = listOf("今日课表", "课程表"),
                 selectedIndex = state.launchPage,

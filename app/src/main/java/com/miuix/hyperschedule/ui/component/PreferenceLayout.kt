@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import com.miuix.hyperschedule.theme.CardCornerRadius
 import com.miuix.hyperschedule.theme.CardInsidePadding
+import com.miuix.hyperschedule.theme.PageHorizontalMargin
 import com.miuix.hyperschedule.theme.SectionSpacing
 import com.miuix.hyperschedule.theme.SectionTitleVerticalPadding
 import com.miuix.hyperschedule.ui.effect.rememberAppBlurBackdrop
@@ -35,6 +36,7 @@ fun PreferenceScreen(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
+    val titlePadding = LocalPageHorizontalMargin.current + (TopBarTitlePadding - PageHorizontalMargin)
     Scaffold(
         topBar = {
             BlurredTopAppBar(
@@ -43,6 +45,7 @@ fun PreferenceScreen(
                 scrollBehavior = scrollBehavior,
                 onBack = onBack,
                 actions = actions,
+                titlePadding = titlePadding,
             )
         },
         floatingActionButton = {

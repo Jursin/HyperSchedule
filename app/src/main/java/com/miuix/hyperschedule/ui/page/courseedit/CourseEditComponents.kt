@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -319,34 +320,44 @@ internal fun ColorCard(
         }
         val totalItems = CoursePalette.size + 1
         val rowsCount = (totalItems + PaletteColumns - 1) / PaletteColumns
-        for (row in 0 until rowsCount) {
-            Row(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .padding(start = PaletteEdge, end = PaletteEdge, bottom = PaletteRowSpacing),
-                horizontalArrangement = Arrangement.spacedBy(PaletteCellSpacing),
-            ) {
-                for (col in 0 until PaletteColumns) {
-                    val index = row * PaletteColumns + col
-                    if (index < CoursePalette.size) {
-                        ColorCell(
-                            color = CoursePalette[index],
-                            selected = colorArgb == null && colorInt == index,
-                            isDark = isDark,
-                            onClick = { onPick(index, null) },
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else if (index == CoursePalette.size) {
-                        ColorCell(
-                            color = if (colorArgb != null) Color(colorArgb) else null,
-                            selected = colorArgb != null,
-                            isDark = isDark,
-                            onClick = onPickCustom,
-                            modifier = Modifier.weight(1f),
-                        )
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            // 宽屏卡片变宽后格子会被拉大，靠格子内边距把色块尺寸压在上限内，格子仍均匀铺满
+            val slot =
+                (maxWidth - PaletteEdge * 2 - PaletteCellSpacing * (PaletteColumns - 1)) / PaletteColumns
+            val inset = ((slot - PaletteMaxCell) / 2).coerceAtLeast(CellInset)
+            Column {
+                for (row in 0 until rowsCount) {
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(start = PaletteEdge, end = PaletteEdge, bottom = PaletteRowSpacing),
+                        horizontalArrangement = Arrangement.spacedBy(PaletteCellSpacing),
+                    ) {
+                        for (col in 0 until PaletteColumns) {
+                            val index = row * PaletteColumns + col
+                            if (index < CoursePalette.size) {
+                                ColorCell(
+                                    color = CoursePalette[index],
+                                    selected = colorArgb == null && colorInt == index,
+                                    isDark = isDark,
+                                    inset = inset,
+                                    onClick = { onPick(index, null) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            } else if (index == CoursePalette.size) {
+                                ColorCell(
+                                    color = if (colorArgb != null) Color(colorArgb) else null,
+                                    selected = colorArgb != null,
+                                    isDark = isDark,
+                                    inset = inset,
+                                    onClick = onPickCustom,
+                                    modifier = Modifier.weight(1f),
+                                )
+                            } else {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
                     }
                 }
             }
@@ -363,6 +374,9 @@ private val PaletteRowSpacing = 8.dp
 /** 颜色格之间再让出一点，格子才不会顶满 */
 private val CellInset = 2.5.dp
 
+/** 色块尺寸上限，超出部分转成格子内边距，宽屏下不至于越拉越大 */
+private val PaletteMaxCell = 46.dp
+
 /** 颜色格选中描边宽度；色块向内让出的距离与圆角收缩量都用它，保证贴合 */
 private val BorderWidth = 2.dp
 
@@ -377,12 +391,13 @@ internal fun ColorCell(
     isDark: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    inset: Dp = CellInset,
 ) {
     val borderAlpha = if (selected) 1f else 0f
     Box(
         modifier =
             modifier
-                .padding(CellInset)
+                .padding(inset)
                 .aspectRatio(1f)
                 .clickable(
                     interactionSource = remember { MutableInteractionSource() },

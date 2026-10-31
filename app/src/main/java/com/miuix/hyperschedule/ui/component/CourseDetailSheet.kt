@@ -46,8 +46,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** 抽屉里的一门课：是否本周生效用于标题后缀 */
 data class CourseDetailItem(
@@ -56,9 +54,7 @@ data class CourseDetailItem(
     val activeInWeek: Boolean,
 )
 
-/**
- * 课程详情抽屉：列出被点格子里的所有课程，每张卡带一个「编辑」按钮。
- */
+/** 课程详情抽屉：列出被点格子里的所有课程，每张卡带一个「编辑」按钮 */
 @Composable
 fun CourseDetailSheet(
     items: List<CourseDetailItem>,
@@ -105,8 +101,7 @@ fun CourseDetailSheet(
                 Modifier
                     .fillMaxWidth()
                     .heightIn(max = SheetMaxHeight)
-                    .overScrollVertical()
-                    .scrollEndHaptic(),
+                    .bouncyScroll(),
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         ) {
