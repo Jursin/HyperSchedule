@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import com.hyperschedule.app.data.backup.PrefsSnapshot
+import com.hyperschedule.app.data.backup.WEBDAV_DEFAULT_FOLDER
 import com.hyperschedule.app.data.backup.putAll
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.update.UpdateSource
@@ -206,6 +207,9 @@ private val Prefs =
         stringSetting("webdavPassword", { it.webDav.password }, backedUp = false, secret = true) { s, v ->
             s.copy(webDav = s.webDav.copy(password = v.orEmpty()))
         },
+        stringSetting("webdavFolder", { it.webDav.folder }, backedUp = false) { s, v ->
+            s.copy(webDav = s.webDav.copy(folder = v.orEmpty()))
+        },
         stringSetting("webdavLastHash", { it.webDav.lastHash }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(lastHash = v.orEmpty()))
         },
@@ -334,6 +338,8 @@ data class WebDavSettings(
     val serverUrl: String = "",
     val username: String = "",
     val password: String = "",
+    /** 相对服务器地址的目录，可填多级，留空用默认名 */
+    val folder: String = WEBDAV_DEFAULT_FOLDER,
     val autoBackup: Boolean = false,
     val keepCount: Int = DEFAULT_KEEP,
     val lastHash: String = "",

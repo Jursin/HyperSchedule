@@ -7,11 +7,27 @@ import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLDecoder
+import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** 云端备份目录，固定在服务器根目录下，别的目录一概不碰 */
-const val WEBDAV_FOLDER = "HyperSchedule"
+/** 云端备份路径的默认名 */
+const val WEBDAV_DEFAULT_FOLDER = "HyperSchedule"
+
+/** URL 里的分隔与转义符号，以及各平台文件系统不认的字符 */
+private const val WEBDAV_PATH_FORBIDDEN = "\\?#%*:\"<>|"
+
+/** 备份路径校验，返回 null 表示合法，否则是可以直接显示的提示，空串交给界面在失焦时回填默认值 */
+internal fun webDavFolderError(path: String): String? {
+    if (path.isBlank()) return null
+    if (path.startsWith('/') || path.endsWith('/')) return "备份路径不能以 / 开头或结尾"
+    val segments = path.split('/')
+    if (segments.any { it.isEmpty() }) return "备份路径不能有连续的 /"
+    if (segments.any { it == "." || it == ".." }) return "备份路径不能包含 . 或 .."
+    if (segments.any { it.first().isWhitespace() || it.last().isWhitespace() }) return "备份路径的每一级前后不能有空格"
+    if (path.any { it in WEBDAV_PATH_FORBIDDEN || it.isISOControl() }) return "备份路径不能包含 \\ ? # % * : \" < > | 等字符"
+    return null
+}
 
 private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 30_000
@@ -31,8 +47,8 @@ private val RESPONSE_BLOCK =
 private val HREF = Regex("<(?:\\w+:)?href>([^<]+)</(?:\\w+:)?href>", RegexOption.IGNORE_CASE)
 private val CONTENT_LENGTH = Regex("<(?:\\w+:)?getcontentlength>\\s*(\\d+)\\s*<", RegexOption.IGNORE_CASE)
 
-/** 一次 WebDAV 请求的结果 */
-private class DavResponse(val code: Int, val text: String) {
+/** 一次 WebDAV 请求的结果，[challenge] 是 401 时服务器声明的认证方式 */
+private class DavResponse(val code: Int, val text: String, val challenge: String? = null) {
     val isSuccessful: Boolean get() = code in 200..299
 }
 
@@ -41,6 +57,7 @@ class WebDavClient(
     serverUrl: String,
     username: String,
     password: String,
+    folder: String = WEBDAV_DEFAULT_FOLDER,
 ) {
     private val auth =
         "Basic " + Base64.encodeToString("$username:$password".toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
@@ -51,57 +68,69 @@ class WebDavClient(
     /** 凭据只发给这个域名，重定向到别处时不带 */
     private val host = runCatching { URL(baseUrl).host }.getOrNull()
 
-    val dirUrl: String = "$baseUrl/$WEBDAV_FOLDER"
+    /** 路径层级，界面已校验过，这里只按 / 拆开，留空则回落到默认名 */
+    private val segments = if (folder.isBlank()) listOf(WEBDAV_DEFAULT_FOLDER) else folder.split('/')
 
-    private fun fileUrl(name: String): String = "$dirUrl/$name"
+    /** 界面上展示的路径，和用户填的保持一致 */
+    val folderPath: String = segments.joinToString("/")
 
-    /** 测试连接，目录没建就顺手建出来 */
+    /** 集合地址按规范以 / 结尾，少了会被部分服务器当成文件而返回 301 或 409 */
+    val dirUrl: String = "$baseUrl/" + segments.joinToString("/") { encodeSegment(it) } + "/"
+
+    private fun fileUrl(name: String): String = "$dirUrl$name"
+
+    /** 测试连接，路径没建就顺手建出来 */
     suspend fun testConnection(): String =
         withContext(Dispatchers.IO) {
             val response = runCatching { request("PROPFIND", dirUrl, depth = "0") }
                 .getOrElse { throw BackupException(networkMessage(it)) }
             when {
                 response.isSuccessful -> "连接成功"
-                response.code == 401 || response.code == 403 -> throw BackupException("认证失败，请检查用户名和密码")
+                response.code == 401 || response.code == 403 -> throw BackupException(authMessage(response))
                 response.code == 404 -> {
                     // 先确认服务器地址本身可达，否则地址填错也会报「连接成功」
                     val root = request("PROPFIND", "$baseUrl/", depth = "0")
-                    if (root.code == 401 || root.code == 403) throw BackupException("认证失败，请检查用户名和密码")
+                    if (root.code == 401 || root.code == 403) throw BackupException(authMessage(root))
                     if (!root.isSuccessful) throw BackupException("服务器返回 ${root.code}")
-                    if (!ensureDir()) throw BackupException("无法创建云端目录 $WEBDAV_FOLDER")
-                    "连接成功，已创建 $WEBDAV_FOLDER 目录"
+                    if (!ensureDir()) throw BackupException("无法创建备份路径 $folderPath")
+                    "连接成功，已创建备份路径 $folderPath"
                 }
                 else -> throw BackupException("服务器返回 ${response.code}")
             }
         }
 
-    /** 确保备份目录存在，返回是否可用 */
+    /** 确保备份路径存在，多级路径逐层创建，返回是否可用 */
     suspend fun ensureDir(): Boolean =
         withContext(Dispatchers.IO) {
-            if (request("PROPFIND", dirUrl, depth = "0").isSuccessful) return@withContext true
-            // 201 新建成功，405 表示已存在
-            val made = request("MKCOL", dirUrl).code
-            made in 200..299 || made == 405
+            var current = "$baseUrl/"
+            for (segment in segments) {
+                current += encodeSegment(segment) + "/"
+                if (request("PROPFIND", current, depth = "0").isSuccessful) continue
+                // 201 新建成功，405 表示已存在
+                val made = request("MKCOL", current).code
+                if (made !in 200..299 && made != 405) return@withContext false
+            }
+            true
         }
 
-    /** 云端目录里的备份文件，按时间从新到旧 */
+    /** 备份路径里的备份文件，按时间从新到旧 */
     suspend fun list(): List<BackupFile> =
         withContext(Dispatchers.IO) {
             val response = request("PROPFIND", dirUrl, depth = "1", body = PROPFIND_BODY)
-            // 目录还没建就等于没有备份，不当成错误
+            // 路径还没建就等于没有备份，不当成错误
             if (response.code == 404) return@withContext emptyList()
             if (!response.isSuccessful) throw BackupException("读取云端备份列表失败（HTTP ${response.code}）")
             parseList(response.text)
         }
 
-    /** 上传一份备份，覆盖同名文件，目录不在了就顺手补建 */
+    /** 上传一份备份，覆盖同名文件，路径不在了就顺手补建 */
     suspend fun upload(name: String, text: String) =
         withContext(Dispatchers.IO) {
             val ready = runCatching { ensureDir() }.getOrElse { throw BackupException(networkMessage(it)) }
-            if (!ready) throw BackupException("无法创建云端目录 $WEBDAV_FOLDER")
+            if (!ready) throw BackupException("无法创建备份路径 $folderPath")
             val response =
                 request("PUT", fileUrl(name), body = text, contentType = "application/json; charset=utf-8")
-            if (!response.isSuccessful) throw BackupException(uploadMessage(response.code))
+            if (!response.isSuccessful) throw BackupException(uploadMessage(response))
         }
 
     suspend fun download(name: String): String =
@@ -110,7 +139,7 @@ class WebDavClient(
             when {
                 response.isSuccessful -> response.text
                 response.code == 404 -> throw BackupException("云端已经没有这份备份了")
-                response.code == 401 || response.code == 403 -> throw BackupException("认证失败，请检查用户名和密码")
+                response.code == 401 || response.code == 403 -> throw BackupException(authMessage(response))
                 else -> throw BackupException("下载失败（HTTP ${response.code}）")
             }
         }
@@ -122,14 +151,26 @@ class WebDavClient(
             if (code !in 200..299 && code != 404) throw BackupException("删除失败（HTTP $code）")
         }
 
-    private fun uploadMessage(code: Int): String =
-        when (code) {
-            401 -> "认证失败，请检查用户名和密码"
-            403 -> "没有写入权限，请检查账号的读写权限"
+    private fun uploadMessage(response: DavResponse): String =
+        when (response.code) {
+            401, 403 -> authMessage(response)
+            404 -> "备份路径不存在（HTTP 404）"
+            409 -> "备份路径不存在，无法写入（HTTP 409）"
+            423 -> "云端文件被锁定，请稍后重试"
             507 -> "云端空间已满"
-            409 -> "云端目录不存在（HTTP 409）"
-            else -> "上传失败（HTTP $code）"
+            else -> "上传失败（HTTP ${response.code}）"
         }
+
+    /** 认证与权限失败，服务器只认 Digest 时直接说清楚 */
+    private fun authMessage(response: DavResponse): String {
+        if (response.code == 403) return "没有访问权限，请检查账号的读写权限"
+        val scheme = response.challenge?.substringBefore(' ')?.takeIf { it.isNotBlank() }
+        return if (scheme != null && !scheme.equals("Basic", ignoreCase = true)) {
+            "服务器要求 $scheme 认证，本应用只支持 Basic"
+        } else {
+            "认证失败，请检查用户名和密码"
+        }
+    }
 
     private fun networkMessage(error: Throwable): String =
         if (error is IOException) "连接失败：${error.message ?: "网络不可用"}" else (error.message ?: "连接失败")
@@ -156,12 +197,21 @@ class WebDavClient(
             }
             connection.setRequestProperty("User-Agent", AppUserAgent)
             depth?.let { connection.setRequestProperty("Depth", it) }
-            if (body != null) {
-                val bytes = body.toByteArray(Charsets.UTF_8)
-                connection.setRequestProperty("Content-Type", contentType ?: "application/xml; charset=utf-8")
+            // PROPFIND 一律带请求体，MKCOL 显式声明长度 0，缺了这两样部分服务器会回 400 或 411
+            val payload =
+                when {
+                    body != null -> body.toByteArray(Charsets.UTF_8)
+                    method == "PROPFIND" -> PROPFIND_BODY.toByteArray(Charsets.UTF_8)
+                    method == "MKCOL" -> ByteArray(0)
+                    else -> null
+                }
+            if (payload != null) {
+                if (payload.isNotEmpty()) {
+                    connection.setRequestProperty("Content-Type", contentType ?: "application/xml; charset=utf-8")
+                }
                 connection.doOutput = true
-                connection.setFixedLengthStreamingMode(bytes.size)
-                connection.outputStream.use { it.write(bytes) }
+                connection.setFixedLengthStreamingMode(payload.size)
+                connection.outputStream.use { it.write(payload) }
             }
             val code = connection.responseCode
             if (code in 301..308 && redirects > 0) {
@@ -173,7 +223,8 @@ class WebDavClient(
             }
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
             val text = stream?.use { it.readCapped().decodeToString() }.orEmpty()
-            return DavResponse(code, text)
+            val challenge = if (code == 401) connection.getHeaderField("WWW-Authenticate") else null
+            return DavResponse(code, text, challenge)
         } finally {
             connection.disconnect()
         }
@@ -231,12 +282,21 @@ class WebDavClient(
     private fun parseList(xml: String): List<BackupFile> = buildList {
         for (block in RESPONSE_BLOCK.findAll(xml)) {
             val href = HREF.find(block.value)?.groupValues?.get(1) ?: continue
+            // href 可能写成绝对地址，取最后一段就是文件名
             val raw = href.substringAfterLast('/', "")
-            // 目录自身以/结尾，这里取不到文件名，正好跳过
+            // 目录自身以 / 结尾，这里取不到文件名，正好跳过
             if (raw.isEmpty()) continue
-            val name = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
+            val name = decodeSegment(raw)
             val size = CONTENT_LENGTH.find(block.value)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
             backupFileOf(name, size)?.let { add(it) }
         }
     }.sortedByDescending { it.time }
 }
+
+/** 路径段编码，中文与空格都要转义，+ 在路径里不是空格也不能留 */
+private fun encodeSegment(segment: String): String =
+    URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
+
+/** 路径段解码，+ 在路径里是字面加号 */
+private fun decodeSegment(raw: String): String =
+    runCatching { URLDecoder.decode(raw.replace("+", "%2B"), "UTF-8") }.getOrDefault(raw)

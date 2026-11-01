@@ -37,6 +37,8 @@ import com.hyperschedule.app.data.backup.backupTimeFormatter
 import com.hyperschedule.app.data.backup.sizeLabel
 import com.hyperschedule.app.data.backup.title
 import com.hyperschedule.app.data.backup.WebDavClient
+import com.hyperschedule.app.data.backup.WEBDAV_DEFAULT_FOLDER
+import com.hyperschedule.app.data.backup.webDavFolderError
 import com.hyperschedule.app.data.db.AppDatabase
 import com.hyperschedule.app.theme.BackupSettings
 import com.hyperschedule.app.theme.SectionSpacing
@@ -67,7 +69,9 @@ import top.yukonga.miuix.kmp.basic.TabRowWithContour
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Folder
 import top.yukonga.miuix.kmp.icon.extended.Hide
 import top.yukonga.miuix.kmp.icon.extended.Lock
 import top.yukonga.miuix.kmp.icon.extended.Show
@@ -81,6 +85,9 @@ private class WebDavDraft(settings: WebDavSettings) {
     var serverUrl by mutableStateOf(settings.serverUrl)
     var username by mutableStateOf(settings.username)
     var password by mutableStateOf(settings.password)
+
+    /** 路径为空时直接显示默认名 */
+    var folder by mutableStateOf(settings.folder.ifBlank { WEBDAV_DEFAULT_FOLDER })
     var passwordVisible by mutableStateOf(false)
 }
 
@@ -165,7 +172,7 @@ fun BackupPage(
             applyDir(target, keepHash = result.getOrDefault(0) > 0)
             result.fold(
                 onSuccess = { if (it > 0) context.toast("已迁移 $it 份备份") },
-                onFailure = { context.toast("原目录读取失败，备份未迁移") },
+                onFailure = { context.toast("原路径读取失败，备份未迁移") },
             )
         }
     }
@@ -213,23 +220,47 @@ fun BackupPage(
         store.update { it.copy(webDav = transform(it.webDav)) }
     }
 
-    /** 输入框改动即时落盘 */
+    /** 输入框当前的问题，合法时返回 null */
+    fun webDavInputError(): String? = serverUrlError(webDav.serverUrl) ?: webDavFolderError(webDav.folder)
+
+    /** 输入框改动即时落盘，校验不过的值不存，离开时会被恢复成上次保存的值 */
     fun saveWebDavFields() {
+        if (webDavInputError() != null) return
         val url = webDav.serverUrl.trim().trimEnd('/')
         val user = webDav.username.trim()
+        val folder = webDav.folder
         val settings = currentWebDav()
-        if (url == settings.serverUrl && user == settings.username && webDav.password == settings.password) return
-        persistWebDav { it.copy(serverUrl = url, username = user, password = webDav.password, lastError = "") }
+        if (
+            url == settings.serverUrl &&
+                user == settings.username &&
+                folder == settings.folder &&
+                webDav.password == settings.password
+        ) {
+            return
+        }
+        persistWebDav {
+            it.copy(serverUrl = url, username = user, folder = folder, password = webDav.password, lastError = "")
+        }
+    }
+
+    /** 离开本页或切到本地 Tab 时把输入框恢复成已保存的值 */
+    fun resetWebDavDraft() {
+        webDav = WebDavDraft(store.state.webDav)
     }
 
     fun webDavClient(settings: WebDavSettings): WebDavClient =
-        WebDavClient(settings.serverUrl, settings.username, settings.password)
+        WebDavClient(settings.serverUrl, settings.username, settings.password, settings.folder)
 
     suspend fun reloadWebDav() {
         val settings = currentWebDav()
         if (!settings.configured) {
             davFiles = emptyList()
             if (davError.isNotBlank()) davError = ""
+            return
+        }
+        webDavFolderError(settings.folder)?.let {
+            davFiles = emptyList()
+            davError = it
             return
         }
         davLoading = true
@@ -263,6 +294,11 @@ fun BackupPage(
     }
 
     fun testWebDav() {
+        webDavInputError()?.let {
+            context.toast(it)
+            return
+        }
+        saveWebDavFields()
         val settings = currentWebDav()
         if (!settings.configured) {
             context.toast("请先填写服务器地址、用户名和密码")
@@ -284,6 +320,11 @@ fun BackupPage(
     }
 
     fun runWebDavBackup() {
+        webDavInputError()?.let {
+            context.toast(it)
+            return
+        }
+        saveWebDavFields()
         val settings = currentWebDav()
         if (!settings.configured) {
             context.toast("请先填写服务器地址、用户名和密码")
@@ -378,15 +419,23 @@ fun BackupPage(
     }
 
     // 账号输入停手后再落盘，不用每敲一个字写一次 prefs
-    LaunchedEffect(webDav.serverUrl, webDav.username, webDav.password) {
+    LaunchedEffect(webDav.serverUrl, webDav.username, webDav.password, webDav.folder) {
         delay(600.milliseconds)
         saveWebDavFields()
     }
     // 防抖还没到就离开页面时补一次落盘
     DisposableEffect(Unit) { onDispose { saveWebDavFields() } }
 
-    // 切到 WebDAV 页或账号刚填全时读一次云端列表，远端没有目录通知
-    LaunchedEffect(selectedTab, store.state.webDav.configured) {
+    // 切到本地 Tab 时先存下合法输入，再让输入框回到已保存的值，非法输入不留在界面上
+    LaunchedEffect(selectedTab) {
+        if (selectedTab != 1) {
+            saveWebDavFields()
+            resetWebDavDraft()
+        }
+    }
+
+    // 切到 WebDAV 页、账号填全或换路径时读一次云端列表，远端没有目录通知
+    LaunchedEffect(selectedTab, store.state.webDav.configured, store.state.webDav.folder) {
         if (selectedTab == 1) reloadWebDav()
     }
 
@@ -463,7 +512,15 @@ fun BackupPage(
         scope.launch { reload(dir) }
     }
 
-    PreferenceScreen(title = "备份与恢复", appBlur = appBlur, onBack = onBack) {
+    PreferenceScreen(
+        title = "备份与恢复",
+        appBlur = appBlur,
+        onBack = {
+            saveWebDavFields()
+            resetWebDavDraft()
+            onBack()
+        },
+    ) {
         TabRowWithContour(
             tabs = listOf("本地", "WebDAV"),
             selectedTabIndex = selectedTab,
@@ -542,7 +599,7 @@ private fun LocalBackupTab(
 ) {
     PreferenceSection {
         MultilineArrowPreference(
-            title = "备份目录",
+            title = "备份路径",
             summary = dirLabel.ifBlank { "点击选择备份文件夹" },
             onClick = onPickDir,
         )
@@ -551,7 +608,7 @@ private fun LocalBackupTab(
             summary =
                 when {
                     busy -> "正在处理"
-                    dirUsable == false -> "备份目录已失效，请重新选择"
+                    dirUsable == false -> "备份路径已失效，请重新选择"
                     backup.lastError.isNotBlank() -> backup.lastError
                     backup.lastTime.isNotBlank() -> "上次备份 ${backup.lastTime}"
                     else -> null
@@ -576,8 +633,8 @@ private fun LocalBackupTab(
     BackupFileSection(
         hint =
             when {
-                dirLabel.isBlank() -> "还未选择备份目录"
-                dirUsable == false -> "备份目录已失效（文件夹被删除或授权被系统回收），请重新选择"
+                dirLabel.isBlank() -> "还未选择备份路径"
+                dirUsable == false -> "备份路径已失效（文件夹被删除或授权被系统回收），请重新选择"
                 else -> null
             },
         files = files,
@@ -677,10 +734,16 @@ private fun WebDavBackupTab(
     onKeepChange: (Int) -> Unit,
     onOpenFile: (BackupFile) -> Unit,
 ) {
-    // 失焦后才提示地址非法，避免边输入边报错
-    val urlInteraction = remember { MutableInteractionSource() }
-    val urlFocused by urlInteraction.collectIsFocusedAsState()
-    val urlError = !urlFocused && draft.serverUrl.isNotBlank() && !isValidServerUrl(draft.serverUrl)
+    // 地址与路径都实时校验，非法时输入框变红、下方给提示
+    val urlError = serverUrlError(draft.serverUrl)
+
+    val folderInteraction = remember { MutableInteractionSource() }
+    val folderFocused by folderInteraction.collectIsFocusedAsState()
+    val folderError = webDavFolderError(draft.folder)
+    // 清空后离开输入框时补回默认值
+    LaunchedEffect(folderFocused) {
+        if (!folderFocused && draft.folder.isBlank()) draft.folder = WEBDAV_DEFAULT_FOLDER
+    }
 
     PreferenceSection {
         Column(
@@ -694,12 +757,16 @@ private fun WebDavBackupTab(
                     label = "服务器地址",
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    interactionSource = urlInteraction,
                     leadingIcon = { FieldLeadingIcon(Cloud, "云端") },
+                    colors =
+                        TextFieldDefaults.textFieldColors(
+                            borderColor =
+                                if (urlError != null) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
+                        ),
                 )
-                if (urlError) {
+                if (urlError != null) {
                     Text(
-                        text = "请输入合法的地址，例如 https://example.com/dav",
+                        text = urlError,
                         modifier = Modifier.padding(start = 12.dp, top = 4.dp),
                         color = MiuixTheme.colorScheme.error,
                         style = MiuixTheme.textStyles.body2,
@@ -740,6 +807,34 @@ private fun WebDavBackupTab(
                     }
                 },
             )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TextField(
+                    value = draft.folder,
+                    onValueChange = { draft.folder = it },
+                    label = "备份路径",
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    interactionSource = folderInteraction,
+                    leadingIcon = { FieldLeadingIcon(MiuixIcons.Folder, "备份路径") },
+                    colors =
+                        TextFieldDefaults.textFieldColors(
+                            borderColor =
+                                if (folderError != null) {
+                                    MiuixTheme.colorScheme.error
+                                } else {
+                                    MiuixTheme.colorScheme.primary
+                                },
+                        ),
+                )
+                if (folderError != null) {
+                    Text(
+                        text = folderError,
+                        modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+                        color = MiuixTheme.colorScheme.error,
+                        style = MiuixTheme.textStyles.body2,
+                    )
+                }
+            }
         }
         ArrowPreference(
             title = "测试连接",
@@ -800,3 +895,7 @@ private fun isValidServerUrl(url: String): Boolean {
     val scheme = uri.scheme?.lowercase()
     return (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
 }
+
+/** 地址输入的问题，没填或合法时返回 null */
+private fun serverUrlError(url: String): String? =
+    if (url.isNotBlank() && !isValidServerUrl(url)) "服务器地址需要以 http:// 或 https:// 开头" else null

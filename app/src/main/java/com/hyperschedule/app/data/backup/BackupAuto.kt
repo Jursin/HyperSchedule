@@ -52,7 +52,7 @@ object BackupAuto {
         keep: Int,
     ) {
         if (!dir.isAccessible()) {
-            record(store, toCloud = false, error = "备份目录已失效，请重新选择")
+            record(store, toCloud = false, error = "备份路径已失效，请重新选择")
             return
         }
         // 内容没变、目录里那份还在，就不必再写一份
@@ -69,7 +69,7 @@ object BackupAuto {
         hash: String,
         webDav: WebDavSettings,
     ) {
-        val client = WebDavClient(webDav.serverUrl, webDav.username, webDav.password)
+        val client = WebDavClient(webDav.serverUrl, webDav.username, webDav.password, webDav.folder)
         // 上次那份还在不在云端只有列一次才知道，列不出来就当失败，别在启动时反复重试
         val files =
             runCatching { client.list() }.getOrElse {
