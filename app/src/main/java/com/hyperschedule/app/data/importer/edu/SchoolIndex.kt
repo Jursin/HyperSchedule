@@ -1,5 +1,8 @@
 package com.hyperschedule.app.data.importer.edu
 
+/** 演示与分享工具所在的保留学校，没有具体学校的入口 */
+const val GLOBAL_TOOL_SCHOOL_ID = "GLOBAL_TOOLS"
+
 /** 教务学校索引，对应拾光仓库的 school_index.proto */
 data class SchoolIndex(
     val protocolVersion: Int = 0,

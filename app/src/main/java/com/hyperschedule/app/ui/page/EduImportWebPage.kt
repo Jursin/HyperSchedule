@@ -89,6 +89,7 @@ fun EduImportWebPage(
     repository: ScheduleRepository,
     schoolId: String,
     adapterId: String,
+    startUrl: String = "", // 通用工具手填的入口
     tables: List<TableSummary>,
     currentTableId: String?,
     appBlur: Boolean = false,
@@ -232,11 +233,16 @@ fun EduImportWebPage(
                 }
             }
         applyDesktopMode(webView, desktopMode)
-        val target = adapter.importUrl?.trim()?.takeIf { it.isNotEmpty() }?.let(::normalizeUrl)
+        val target =
+            startUrl
+                .ifBlank { adapter.importUrl.orEmpty() }
+                .trim()
+                .takeIf { it.isNotEmpty() }
+                ?.let(::normalizeUrl)
         if (target != null) {
             webView.loadUrl(target)
         } else {
-            // 通用工具里的测试适配器没有网页，开空白页只跑桥接演示
+            // 没有入口地址时开空白页，只跑桥接演示
             pageTitle = adapter.name
             webView.loadUrl("about:blank")
             pageReady = true

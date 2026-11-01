@@ -252,8 +252,14 @@ fun MainScaffold(
     scheduleImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     eduImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     eduImportWebPage:
-        @Composable (schoolId: String, adapterId: String, onBack: () -> Unit, onImported: () -> Unit) -> Unit =
-        { _, _, _, _ -> },
+        @Composable
+        (
+            schoolId: String,
+            adapterId: String,
+            url: String,
+            onBack: () -> Unit,
+            onImported: () -> Unit,
+        ) -> Unit = { _, _, _, _, _ -> },
     scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
@@ -545,7 +551,7 @@ fun MainScaffold(
                 }
                 entry<Page.EduImportWeb> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        eduImportWebPage(key.schoolId, key.adapterId, onBack, backToScheduleImport)
+                        eduImportWebPage(key.schoolId, key.adapterId, key.url, onBack, backToScheduleImport)
                     }
                 }
                 entry<Page.ScheduleExport> {

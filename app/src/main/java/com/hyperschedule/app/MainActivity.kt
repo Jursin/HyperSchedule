@@ -245,19 +245,20 @@ class MainActivity : ComponentActivity() {
                             repository = schoolRepository,
                             repoStore = eduRepoStore,
                             appBlur = settings.blur,
-                            onOpenAdapter = { school, adapter ->
-                                navigate(Page.EduImportWeb(school.id, adapter.id))
+                            onOpenAdapter = { school, adapter, url ->
+                                navigate(Page.EduImportWeb(school.id, adapter.id, url))
                             },
                             onBack = onBack,
                         )
                     },
-                    eduImportWebPage = { schoolId, adapterId, onBack, onImported ->
+                    eduImportWebPage = { schoolId, adapterId, url, onBack, onImported ->
                         EduImportWebPage(
                             schoolRepository = schoolRepository,
                             scriptRepository = scriptRepository,
                             repository = repository,
                             schoolId = schoolId,
                             adapterId = adapterId,
+                            startUrl = url,
                             tables = rememberTableSummaries(repository),
                             currentTableId = table?.tableId,
                             appBlur = settings.blur,

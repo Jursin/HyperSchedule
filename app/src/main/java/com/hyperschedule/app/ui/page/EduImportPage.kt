@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -36,6 +37,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -43,12 +45,14 @@ import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.data.importer.edu.Adapter
 import com.hyperschedule.app.data.importer.edu.EduRepo
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
+import com.hyperschedule.app.data.importer.edu.GLOBAL_TOOL_SCHOOL_ID
 import com.hyperschedule.app.data.importer.edu.School
 import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
+import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.EduRepoSheet
 import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.School as SchoolIcon
@@ -73,6 +77,7 @@ import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
@@ -105,7 +110,7 @@ fun EduImportPage(
     repository: SchoolRepository,
     repoStore: EduRepoStore,
     appBlur: Boolean = false,
-    onOpenAdapter: (school: School, adapter: Adapter) -> Unit = { _, _ -> },
+    onOpenAdapter: (school: School, adapter: Adapter, url: String) -> Unit = { _, _, _ -> },
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -123,6 +128,8 @@ fun EduImportPage(
     var sheetSchool by remember { mutableStateOf<School?>(null) }
     var sheetVisible by remember { mutableStateOf(false) }
     var moreVisible by remember { mutableStateOf(false) }
+    // 通用工具没有固定网址，进页面前先问一次
+    var urlDialog by remember { mutableStateOf<Pair<School, Adapter>?>(null) }
 
     // 拉索引并刷新列表，notify 为真时把结果提示出来
     fun sync(notify: Boolean) {
@@ -341,7 +348,12 @@ fun EduImportPage(
                 show = sheetVisible,
                 onOpen = { adapter ->
                     sheetVisible = false
-                    onOpenAdapter(school, adapter)
+                    // 通用教务要先问网址，演示与分享工具集直接进空白页
+                    if (adapter.category == Adapter.TOOL && school.id != GLOBAL_TOOL_SCHOOL_ID) {
+                        urlDialog = school to adapter
+                    } else {
+                        onOpenAdapter(school, adapter, "")
+                    }
                 },
                 onDismiss = { sheetVisible = false },
                 onDismissFinished = { sheetSchool = null },
@@ -359,6 +371,45 @@ fun EduImportPage(
                 if (repoStore.update { config }) sync(notify = true)
             },
             onDismiss = { moreVisible = false },
+        )
+
+        urlDialog?.let { (school, adapter) ->
+            UrlInputDialog(
+                appBlur = appBlur,
+                onDismiss = { urlDialog = null },
+                onConfirm = { url ->
+                    urlDialog = null
+                    onOpenAdapter(school, adapter, url)
+                },
+            )
+        }
+    }
+}
+
+/** 通用工具进入前填网址，留空禁用确定 */
+@Composable
+private fun UrlInputDialog(
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    var url by remember { mutableStateOf("") }
+    ConfirmDialog(
+        title = "输入网址",
+        message = "请输入要访问的学校教务系统网址",
+        appBlur = appBlur,
+        confirmEnabled = url.isNotBlank(),
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(url.trim()) },
+    ) {
+        TextField(
+            value = url,
+            onValueChange = { url = it },
+            label = "网址",
+            useLabelAsPlaceholder = true,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

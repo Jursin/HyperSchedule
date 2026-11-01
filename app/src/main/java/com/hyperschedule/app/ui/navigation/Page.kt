@@ -43,8 +43,13 @@ sealed class Page : NavKey {
     /** 教务系统导入，选择学校 */
     @Serializable data object EduImport : Page()
 
-    /** 教务系统网页导入，学校与适配器 id 由选校页跳转 */
-    @Serializable data class EduImportWeb(val schoolId: String, val adapterId: String) : Page()
+    /** 教务系统网页导入，学校与适配器 id 由选校页跳转，[url] 为通用工具手填的入口 */
+    @Serializable
+    data class EduImportWeb(
+        val schoolId: String,
+        val adapterId: String,
+        val url: String = "",
+    ) : Page()
 
     /** 课表导出 */
     @Serializable data object ScheduleExport : Page()
