@@ -412,6 +412,10 @@ private fun AboutContentBody(
                             summary = "查看应用所使用的第三方开源库及其许可证信息",
                             onClick = onLicenseClicked,
                         )
+                        ArrowPreference(
+                            title = "更新日志",
+                            onClick = { uriHandler.openUri("${RepositoryUrl}/blob/main/CHANGELOG.md") },
+                        )
                     }
                 }
             }
