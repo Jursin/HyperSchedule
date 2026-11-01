@@ -34,7 +34,27 @@ interface BackupDir {
     fun delete(name: String)
 }
 
+/** 本地子目录与远端备份路径的默认名 */
 const val BACKUP_FOLDER = "HyperSchedule"
+
+/** URL 里的分隔与转义符号，以及各平台文件系统不认的字符 */
+private const val PATH_FORBIDDEN = "\\?#%*:\"<>|"
+
+/** 远端备份路径校验，空串不算错误，返回可直接显示的提示 */
+internal fun backupFolderError(path: String): String? {
+    if (path.isBlank()) return null
+    if (path.startsWith('/') || path.endsWith('/')) return "备份路径不能以 / 开头或结尾"
+    val segments = path.split('/')
+    if (segments.any { it.isEmpty() }) return "备份路径不能有连续的 /"
+    if (segments.any { it == "." || it == ".." }) return "备份路径不能包含 . 或 .."
+    if (segments.any { it.first().isWhitespace() || it.last().isWhitespace() }) return "备份路径的每一级前后不能有空格"
+    if (path.any { it in PATH_FORBIDDEN || it.isISOControl() }) return "备份路径不能包含 \\ ? # % * : \" < > | 等字符"
+    return null
+}
+
+/** 拆成路径层级，空路径回落到默认名 */
+internal fun backupFolderSegments(folder: String): List<String> =
+    if (folder.isBlank()) listOf(BACKUP_FOLDER) else folder.split('/')
 
 /** 外部存储提供者与内部存储卷的标识，用来把 document id 还原成看得懂的路径 */
 private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.documents"

@@ -2,16 +2,19 @@ package com.hyperschedule.app.ui.component
 
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.unit.dp
 
-/** 24dp 画布的图标，[scale] 用于缩小路径，统一各图标的视觉重量 */
+/** 24dp 画布的图标，[scale] 围绕中心缩放路径，[strokeWidth] 大于 0 时只描边不填充 */
 private fun appIcon(
     name: String,
     pathData: String,
     scale: Float = 1f,
+    strokeWidth: Float = 0f,
 ): ImageVector =
     ImageVector.Builder(
         name = name,
@@ -21,12 +24,20 @@ private fun appIcon(
         viewportHeight = 24f,
     ).apply {
         val nodes = PathParser().parsePathString(pathData).toNodes()
+        val stroke = if (strokeWidth > 0f) SolidColor(Color.Black) else null
+        fun path() =
+            addPath(
+                pathData = nodes,
+                fill = if (stroke == null) SolidColor(Color.Black) else null,
+                stroke = stroke,
+                strokeLineWidth = strokeWidth,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round,
+            )
         if (scale == 1f) {
-            addPath(pathData = nodes, fill = SolidColor(Color.Black))
+            path()
         } else {
-            group(scaleX = scale, scaleY = scale, pivotX = 12f, pivotY = 12f) {
-                addPath(pathData = nodes, fill = SolidColor(Color.Black))
-            }
+            group(scaleX = scale, scaleY = scale, pivotX = 12f, pivotY = 12f) { path() }
         }
     }.build()
 
@@ -101,6 +112,16 @@ private const val AwardStarPath =
     "t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425" +
     "T12 22.5t-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5" +
     "L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"
+
+/** 存储桶图标 */
+internal val Bucket: ImageVector by lazy { appIcon("Bucket", BucketPath, strokeWidth = 1.5f) }
+
+private const val BucketPath =
+"M11 9c4.418 0 8-1.343 8-3s-3.582-3-8-3s-8 1.343-8 3s3.582 3 8 3" +
+    "M19 6l-1.85 12.952c-.094.655-.504 1.233-1.138 1.425c-1.271.384-3.047.623-5.012.623" +
+    "s-3.74-.239-5.012-.623c-.634-.192-1.044-.77-1.138-1.425L3 6" +
+    "M11 14a1 1 0 1 0 0-2a1 1 0 0 0 0 2" +
+    "M11 13.172q.443.282.913.551c4.048 2.316 8.04 2.974 8.916 1.47c.59-1.015-.387-2.755-2.329-4.49"
 
 /** 用户图标 */
 internal val Person: ImageVector by lazy { appIcon("Person", PersonPath, scale = 4f / 3f) }

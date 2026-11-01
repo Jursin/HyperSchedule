@@ -10,6 +10,7 @@ import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.getAppVersion
 import com.hyperschedule.app.getAppVersionCode
 import com.hyperschedule.app.theme.SettingsStore
+import java.io.IOException
 import java.security.MessageDigest
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -45,6 +46,30 @@ data class RestoreResult(
     val courseCount: Int,
     val droppedRows: Int,
 )
+
+/** 两个远端客户端共用的连接超时 */
+internal const val CONNECT_TIMEOUT_MS = 10_000
+
+/** 网络异常转成能直接显示的提示 */
+internal fun networkMessage(error: Throwable): String =
+    if (error is IOException) "连接失败：${error.message ?: "网络不可用"}" else (error.message ?: "连接失败")
+
+/** 远端备份的公共动作，WebDAV 与 S3 各按自家协议实现 */
+interface RemoteBackupClient {
+    /** 测试连接，返回可以直接 toast 的说明 */
+    suspend fun testConnection(): String
+
+    /** 备份路径里的备份文件，按时间从新到旧 */
+    suspend fun list(): List<BackupFile>
+
+    /** 上传一份备份，同名覆盖 */
+    suspend fun upload(name: String, text: String)
+
+    suspend fun download(name: String): String
+
+    /** 删除一份备份，已经不在了也算成功 */
+    suspend fun delete(name: String)
+}
 
 /** 备份与恢复，本地目录与 WebDAV 共用一套规则 */
 class BackupRepository(
@@ -160,7 +185,12 @@ class BackupRepository(
     // 云端
 
     /** 上传一份备份并用上传前的列表清理旧文件，返回文件名 */
-    suspend fun saveTo(client: WebDavClient, payload: BackupPayload, keep: Int, existing: List<BackupFile>): String {
+    suspend fun saveTo(
+        client: RemoteBackupClient,
+        payload: BackupPayload,
+        keep: Int,
+        existing: List<BackupFile>,
+    ): String {
         val name = fileName(payload)
         client.upload(name, encode(payload))
         // 新文件最新，旧列表留 keep-1 份就够
@@ -168,7 +198,7 @@ class BackupRepository(
         return name
     }
 
-    suspend fun readFrom(client: WebDavClient, name: String): BackupPayload = parse(client.download(name))
+    suspend fun readFrom(client: RemoteBackupClient, name: String): BackupPayload = parse(client.download(name))
 
     // 恢复
 

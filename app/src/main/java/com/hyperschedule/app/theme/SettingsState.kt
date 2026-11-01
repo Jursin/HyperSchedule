@@ -6,8 +6,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.edit
+import com.hyperschedule.app.data.backup.BACKUP_FOLDER
 import com.hyperschedule.app.data.backup.PrefsSnapshot
-import com.hyperschedule.app.data.backup.WEBDAV_DEFAULT_FOLDER
+import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.data.backup.putAll
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.update.UpdateSource
@@ -195,7 +196,7 @@ private val Prefs =
         intSetting(
             "webdavKeep",
             { it.webDav.keepCount },
-            coerce = { WebDavSettings.coerceKeep(it) },
+            coerce = { BackupSettings.coerceKeep(it) },
             backedUp = false,
         ) { s, v -> s.copy(webDav = s.webDav.copy(keepCount = v)) },
         stringSetting("webdavServer", { it.webDav.serverUrl }, backedUp = false) { s, v ->
@@ -218,6 +219,46 @@ private val Prefs =
         },
         stringSetting("webdavLastError", { it.webDav.lastError }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(lastError = v.orEmpty()))
+        },
+        // S3 配置同样是本机状态，密钥不进备份
+        boolSetting("s3Auto", { it.s3.autoBackup }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(autoBackup = v))
+        },
+        intSetting(
+            "s3Keep",
+            { it.s3.keepCount },
+            coerce = { BackupSettings.coerceKeep(it) },
+            backedUp = false,
+        ) { s, v -> s.copy(s3 = s.s3.copy(keepCount = v)) },
+        stringSetting("s3Endpoint", { it.s3.endpoint }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(endpoint = v.orEmpty()))
+        },
+        stringSetting("s3AccessKey", { it.s3.accessKeyId }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(accessKeyId = v.orEmpty()))
+        },
+        stringSetting("s3SecretKey", { it.s3.secretAccessKey }, backedUp = false, secret = true) { s, v ->
+            s.copy(s3 = s.s3.copy(secretAccessKey = v.orEmpty()))
+        },
+        stringSetting("s3Bucket", { it.s3.bucket }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(bucket = v.orEmpty()))
+        },
+        stringSetting("s3Region", { it.s3.region }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(region = v.orEmpty()))
+        },
+        boolSetting("s3PathStyle", { it.s3.pathStyle }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(pathStyle = v))
+        },
+        stringSetting("s3Folder", { it.s3.folder }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(folder = v.orEmpty()))
+        },
+        stringSetting("s3LastHash", { it.s3.lastHash }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(lastHash = v.orEmpty()))
+        },
+        stringSetting("s3LastTime", { it.s3.lastTime }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(lastTime = v.orEmpty()))
+        },
+        stringSetting("s3LastError", { it.s3.lastError }, backedUp = false) { s, v ->
+            s.copy(s3 = s.s3.copy(lastError = v.orEmpty()))
         },
     )
 
@@ -309,6 +350,7 @@ data class SettingsState(
     val reminder: ReminderSettings = ReminderSettings(),
     val backup: BackupSettings = BackupSettings(),
     val webDav: WebDavSettings = WebDavSettings(),
+    val s3: S3Settings = S3Settings(),
 )
 
 data class BackupSettings(
@@ -339,23 +381,37 @@ data class WebDavSettings(
     val username: String = "",
     val password: String = "",
     /** 相对服务器地址的目录，可填多级，留空用默认名 */
-    val folder: String = WEBDAV_DEFAULT_FOLDER,
+    val folder: String = BACKUP_FOLDER,
     val autoBackup: Boolean = false,
-    val keepCount: Int = DEFAULT_KEEP,
+    val keepCount: Int = BackupSettings.DEFAULT_KEEP,
     val lastHash: String = "",
     val lastTime: String = "",
     val lastError: String = "",
 ) {
     val configured: Boolean
         get() = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
+}
 
-    companion object {
-        const val DEFAULT_KEEP = 5
-
-        fun coerceKeep(value: Int): Int = BackupSettings.coerceKeep(value)
-
-        fun keepIndexOf(value: Int): Int = BackupSettings.keepIndexOf(value)
-    }
+/** 对象存储备份配置，兼容 AWS S3、Cloudflare R2、MinIO 等 */
+data class S3Settings(
+    val endpoint: String = "",
+    val accessKeyId: String = "",
+    val secretAccessKey: String = "",
+    val bucket: String = "",
+    /** 区域，R2 这类服务填 auto 即可 */
+    val region: String = S3_DEFAULT_REGION,
+    /** 路径风格，把桶名放在地址里而不是域名里，第三方服务多数需要 */
+    val pathStyle: Boolean = true,
+    /** 对象前缀，可填多级，留空用默认名 */
+    val folder: String = BACKUP_FOLDER,
+    val autoBackup: Boolean = false,
+    val keepCount: Int = BackupSettings.DEFAULT_KEEP,
+    val lastHash: String = "",
+    val lastTime: String = "",
+    val lastError: String = "",
+) {
+    val configured: Boolean
+        get() = endpoint.isNotBlank() && accessKeyId.isNotBlank() && secretAccessKey.isNotBlank() && bucket.isNotBlank()
 }
 
 data class ReminderSettings(

@@ -3,7 +3,6 @@ package com.hyperschedule.app.data.backup
 import android.util.Base64
 import com.hyperschedule.app.data.remote.AppUserAgent
 import com.hyperschedule.app.data.remote.readCapped
-import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLDecoder
@@ -11,25 +10,6 @@ import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** 云端备份路径的默认名 */
-const val WEBDAV_DEFAULT_FOLDER = "HyperSchedule"
-
-/** URL 里的分隔与转义符号，以及各平台文件系统不认的字符 */
-private const val WEBDAV_PATH_FORBIDDEN = "\\?#%*:\"<>|"
-
-/** 备份路径校验，返回 null 表示合法，否则是可以直接显示的提示，空串交给界面在失焦时回填默认值 */
-internal fun webDavFolderError(path: String): String? {
-    if (path.isBlank()) return null
-    if (path.startsWith('/') || path.endsWith('/')) return "备份路径不能以 / 开头或结尾"
-    val segments = path.split('/')
-    if (segments.any { it.isEmpty() }) return "备份路径不能有连续的 /"
-    if (segments.any { it == "." || it == ".." }) return "备份路径不能包含 . 或 .."
-    if (segments.any { it.first().isWhitespace() || it.last().isWhitespace() }) return "备份路径的每一级前后不能有空格"
-    if (path.any { it in WEBDAV_PATH_FORBIDDEN || it.isISOControl() }) return "备份路径不能包含 \\ ? # % * : \" < > | 等字符"
-    return null
-}
-
-private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 30_000
 
 private const val MAX_REDIRECTS = 2
@@ -57,30 +37,30 @@ class WebDavClient(
     serverUrl: String,
     username: String,
     password: String,
-    folder: String = WEBDAV_DEFAULT_FOLDER,
-) {
+    folder: String = BACKUP_FOLDER,
+) : RemoteBackupClient {
     private val auth =
         "Basic " + Base64.encodeToString("$username:$password".toByteArray(Charsets.UTF_8), Base64.NO_WRAP)
 
-    /** 服务器根地址，用来判断地址本身是否可达 */
+    /** 服务器根地址，地址填错时靠它先探一次 */
     private val baseUrl = serverUrl.trim().trimEnd('/')
 
     /** 凭据只发给这个域名，重定向到别处时不带 */
     private val host = runCatching { URL(baseUrl).host }.getOrNull()
 
     /** 路径层级，界面已校验过，这里只按 / 拆开，留空则回落到默认名 */
-    private val segments = if (folder.isBlank()) listOf(WEBDAV_DEFAULT_FOLDER) else folder.split('/')
+    private val segments = backupFolderSegments(folder)
 
-    /** 界面上展示的路径，和用户填的保持一致 */
-    val folderPath: String = segments.joinToString("/")
+    /** 拼接时展示的路径 */
+    private val folderPath = segments.joinToString("/")
 
     /** 集合地址按规范以 / 结尾，少了会被部分服务器当成文件而返回 301 或 409 */
-    val dirUrl: String = "$baseUrl/" + segments.joinToString("/") { encodeSegment(it) } + "/"
+    private val dirUrl = "$baseUrl/" + segments.joinToString("/") { encodeSegment(it) } + "/"
 
     private fun fileUrl(name: String): String = "$dirUrl$name"
 
-    /** 测试连接，路径没建就顺手建出来 */
-    suspend fun testConnection(): String =
+    /** 测试连接，路径不存在就顺手建出来 */
+    override suspend fun testConnection(): String =
         withContext(Dispatchers.IO) {
             val response = runCatching { request("PROPFIND", dirUrl, depth = "0") }
                 .getOrElse { throw BackupException(networkMessage(it)) }
@@ -99,8 +79,8 @@ class WebDavClient(
             }
         }
 
-    /** 确保备份路径存在，多级路径逐层创建，返回是否可用 */
-    suspend fun ensureDir(): Boolean =
+    /** 逐层建出备份路径，返回是否可用 */
+    private suspend fun ensureDir(): Boolean =
         withContext(Dispatchers.IO) {
             var current = "$baseUrl/"
             for (segment in segments) {
@@ -114,17 +94,17 @@ class WebDavClient(
         }
 
     /** 备份路径里的备份文件，按时间从新到旧 */
-    suspend fun list(): List<BackupFile> =
+    override suspend fun list(): List<BackupFile> =
         withContext(Dispatchers.IO) {
             val response = request("PROPFIND", dirUrl, depth = "1", body = PROPFIND_BODY)
-            // 路径还没建就等于没有备份，不当成错误
+            // 路径还没建就等于没有备份
             if (response.code == 404) return@withContext emptyList()
             if (!response.isSuccessful) throw BackupException("读取云端备份列表失败（HTTP ${response.code}）")
             parseList(response.text)
         }
 
-    /** 上传一份备份，覆盖同名文件，路径不在了就顺手补建 */
-    suspend fun upload(name: String, text: String) =
+    /** 上传一份备份，路径不在了就顺手补建 */
+    override suspend fun upload(name: String, text: String) =
         withContext(Dispatchers.IO) {
             val ready = runCatching { ensureDir() }.getOrElse { throw BackupException(networkMessage(it)) }
             if (!ready) throw BackupException("无法创建备份路径 $folderPath")
@@ -133,7 +113,7 @@ class WebDavClient(
             if (!response.isSuccessful) throw BackupException(uploadMessage(response))
         }
 
-    suspend fun download(name: String): String =
+    override suspend fun download(name: String): String =
         withContext(Dispatchers.IO) {
             val response = request("GET", fileUrl(name))
             when {
@@ -145,7 +125,7 @@ class WebDavClient(
         }
 
     /** 删除一份备份，已经不在了也算成功 */
-    suspend fun delete(name: String) =
+    override suspend fun delete(name: String) =
         withContext(Dispatchers.IO) {
             val code = request("DELETE", fileUrl(name)).code
             if (code !in 200..299 && code != 404) throw BackupException("删除失败（HTTP $code）")
@@ -161,7 +141,7 @@ class WebDavClient(
             else -> "上传失败（HTTP ${response.code}）"
         }
 
-    /** 认证与权限失败，服务器只认 Digest 时直接说清楚 */
+    /** 认证或权限失败，只认 Digest 的服务器单独说明 */
     private fun authMessage(response: DavResponse): String {
         if (response.code == 403) return "没有访问权限，请检查账号的读写权限"
         val scheme = response.challenge?.substringBefore(' ')?.takeIf { it.isNotBlank() }
@@ -172,10 +152,7 @@ class WebDavClient(
         }
     }
 
-    private fun networkMessage(error: Throwable): String =
-        if (error is IOException) "连接失败：${error.message ?: "网络不可用"}" else (error.message ?: "连接失败")
-
-    /** 发一次 WebDAV 请求，扩展方法不在 HttpURLConnection 的白名单里，只能改它的内部字段 */
+    /** 扩展方法不在 HttpURLConnection 的白名单里，只能绕开它的检查 */
     private fun request(
         method: String,
         url: String,
@@ -197,7 +174,7 @@ class WebDavClient(
             }
             connection.setRequestProperty("User-Agent", AppUserAgent)
             depth?.let { connection.setRequestProperty("Depth", it) }
-            // PROPFIND 一律带请求体，MKCOL 显式声明长度 0，缺了这两样部分服务器会回 400 或 411
+            // PROPFIND 带请求体，MKCOL 声明长度 0，缺了部分服务器回 400 或 411
             val payload =
                 when {
                     body != null -> body.toByteArray(Charsets.UTF_8)
@@ -230,7 +207,7 @@ class WebDavClient(
         }
     }
 
-    /** 设置请求方法，设置后回读确认真的生效，避免悄悄发成 GET */
+    /** 设置完回读确认生效，避免悄悄发成 GET */
     private fun HttpURLConnection.applyMethod(method: String) {
         if (method in BUILT_IN_METHODS) {
             requestMethod = method
@@ -245,7 +222,7 @@ class WebDavClient(
         if (requestMethod != method || !delegated) throw BackupException("当前系统不支持 $method 请求")
     }
 
-    /** 连接自身与它内部的委托对象，从外到内 */
+    /** 连接自身与内部的委托对象，从外到内 */
     private fun HttpURLConnection.methodTargets(): List<HttpURLConnection> {
         val targets = mutableListOf(this)
         var current: Any = this
