@@ -57,6 +57,7 @@ import com.hyperschedule.app.ui.page.courseedit.ThinDivider
 import com.hyperschedule.app.ui.page.courseedit.buildSeed
 import com.hyperschedule.app.ui.page.courseedit.overlaps
 import com.hyperschedule.app.ui.page.courseedit.sanitizeCredit
+import com.hyperschedule.app.ui.page.courseedit.sortedBySchedule
 import com.hyperschedule.app.ui.page.courseedit.toArgbInt
 import com.hyperschedule.app.ui.page.courseedit.toCourse
 import com.hyperschedule.app.ui.page.courseedit.toSlot
@@ -99,9 +100,17 @@ fun CourseEditPage(
     var colorInt by remember { mutableStateOf(seed.colorInt) }
     var colorArgb by remember { mutableStateOf(seed.colorArgb) }
     var credit by remember { mutableStateOf(seed.credit) }
-    val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seed.groups) } }
+    val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seed.groups.sortedBySchedule(sectionTimes)) } }
     // 库里已有、当前草稿仍保留的时段 id，保存时用它算出要删除的行
     var savedIds by remember { mutableStateOf(seed.groups.map { it.id }.toSet()) }
+
+    /** 改完星期、节次或周次后卡片跟着挪位置 */
+    fun sortGroups() {
+        val sorted = groups.sortedBySchedule(sectionTimes)
+        if (sorted == groups.toList()) return
+        groups.clear()
+        groups.addAll(sorted)
+    }
 
     fun currentState() = EditState(name, colorInt, colorArgb, credit, groups.toList())
 
@@ -120,7 +129,7 @@ fun CourseEditPage(
         colorArgb = loaded.colorArgb
         credit = loaded.credit
         groups.clear()
-        groups.addAll(loaded.groups)
+        groups.addAll(loaded.groups.sortedBySchedule(sectionTimes))
         savedIds = loaded.groups.map { it.id }.toSet()
         baseline = loaded
         seeded = true
@@ -158,6 +167,7 @@ fun CourseEditPage(
                 remark = "",
             )
         )
+        sortGroups()
     }
 
     val onSave: () -> Unit = {
@@ -316,6 +326,7 @@ fun CourseEditPage(
             onConfirm = { day ->
                 groups[dayIndex] = groups[dayIndex].copy(day = day)
                 dayDialogIndex = -1
+                sortGroups()
             },
         )
     }
@@ -338,6 +349,7 @@ fun CourseEditPage(
                         customEndTime = endTime,
                     )
                 timeDialogIndex = -1
+                sortGroups()
             },
         )
     }
@@ -353,6 +365,7 @@ fun CourseEditPage(
             onConfirm = { weeks ->
                 groups[weeksIndex] = groups[weeksIndex].copy(weeks = weeks)
                 weeksDialogIndex = -1
+                sortGroups()
             },
         )
     }

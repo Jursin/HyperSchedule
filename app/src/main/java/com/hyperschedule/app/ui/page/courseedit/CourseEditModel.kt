@@ -5,6 +5,7 @@ import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.formatCredit
+import com.hyperschedule.app.ui.component.parseTime
 import java.util.UUID
 
 /** 编辑页里的一个时段草稿，保存前只存在内存里 */
@@ -30,6 +31,21 @@ internal data class EditState(
     val credit: String,
     val groups: List<GroupDraft>,
 )
+
+/** 开始时间换算成分钟，自定义时间取起止时间，标准课取作息表里对应的节 */
+private fun GroupDraft.startMinutes(sectionTimes: List<Pair<String, String>>): Int {
+    val text = if (isCustomTime) customStartTime else sectionTimes.getOrNull(startSection - 1)?.first
+    val time = parseTime(text.orEmpty()) ?: return if (isCustomTime) Int.MAX_VALUE else startSection * 60
+    return time.hour * 60 + time.minute
+}
+
+/** 排序用的起始周次，没选周次的排到最后 */
+private val GroupDraft.firstWeek: Int
+    get() = weeks.minOrNull() ?: Int.MAX_VALUE
+
+/** 按星期、开始时间、起始周次排列，与课表里的先后一致 */
+internal fun List<GroupDraft>.sortedBySchedule(sectionTimes: List<Pair<String, String>>): List<GroupDraft> =
+    sortedWith(compareBy({ it.day }, { it.startMinutes(sectionTimes) }, { it.firstWeek }))
 
 /** 从库里读出的初始草稿，[initialName] 为空时按预填的星期与节次造一张空卡 */
 internal fun buildSeed(

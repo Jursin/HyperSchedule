@@ -193,9 +193,9 @@ private data class WeekRowData(
 private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot>, mark: String?) {
     val start = startTimeOf(course, slotMap)
     val end = endTimeOf(course, slotMap)
-    // 自定义时间课的起止时间已在节次位置显示，右侧不再重复
-    val timeRange = if (!course.isCustomTime && start != null && end != null) "$start - $end" else ""
+    val timeRange = if (start != null && end != null) "$start - $end" else ""
     val dayName = dayLabel(course.day)
+    val info = infoLine(course)
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -208,7 +208,8 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
                         listOfNotNull(
                             date?.let { "${it.monthValue}/${it.dayOfMonth}" },
                             dayName,
-                            course.sectionLabel(),
+                            // 自定义时间课的起止时间只在右侧显示
+                            if (course.isCustomTime) null else course.sectionLabel(),
                         ).joinToString(" "),
                     style = MiuixTheme.textStyles.headline1,
                     fontWeight = FontWeight.Medium,
@@ -227,10 +228,10 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
                     )
                 }
             }
-            if (course.position.isNotBlank() || course.teacher.isNotBlank()) {
+            if (info.text.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = placeLine(course),
+                    text = info,
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     inlineContent = courseInfoIcons(),
@@ -243,16 +244,17 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
     }
 }
 
-/** 地点 + 教师 */
-private fun placeLine(course: Course): AnnotatedString =
+/** 地点 + 备注 */
+private fun infoLine(course: Course): AnnotatedString =
     buildAnnotatedString {
         if (course.position.isNotBlank()) {
             infoIcon(InfoIconId.POSITION, "地点")
             fieldValue(course.position)
         }
-        if (course.teacher.isNotBlank()) {
+        val remark = course.remark?.takeIf { it.isNotBlank() }
+        if (remark != null) {
             if (course.position.isNotBlank()) fieldGap()
-            infoIcon(InfoIconId.TEACHER, "教师")
-            fieldValue(course.teacher)
+            infoIcon(InfoIconId.REMARK, "备注")
+            fieldValue(remark)
         }
     }
