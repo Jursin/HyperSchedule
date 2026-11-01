@@ -4,7 +4,7 @@ import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.parseMinutes
 
-/** 同一格：同一天且起始节次相同；自定义时间课比对起止时间 */
+/** 同一格，同一天且起始节次相同，自定义时间课比对起止时间 */
 internal fun Course.isSameSlotAs(other: Course): Boolean {
     if (day != other.day) return false
     if (isCustomTime || other.isCustomTime) {
@@ -15,7 +15,7 @@ internal fun Course.isSameSlotAs(other: Course): Boolean {
     return startSection != null && startSection == other.startSection
 }
 
-/** 该课程是否落在第 [section] 节：标准课看节次范围，自定义时间课看时间重叠 */
+/** 该课程是否落在第 [section] 节，标准课看节次范围，自定义时间课看时间重叠 */
 internal fun Course.covers(section: Int, sectionTimes: List<Pair<String, String>>): Boolean =
     if (isCustomTime) {
         section in overlappedSections(this, sectionTimes)
@@ -25,7 +25,7 @@ internal fun Course.covers(section: Int, sectionTimes: List<Pair<String, String>
         section in start..end
     }
 
-/** 某页周次下的一门课：active = 本页周次生效；hiddenCount = 同格还有几门没画出来 */
+/** 某页周次下的一门课，active = 本页周次生效，hiddenCount = 同格还有几门没画出来 */
 internal data class WeekCourse(
     val course: Course,
     val active: Boolean,
@@ -40,7 +40,7 @@ private fun courseSlotKey(course: Course): String =
         "section|${course.day}|${course.startSection}"
     }
 
-/** 本页周次生效的照常显示；某格全都不上时取最近的一门课灰显（可在设置里关闭） */
+/** 本页周次生效的照常显示，某格全都不上时取最近的一门课灰显（可在设置里关闭） */
 internal fun resolveWeekCourses(
     all: List<CourseWithWeeks>,
     week: Int,
@@ -67,7 +67,7 @@ internal fun resolveWeekCourses(
         }
     }
 
-/** 自定义时间课占用的节次：与节次时间段有交集即算占用 */
+/** 自定义时间课占用的节次，与节次时间段有交集即算占用 */
 internal fun overlappedSections(course: Course, sectionTimes: List<Pair<String, String>>): List<Int> {
     val startAt = parseMinutes(course.customStartTime) ?: return emptyList()
     val endAt = parseMinutes(course.customEndTime) ?: return emptyList()

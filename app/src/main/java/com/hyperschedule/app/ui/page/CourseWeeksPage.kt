@@ -59,7 +59,7 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 同名课程的全部周次：每周一张卡，直接以进入时浏览的那一周作为初始位置 */
+/** 同名课程的全部周次，每周一张卡，直接以进入时浏览的那一周作为初始位置 */
 @Composable
 fun CourseWeeksPage(
     courseName: String,
@@ -79,7 +79,7 @@ fun CourseWeeksPage(
         }
     val totalWeeks = (table?.config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
 
-    // 放假 / 调休：与课表页共用同一张（周次, 星期）表，每行按自己的那一天标注
+    // 放假/调休，与课表页共用同一张（周次, 星期）表，每行按自己的那一天标注
     val holidayPlan = rememberHolidayPlan(holidayRepository, startDate, totalWeeks)
 
     // 本课程每次出现落在哪一周的哪一天（同一天可能有多个节次）
@@ -98,7 +98,7 @@ fun CourseWeeksPage(
         remember(placements, totalWeeks) {
             maxOf(totalWeeks, placements.keys.maxOrNull()?.div(10) ?: 0)
         }
-    // 每周列出「这一列当天上的课」：放假照本列、补课换成被调那一天的课，与课表网格同一套规则
+    // 每周列出「这一列当天上的课」，放假照本列、补课换成被调那一天的课
     val weekGroups =
         remember(placements, holidayPlan, startDate, lastWeek) {
             (1..lastWeek).mapNotNull { weekNumber ->
@@ -122,7 +122,7 @@ fun CourseWeeksPage(
             weekGroups.indexOfFirst { it.first == week }.coerceIn(0, weekGroups.lastIndex.coerceAtLeast(0))
         }
     val listState = rememberLazyListState(initialFirstVisibleItemIndex = initialIndex)
-    // 数据晚到（节假日还在加载）时补一次定位；之后用户自己滚动过就不再拉回
+    // 数据晚到（节假日还在加载）时补一次定位，之后用户自己滚动过就不再拉回
     val positioned = remember { mutableStateOf(false) }
     LaunchedEffect(weekGroups) {
         if (positioned.value || weekGroups.isEmpty()) return@LaunchedEffect
@@ -181,14 +181,14 @@ fun CourseWeeksPage(
     }
 }
 
-/** 本课程页的一行：某周某一天上的这门课，以及那天是放假还是补课 */
+/** 本课程页的一行，某周某一天上的这门课，以及那天是放假还是补课 */
 private data class WeekRowData(
     val date: LocalDate?,
     val course: Course,
     val mark: String?,
 )
 
-/** 一周里的一次课：日期 + 星期 + 节次，右侧作息时间，放假 / 调休时名称后带角标 */
+/** 一周里的一次课，日期 + 星期 + 节次，右侧作息时间，放假/调休时名称后带角标 */
 @Composable
 private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot>, mark: String?) {
     val start = startTimeOf(course, slotMap)
@@ -243,7 +243,7 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
     }
 }
 
-/** 地点 + 教师，沿用信息行的图标 */
+/** 地点 + 教师 */
 private fun placeLine(course: Course): AnnotatedString =
     buildAnnotatedString {
         if (course.position.isNotBlank()) {

@@ -41,7 +41,7 @@ import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
-/** 确认对话框：底部一排等宽按钮，[actions] 可整排替换成自定义按钮 */
+/** 确认对话框，底部一排等宽按钮，[actions] 可整排替换成自定义按钮 */
 @Composable
 fun ConfirmDialog(
     title: String,
@@ -68,7 +68,7 @@ fun ConfirmDialog(
         title = if (endAction == null) title else null,
         summary = if (endAction == null) summary else null,
         summaryColor = summaryColor,
-        // 平板居中、手机贴底，和抽屉、整页浮窗同一套判定
+        // 平板居中、手机贴底，按宽屏判定选位置
         largeScreen = useLargeScreenWindow(),
         content = {
             WindowBlurEffect(useBlur = appBlur)
@@ -124,7 +124,7 @@ fun ConfirmDialog(
     )
 }
 
-/** 纯选择对话框：若干等宽按钮，用于「多选一」的确认场景 */
+/** 纯选择对话框，若干等宽按钮，用于「多选一」的确认场景 */
 @Composable
 fun ChoiceDialog(
     title: String,
@@ -161,7 +161,7 @@ fun ChoiceDialog(
     )
 }
 
-/** [ChoiceDialog] 的一个选项；[destructive] 用错误色，[enabled] 为 false 时置灰 */
+/** [ChoiceDialog] 的一个选项，[destructive] 用错误色，[enabled] 为 false 时置灰 */
 data class DialogChoice(
     val text: String,
     val onClick: () -> Unit,
@@ -169,7 +169,7 @@ data class DialogChoice(
     val destructive: Boolean = false,
 )
 
-/** 有未保存改动时返回：确认后丢弃并退出编辑 */
+/** 有未保存改动时返回，确认后丢弃并退出编辑 */
 @Composable
 fun DiscardChangesDialog(
     appBlur: Boolean,
@@ -187,7 +187,7 @@ fun DiscardChangesDialog(
     )
 }
 
-/** 拖动落点冲突：覆盖或交换（只有一门冲突课程时才能交换）；取消靠返回键，不占按钮位 */
+/** 拖动落点冲突，覆盖或交换，取消靠返回键，不占按钮位 */
 @Composable
 fun ConflictDialog(
     appBlur: Boolean,
@@ -209,7 +209,7 @@ fun ConflictDialog(
     )
 }
 
-/** 添加 / 重命名课表：名称为空时确定按钮不可点，最多 20 字 */
+/** 添加/重命名课表，名称为空时确定按钮不可点，最多 20 字 */
 @Composable
 fun TableNameDialog(
     title: String,
@@ -237,7 +237,6 @@ fun TableNameDialog(
     }
 }
 
-/** 新建课表 */
 @Composable
 fun CreateTableDialog(
     repository: ScheduleRepository,
@@ -269,7 +268,7 @@ fun CreateTableDialog(
     )
 }
 
-/** 分享码 / 口令输入：取回期间禁用确定，失败原因就地显示 */
+/** 分享码/口令输入，取回期间禁用确定，失败原因就地显示 */
 @Composable
 fun ShareCodeDialog(
     title: String,
@@ -322,7 +321,7 @@ fun DialogDeleteAction(onClick: () -> Unit) {
     }
 }
 
-/** 底部按钮行：等宽排布，与上方内容留出额外间距 */
+/** 底部按钮行，等宽排布，与上方内容留出额外间距 */
 @Composable
 private fun DialogActionRow(content: @Composable RowScope.() -> Unit) {
     Row(

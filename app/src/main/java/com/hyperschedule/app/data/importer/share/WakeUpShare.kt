@@ -53,14 +53,14 @@ internal object WakeUpShare {
         return parseShareData(shareData)
     }
 
-    /** 第一步：DES 签名换 antispam token */
+    /** DES 签名换 antispam token */
     private fun requestToken(
         cuid: String,
         commonParams: List<Pair<String, String>>,
         headers: Map<String, String>,
     ): String {
         val rand10 = randomText()
-        // 明文格式：magic##rand10##签名 md5##cuid
+        // 明文格式，magic##rand10##签名 md5##cuid
         val plain = "$MAGIC##$rand10##$SIGNATURE_MD5##$cuid"
         val signA = WakeUpCrypto.nativeHexEncode(WakeUpCrypto.desEncrypt(plain.toByteArray(), SIGN_A_KEY.toByteArray()))
         val body = WakeUpCrypto.formEncode(listOf("data" to signA) + commonParams) + "&"
@@ -79,7 +79,7 @@ internal object WakeUpShare {
         return text.substring(12, 12 + RANDOM_LENGTH)
     }
 
-    /** 第二步：带签名的表单请求，返回解密后的课表原文 */
+    /** 带签名的表单请求，返回解密后的课表原文 */
     private fun requestShareData(
         code: String,
         token: String,
@@ -126,10 +126,7 @@ internal object WakeUpShare {
         return shareData?.takeIf { it.isNotBlank() } ?: throw IllegalStateException("分享口令无效或已过期")
     }
 
-    /**
-     * 课表原文由 5 段 JSON 组成（基础配置、节次时间、界面配置、课程、课程详情），
-     * 用换行分隔，逐段解析。
-     */
+    /** 课表原文由 5 段 JSON 组成（基础配置、节次时间、界面配置、课程、课程详情），用换行分隔逐段解析 */
     private fun parseShareData(raw: String): CourseTableJson {
         val parts = raw.trim().lines()
         if (parts.size < 5) throw IllegalStateException("WakeUp 课表数据结构不完整")
@@ -225,7 +222,7 @@ internal object WakeUpShare {
             "operatorid" to "",
         )
 
-    /** antispam 的签名可能挂在 data.data / data / result.data 上，逐层找 */
+    /** antispam 的签名可能挂在 data.data/data/result.data 上，逐层找 */
     private fun extractSignB(element: JsonElement?): String? {
         val root = element as? JsonObject ?: return null
         val data = root["data"]
@@ -253,7 +250,7 @@ private fun JsonElement?.nodeSet(): Set<Int>? =
         else -> null
     }
 
-/** WakeUp 的 type：0 每周、1 单周、2 双周 */
+/** WakeUp 的 type，0 每周、1 单周、2 双周 */
 private fun RawDetail.weeks(totalWeeks: Int): List<Int> {
     val start = startWeek.coerceAtLeast(1)
     val end = endWeek.coerceAtLeast(start)

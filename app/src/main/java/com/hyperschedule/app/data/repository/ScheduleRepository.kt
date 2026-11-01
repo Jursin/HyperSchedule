@@ -44,7 +44,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
-/** 今天：跨零点发一次，让按日期生效的组合规则自动切换 */
+/** 今天，跨零点发一次，让按日期生效的组合规则自动切换 */
 private val todayFlow: Flow<LocalDate> =
     flow {
         while (true) {
@@ -88,13 +88,13 @@ data class ScheduleOverview(
     }
 }
 
-/** 课表管理页一行：课表与课程门数 */
+/** 课表管理页一行，课表与课程门数 */
 data class TableSummary(
     val table: CourseTable,
     val courseCount: Int,
 )
 
-/** 课表/课程/作息的数据入口；首启自动建默认课表与专属作息 */
+/** 课表/课程/作息的数据入口，首启自动建默认课表与专属作息 */
 class ScheduleRepository(
     private val db: AppDatabase,
 ) {
@@ -103,7 +103,7 @@ class ScheduleRepository(
     private val timeTableDao = db.timeTableDao()
     private val comboDao = db.timeTableComboDao()
 
-    /** 首启初始化：优先沿用 [preferredId]，失效则取最早一张，一张都没有才新建；返回实际课表 ID */
+    /** 首启初始化，优先沿用 [preferredId]，失效则取最早一张，一张都没有才新建，返回实际课表 ID */
     suspend fun ensureInitialized(preferredId: String? = null): String =
         withContext(Dispatchers.IO) {
             val existing = preferredId?.let { tableDao.getTableOnce(it) } ?: tableDao.getFirstTableOnce()
@@ -123,7 +123,7 @@ class ScheduleRepository(
             tables.map { TableSummary(it, byTable[it.id] ?: 0) }
         }
 
-    /** 新建课表：元数据 + 配置 + 专属作息 + 默认节次 */
+    /** 新建课表，元数据 + 配置 + 专属作息 + 默认节次 */
     suspend fun createTable(name: String): String =
         withContext(Dispatchers.IO) {
             val id = UUID.randomUUID().toString()
@@ -139,7 +139,7 @@ class ScheduleRepository(
             tableDao.updateName(id, name)
         }
 
-    /** 删除课表：至少保留一张；该课表的专属作息、指向它的组合规则与基准一并清理，返回剩余第一张 */
+    /** 删除课表，至少保留一张，该课表的专属作息、指向它的组合规则与基准一并清理，返回剩余第一张 */
     suspend fun deleteTable(id: String): String? =
         withContext(Dispatchers.IO) {
             db.withTransaction {
@@ -150,7 +150,7 @@ class ScheduleRepository(
             }
         }
 
-    /** 删除作息并解除引用：组合基准、组合规则、课表绑定、特殊课程、节次与方案本身 */
+    /** 删除作息并解除引用，组合基准、组合规则、课表绑定、特殊课程、节次与方案本身 */
     private suspend fun purgeSchedule(timeTableId: String) {
         comboDao.clearBaseTimeTableId(timeTableId)
         comboDao.deleteRulesByTargetId(timeTableId)
@@ -162,7 +162,7 @@ class ScheduleRepository(
 
     fun configOf(courseTableId: String): Flow<CourseTableConfig?> = tableDao.observeConfig(courseTableId)
 
-    /** 设置页改学期信息：写入课表配置，课表页与今日页都以它为准 */
+    /** 设置页改学期信息，写入课表配置，课表页与今日页都以它为准 */
     suspend fun updateSemesterConfig(
         courseTableId: String,
         startDate: String?,
@@ -180,24 +180,21 @@ class ScheduleRepository(
     fun coursesWithWeeksOfTable(courseTableId: String): Flow<List<CourseWithWeeks>> =
         courseDao.getCoursesWithWeeksByTableId(courseTableId)
 
-    /** 当前该用哪张课表 */
     suspend fun existingTableIdOnce(preferredId: String?): String? =
         withContext(Dispatchers.IO) {
             preferredId?.let { tableDao.getTableOnce(it) }?.id ?: tableDao.getFirstTableOnce()?.id
         }
 
-    /** 学期起始日与总周数 */
     suspend fun configOnce(courseTableId: String): CourseTableConfig? =
         withContext(Dispatchers.IO) { tableDao.getConfigOnce(courseTableId) }
 
-    /** 整张课表的课程，含周次 */
     suspend fun coursesOnce(courseTableId: String): List<CourseWithWeeks> =
         coursesWithWeeksOfTable(courseTableId).first()
 
     /** 当前生效的节次（含组合规则的按日期切换），取第一帧即可 */
     suspend fun slotsOnce(courseTableId: String): List<TimeSlot> = timeSlotsOf(courseTableId).first()
 
-    /** 编辑页保存：一次事务内删除被移除的时段，写入（新增或更新）其余时段与周次 */
+    /** 编辑页保存，一次事务内删除被移除的时段，写入（新增或更新）其余时段与周次 */
     suspend fun saveCourseEdits(
         deletedIds: List<String>,
         courses: List<Pair<Course, List<Int>>>,
@@ -222,7 +219,7 @@ class ScheduleRepository(
 
     // 作息解析
 
-    /** 当前课表生效的节次：无绑定用专属作息，SINGLE 用绑定的表，COMBO 按日期规则对齐基准 */
+    /** 当前课表生效的节次，无绑定用专属作息，SINGLE 用绑定的表，COMBO 按日期规则对齐基准 */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun timeSlotsOf(courseTableId: String): Flow<List<TimeSlot>> =
         timeTableDao.observeBinding(courseTableId).flatMapLatest { binding ->
@@ -259,7 +256,7 @@ class ScheduleRepository(
             timeTableDao.observeSpecials(scheduleId)
         }
 
-    /** 当前生效的作息表本身：课表页据此取上午/下午/晚上分界 */
+    /** 当前生效的作息表本身，课表页据此取上午/下午/晚上分界 */
     @OptIn(ExperimentalCoroutinesApi::class)
     fun effectiveTimeTableOf(courseTableId: String): Flow<TimeTable?> =
         effectiveScheduleIdOf(courseTableId).flatMapLatest { id -> timeTableDao.observeTimeTable(id) }
@@ -303,7 +300,7 @@ class ScheduleRepository(
         }
     }
 
-    /** 第一条命中日期区间的规则；日期为 yyyy-MM-dd，直接按字符串比较 */
+    /** 第一条命中日期区间的规则，日期为 yyyy-MM-dd，直接按字符串比较 */
     private fun matchRule(rules: List<TimeTableComboRule>, date: LocalDate): String? {
         val today = date.toString()
         return rules.firstOrNull { today in it.startDate..it.endDate }?.targetTimeTableId
@@ -334,13 +331,11 @@ class ScheduleRepository(
             overview.copy(ruleCounts = rules.groupingBy { it.comboId }.eachCount())
         }
 
-    /** 切换当前课表使用的作息 */
     suspend fun bind(courseTableId: String, targetType: String, targetId: String) =
         withContext(Dispatchers.IO) {
             timeTableDao.upsertBinding(CourseTimeBinding(courseTableId, targetType, targetId))
         }
 
-    // 单一 / 公共作息
 
     suspend fun loadPlan(planId: String): PlanDetail? =
         withContext(Dispatchers.IO) {
@@ -352,7 +347,7 @@ class ScheduleRepository(
             )
         }
 
-    /** 保存作息：方案本身 upsert，节次全量替换，特殊课程按 id 增删改；专属作息保存后即成为当前作息 */
+    /** 保存作息，方案本身 upsert，节次全量替换，特殊课程按 id 增删改，专属作息保存后即成为当前作息 */
     suspend fun saveSingleSchedule(
         plan: TimeTable,
         slots: List<TimeSlot>,
@@ -371,7 +366,7 @@ class ScheduleRepository(
         }
     }
 
-    /** 新建公共作息草稿：复制当前课表生效作息的设置、节次与特殊课程，保存时才写入 */
+    /** 新建公共作息草稿，复制当前课表生效作息的设置、节次与特殊课程，保存时才写入 */
     suspend fun newPublicScheduleDraft(courseTableId: String): PlanDetail =
         withContext(Dispatchers.IO) {
             val source = timeTableDao.getTimeTableOnce(effectiveScheduleIdOnce(courseTableId))
@@ -397,13 +392,12 @@ class ScheduleRepository(
             )
         }
 
-    /** 删除公共作息并级联解除引用：组合基准、组合规则、课表绑定 */
+    /** 删除公共作息并级联解除引用，组合基准、组合规则、课表绑定 */
     suspend fun deletePublicSchedule(planId: String) =
         withContext(Dispatchers.IO) {
             db.withTransaction { purgeSchedule(planId) }
         }
 
-    // 组合作息
 
     suspend fun loadCombo(comboId: String): ComboDetail? =
         withContext(Dispatchers.IO) {
@@ -416,7 +410,7 @@ class ScheduleRepository(
             timeTableDao.getPublicTimeTablesOnce()
         }
 
-    /** 新建组合作息草稿：保存时才写入 */
+    /** 新建组合作息草稿，保存时才写入 */
     suspend fun newComboDraft(): ComboDetail =
         withContext(Dispatchers.IO) {
             ComboDetail(
@@ -451,7 +445,7 @@ class ScheduleRepository(
 
     // 导入
 
-    /** 导入课程表导出的单表 JSON（覆盖指定课表的课程、作息与组合作息），返回导入的课程数；结构不合法时抛异常拒绝 */
+    /** 导入课程表导出的单表 JSON（覆盖指定课表的课程、作息与组合作息），返回导入的课程数，结构不合法时抛异常拒绝 */
     suspend fun importCourseTableJson(
         text: String,
         tableId: String,
@@ -461,7 +455,7 @@ class ScheduleRepository(
             importParsed(data, tableId)
         }
 
-    /** 导入 ICS 日历：时间能对上目标课表的节次就还原成节次课程，否则留自定义时间；不覆盖作息，返回导入的课程数 */
+    /** 导入 ICS 日历，时间能对上目标课表的节次就还原成节次课程，否则留自定义时间，不覆盖作息，返回导入的课程数 */
     suspend fun importIcs(
         text: String,
         tableId: String,
@@ -471,7 +465,7 @@ class ScheduleRepository(
             importParsed(data, tableId)
         }
 
-    /** 分享码 / 口令导入：解析结果与 JSON 文件走同一套落库流程 */
+    /** 分享码/口令导入，解析结果按 JSON 文件那套流程落库 */
     suspend fun importShareCode(
         payload: CourseTableJson,
         tableId: String,
@@ -481,7 +475,7 @@ class ScheduleRepository(
             importParsed(payload, tableId)
         }
 
-    /** 教务脚本导入的课程：颜色按课程名重新分配，备注清空，覆盖目标课表的课程与周次 */
+    /** 教务脚本导入的课程，颜色按课程名重新分配，备注清空，覆盖目标课表的课程与周次 */
     suspend fun importEduCourses(
         tableId: String,
         courses: List<CourseJson>,
@@ -498,7 +492,7 @@ class ScheduleRepository(
             sanitized.size
         }
 
-    /** 教务脚本导入的节次时间：覆盖课表专属作息 */
+    /** 教务脚本导入的节次时间，覆盖课表专属作息 */
     suspend fun importEduTimeSlots(
         tableId: String,
         slots: List<TimeSlotJson>,
@@ -511,7 +505,6 @@ class ScheduleRepository(
         }
     }
 
-    /** 教务脚本导入的学期设置 */
     suspend fun importEduConfig(
         tableId: String,
         config: CourseTableConfigJson,
@@ -522,7 +515,6 @@ class ScheduleRepository(
         }
     }
 
-    /** 教务脚本导入的组合作息 */
     suspend fun importEduCombo(
         tableId: String,
         combo: ComboScheduleJson,
@@ -534,7 +526,7 @@ class ScheduleRepository(
         }
     }
 
-    /** 两种导入来源共用的落库流程；没有课程的文件不导入，避免把已有课表清空 */
+    /** 两种导入来源共用的落库流程，没有课程的文件不导入，避免把已有课表清空 */
     private suspend fun importParsed(
         data: CourseTableJson,
         tableId: String,
@@ -554,8 +546,7 @@ class ScheduleRepository(
     /** 文件里的作息覆盖课表专属作息 */
     private suspend fun importSlots(tableId: String, data: CourseTableJson) {
         val slots = data.timeSlots?.takeIf { it.isNotEmpty() } ?: return
-        // 绑定原本指向别的公共作息时，写进课表专属作息不会生效，这里把绑定收回本表
-        // （文件带了组合就不动，组合导入会自己重设绑定）
+        // 绑定原本指向别的公共作息时，写进课表专属作息不会生效，这里把绑定收回本表，文件带了组合就不动，组合导入会自己重设绑定
         if (data.comboSchedule == null) {
             val binding = timeTableDao.getBindingOnce(tableId)
             if (binding?.targetType == CourseTimeBinding.TARGET_SINGLE && binding.targetId != tableId) {
@@ -566,7 +557,7 @@ class ScheduleRepository(
         timeTableDao.upsertSlots(slots.map { TimeSlot(tableId, it.number, it.startTime, it.endTime, it.alias) })
     }
 
-    /** 覆盖课程与周次；颜色按「课程名首次出现顺序」分配，同名同色，超出色板容量时循环取色 */
+    /** 覆盖课程与周次，颜色按「课程名首次出现顺序」分配，同名同色，超出色板容量时循环取色 */
     private suspend fun importCourses(tableId: String, courses: List<CourseJson>) {
         courseDao.deleteCoursesByTableId(tableId)
         val colorIndexByName = mutableMapOf<String, Int>()
@@ -584,7 +575,7 @@ class ScheduleRepository(
         if (weeks.isNotEmpty()) courseDao.insertWeeks(weeks)
     }
 
-    /** 学期设置；文件里带单节时长时落到课表专属作息上，导出时会一起写回 config */
+    /** 学期设置，文件里带单节时长时落到课表专属作息上，导出时会一起写回 config */
     private suspend fun importConfig(tableId: String, config: CourseTableConfigJson) {
         val current = tableDao.getConfigOnce(tableId)
         // 没带开学日期就落到本周一，否则今日页算不出周次、导入后看不到课
@@ -647,7 +638,7 @@ class ScheduleRepository(
         timeTableDao.upsertBinding(CourseTimeBinding(tableId, CourseTimeBinding.TARGET_COMBO, comboId))
     }
 
-    /** 导出用的整表快照：组合作息涉及的作息一次取齐，之后按日期在内存里切 */
+    /** 导出用的整表快照，组合作息涉及的作息一次取齐，之后按日期在内存里切 */
     suspend fun loadExportData(courseTableId: String): TableExportData =
         withContext(Dispatchers.IO) {
             val config = tableDao.getConfigOnce(courseTableId) ?: CourseTableConfig(courseTableId)
@@ -664,7 +655,7 @@ class ScheduleRepository(
             val baseDuration =
                 timeTableDao.getTimeTableOnce(baseId)?.defaultClassDuration ?: TimeTable.DEFAULT_CLASS_DURATION
             val rules = comboId?.let { comboDao.getRulesOnce(it) }.orEmpty()
-            // 规则引用的作息表可能重复引用，按 id 去重；表本身取不到时退回基准节次
+            // 规则引用的作息表可能重复引用，按 id 去重，表本身取不到时退回基准节次
             val publicTables =
                 rules.map { it.targetTimeTableId }.distinct().associateWith { timeTableDao.getTimeTableOnce(it) }
             val slotsByTable =

@@ -19,7 +19,7 @@ private val IcsLocalFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
 private val IcsStampFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
 private val IcsDayFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
-/** 逐周展开成 VEVENT：放假那天不写，节次时间取当天生效的作息；[alarmMinutes] 为空时不加提醒 */
+/** 逐周展开成 VEVENT，放假那天不写，节次时间取当天生效的作息，[alarmMinutes] 为空时不加提醒 */
 fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: Int?): String {
     val startDate = data.startDate ?: error("请先在课表设置里填写开学日期")
     val lastWeek = data.lastWeek
@@ -73,7 +73,7 @@ private fun describe(week: Int, course: Course): String =
         course.remark?.takeIf { it.isNotBlank() },
     ).joinToString(" · ")
 
-/** 课程在这一天的时间区间；缺节次时间或自定义时间不合法时为 null */
+/** 课程在这一天的时间区间，缺节次时间或自定义时间不合法时为 null */
 private fun Course.timeSpanOn(date: LocalDate, slots: Map<Int, TimeSlot>): Pair<LocalDateTime, LocalDateTime>? {
     val startMinutes: Int?
     val endMinutes: Int?
@@ -90,7 +90,7 @@ private fun Course.timeSpanOn(date: LocalDate, slots: Map<Int, TimeSlot>): Pair<
     return date.atTime(minutesToTime(startMinutes)) to date.atTime(minutesToTime(endMinutes))
 }
 
-/** 当天第几分钟 → 时刻；越界（如 24:00）夹到 23:59，不做静默进位 */
+/** 当天第几分钟 → 时刻，越界（如 24:00）夹到 23:59，不做静默进位 */
 private fun minutesToTime(minutes: Int): LocalTime {
     val safe = minutes.coerceIn(0, 23 * 60 + 59)
     return LocalTime.of(safe / 60, safe % 60)

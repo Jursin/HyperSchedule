@@ -72,25 +72,21 @@ private val DismissDistance = 150.dp
 /** 甩得够快时不必非要拉过 [DismissDistance] */
 private val DismissVelocity = 800.dp
 
-/** 居中浮层与屏幕边缘的距离 */
 private val OutsideMargin = 12.dp
 
-/** 拖动条 */
 private val HandleWidth = 60.dp
 private val HandleHeight = 3.dp
 private val HandleAreaHeight = 21.dp
 
-/** 标题行 */
 private val HeaderMinHeight = 46.dp
 private val HeaderHorizontalPadding = 20.dp
 /** 标题图标，对齐 title3 的字面高度 */
 private val TitleIconSize = 22.dp
 
-/** 标题与正文之间的间距 */
 private val HeaderToContentSpacing = 18.dp
 private val HeaderToContentSpacingNoSubtitle = 10.dp
 
-/** 抽屉内可滚动的内容列：高度上限、下拉回弹、统一内边距 */
+/** 抽屉内可滚动的内容列，高度上限、下拉回弹、统一内边距 */
 @Composable
 fun SheetScrollColumn(
     maxHeight: Dp = ShortSheetMaxHeight,
@@ -152,7 +148,7 @@ fun SheetScaffold(
     val panelColor = sheetPanelColor()
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        // 居中浮层 / 贴底，判定和对话框一致
+        // 居中浮层/贴底，按宽屏判定选位置
         val largeScreen = useLargeScreenWindow()
         val screenHeightPx = constraints.maxHeight.toFloat()
         val showSpec: AnimationSpec<Float> =
@@ -259,7 +255,7 @@ fun SheetScaffold(
                         ),
             ) {
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    // 拖动条：贴底抽屉和居中浮层都画，两种形态都有「往下拉收起」的手势
+                    // 拖动条，贴底抽屉和居中浮层都画，两种形态都有「往下拉收起」的手势
                     Box(
                         modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
                         contentAlignment = Alignment.Center,

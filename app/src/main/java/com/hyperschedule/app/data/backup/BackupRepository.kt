@@ -18,7 +18,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
-/** 备份文件扩展名 */
 private const val BACKUP_EXTENSION = ".json"
 
 /** 文件名里的时间戳格式，本地与云端共用 */
@@ -34,7 +33,6 @@ private const val PREFS_EDU = "edu_repo"
 /** 备份/恢复失败，message 直接给用户看 */
 class BackupException(message: String) : Exception(message)
 
-/** 目录里的一份备份 */
 data class BackupFile(
     val name: String,
     val time: LocalDateTime,
@@ -64,7 +62,6 @@ class BackupRepository(
             explicitNulls = false
         }
 
-    /** 当前数据的完整快照 */
     suspend fun build(): BackupPayload =
         withContext(Dispatchers.IO) {
             val dao = db.backupDao()
@@ -104,7 +101,7 @@ class BackupRepository(
     /** 内容指纹，用于「内容没变就不重复备份」 */
     fun fingerprint(payload: BackupPayload): String = sha256(encode(payload.contentKey()))
 
-    /** 由快照自身的时间生成文件名，本地与云端一致 */
+    /** 由快照自身的时间生成文件名，本地与云端同名 */
     fun fileName(payload: BackupPayload): String {
         val time =
             runCatching { LocalDateTime.parse(payload.createdAt, isoFormatter) }.getOrElse { LocalDateTime.now() }
@@ -127,7 +124,6 @@ class BackupRepository(
             dir.list().mapNotNull { entry -> backupFileOf(entry.name, entry.size) }.sortedByDescending { it.time }
         }
 
-    /** 目录里是否已经有备份 */
     suspend fun hasBackup(dir: BackupDir): Boolean =
         withContext(Dispatchers.IO) {
             runCatching { dir.list().any { BACKUP_FILE_NAME.matches(it.name) } }.getOrDefault(false)

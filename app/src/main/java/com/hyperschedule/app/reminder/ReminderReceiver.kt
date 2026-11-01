@@ -46,7 +46,7 @@ class ReminderReceiver : BroadcastReceiver() {
         when (type) {
             ReminderScheduler.TYPE_PRE_CLASS -> {
                 val course = courses.firstOrNull { it.id == courseId }
-                // 课已经不在这一天、或早就上完了（闹钟被系统拖后太多）：不补发，改为重排
+                // 课已经不在这一天、或早就上完了（闹钟被系统拖后太多），不补发，改为重排
                 if (course == null || now.isAfter(course.start.plusMinutes(LATE_GRACE_MINUTES))) {
                     ReminderScheduler.resyncNow(context)
                     return
@@ -70,7 +70,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** 系统重排的时机：重启、应用更新会丢掉全部闹钟，改时间/换时区会让已注册的绝对时刻失准 */
+/** 系统重排的时机，重启、应用更新会丢掉全部闹钟，改时间/换时区会让已注册的绝对时刻失准 */
 class ReminderBootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {

@@ -65,7 +65,6 @@ internal fun ScheduleWeekPage(
     pendingCell: PendingCell?,
     onPendingCellChange: (PendingCell?) -> Unit,
     editor: ScheduleEditor,
-    // 页面级触控状态
     touchState: ScheduleTouchState,
     onGridPositioned: (rect: Rect) -> Unit,
     onCourseClick: (Course, Int, String?) -> Unit,
@@ -75,10 +74,10 @@ internal fun ScheduleWeekPage(
     val draggingSlot = editor.draggingSlot
     // 已经有一指在拖
     val dragInProgress = editor.drag?.released == false
-    // 未开学 / 学期已结束
+    // 未开学/学期已结束
     val inSemester = week in 1..totalWeeks
     val currentSection = if (week == currentWeek) currentSectionAt(sectionTimes, now.toLocalTime()) else -1
-    // 7 天各自的放假 / 调休
+    // 7 天各自的放假/调休
     val dayPlans =
         remember(holidayPlan, week) {
             List(DAY_NAMES.size) { index -> holidayPlan.of(week, index + 1) }
@@ -154,7 +153,7 @@ internal fun ScheduleWeekPage(
                                 isWorkSwap = plan.workSwap,
                                 // 补课列与拖拽中都不起拖
                                 dragEnabled = !plan.remapped && !dragInProgress,
-                                // 放假 / 补课列不落「+」
+                                // 放假/补课列不落「+」
                                 pendingSection =
                                     if (plan.holiday || plan.remapped) {
                                         -1
@@ -168,7 +167,7 @@ internal fun ScheduleWeekPage(
                                     } else {
                                         null
                                     },
-                                // 点卡片只带一门课，顺带这一格的放假 / 调休角标
+                                // 点卡片只带一门课，顺带这一格的放假/调休角标
                                 onCourseClick = { clicked -> onCourseClick(clicked, shownWeek, plan.markOrNull()) },
                                 // 再点一次「+」直接进新建课程页
                                 onPendingTap = { section -> onAddCourse(day, section, section) },
@@ -181,7 +180,7 @@ internal fun ScheduleWeekPage(
                             )
                         }
                     }
-                    // 午休 / 晚休分界线
+                    // 午休/晚休分界线
                     layout.dividers.forEach { divider -> BreakDividerRow(divider = divider) }
                 }
             }

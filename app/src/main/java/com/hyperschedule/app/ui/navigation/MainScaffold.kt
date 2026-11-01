@@ -86,7 +86,7 @@ private const val WindowSlideMillis = 330
 
 private val WindowSlideEasing = Easing { t -> 1f - (1f - t) * (1f - t) * (1f - t) }
 
-/** 浮窗页面的进出场：一级从底边滑入，二级及更深从下层浮窗右缘滑入 */
+/** 浮窗页面的进出场，一级从底边滑入，二级及更深从下层浮窗右缘滑入 */
 private fun windowPageTransition(level: State<Int>): NavTransition =
     object : NavTransition {
         // 默认 1f 只留顶层下面一层，叠两层浮窗时最底下的整页会被剔除
@@ -108,7 +108,7 @@ private fun windowPageTransition(level: State<Int>): NavTransition =
                 val h = size.height
                 val cardHeight = minOf(w, h) * WidePageHeightFraction
                 if (level.value >= 2) {
-                    // 二级及更深：位移一个浮窗宽度，裁在浮窗圆角轮廓内
+                    // 二级及更深，位移一个浮窗宽度，裁在浮窗圆角轮廓内
                     val cardWidth = minOf(w, WidePageMaxWidth.toPx())
                     val radius = PanelCorner.toPx()
                     val left = (w - cardWidth) / 2f
@@ -130,7 +130,7 @@ private fun windowPageTransition(level: State<Int>): NavTransition =
                         }
                     }
                 } else {
-                    // 一级：从屏幕底边滑入
+                    // 一级，从屏幕底边滑入
                     val dy = (progress * (h + cardHeight) / 2f).roundToInt().toFloat()
                     translate(0f, dy) {
                         this@drawWithContent.drawContent()
@@ -150,9 +150,9 @@ private fun WindowScrim(
     val dim = remember { Animatable(0f) }
     LaunchedEffect(open, dismissing) {
         when {
-            // 整块收起：遮罩跟卡片同步淡出
+            // 整块收起，遮罩跟卡片同步淡出
             dismissing -> dim.animateTo(0f, tween(durationMillis = WindowSlideMillis, easing = WindowSlideEasing))
-            // 打开时遮罩很快压下去（日历约 120ms）
+            // 打开时遮罩很快压下去，约 120ms
             open -> dim.animateTo(1f, tween(durationMillis = 140, easing = WindowSlideEasing))
             // 关闭时等卡片滑出去再淡出
             else -> dim.animateTo(0f, tween(240, delayMillis = 200, easing = WindowSlideEasing))
@@ -183,11 +183,11 @@ private fun NavEntry(
         isBackEnabled = interceptPredictiveBack,
         onBackCompleted = onBack,
     )
-    // 宽屏下整页收成居中浮窗，手机和首页始终铺满；点浮窗外区域即关闭整个浮窗
+    // 宽屏下整页收成居中浮窗，手机和首页始终铺满，点浮窗外区域即关闭整个浮窗
     if (windowed) WidePageWindow(onDismiss = onDismissToHome) { content() } else content()
 }
 
-/** 跨页浮层宿主：抽屉这类要盖住底栏的内容挂到这里，在底栏之后绘制 */
+/** 跨页浮层宿主，抽屉这类要盖住底栏的内容挂到这里，在底栏之后绘制 */
 class OverlayHostState {
     internal var content by mutableStateOf<(@Composable () -> Unit)?>(null)
     private var owner: Any? = null
@@ -207,7 +207,7 @@ class OverlayHostState {
 
 val LocalOverlayHost = compositionLocalOf<OverlayHostState?> { null }
 
-/** 把内容挂到 [LocalOverlayHost]；[content] 为 null 时撤下 */
+/** 把内容挂到 [LocalOverlayHost]，[content] 为 null 时撤下 */
 @Composable
 fun ProvideOverlay(content: (@Composable () -> Unit)?) {
     val host = LocalOverlayHost.current ?: return
@@ -219,10 +219,10 @@ fun ProvideOverlay(content: (@Composable () -> Unit)?) {
     }
 }
 
-/** 底部导航切换动画进行中；页面据此临时关掉日期/周 pager 的手势，避免与过渡动画互抢 */
+/** 底部导航切换动画进行中，页面据此临时关掉日期/周 pager 的手势，避免与过渡动画互抢 */
 val LocalMainTabNavigating = compositionLocalOf { false }
 
-/** 当前页面槽是不是用户正在看的 Tab（只按 Tab 判断，二级页盖住不算离开）；页面据此实现「切走再回来复位到今日/本周」 */
+/** 当前页面槽是不是用户正在看的 Tab（只按 Tab 判断，二级页盖住不算离开），页面据此决定切走再回来时是否复位到今日/本周 */
 val LocalPageIsCurrent = compositionLocalOf { true }
 
 /** 全局最后一次按下的位置，页面据此判断点击是否落在交互区外 */
@@ -271,17 +271,17 @@ fun MainScaffold(
     val coroutineScope = rememberCoroutineScope()
     val mainPagerState = rememberMainPagerState(pagerState, coroutineScope)
     val navBarBackdrop = rememberAppBlurBackdrop(appBlur)
-    // 「今」按钮跨页共享：切 tab 时按钮不随页面滑走，只就地收起/展开
+    // 「今」按钮跨页共享，切 tab 时按钮不随页面滑走，只就地收起/展开
     val backToNowHost = remember { BackToNowHostState() }
     val overlayHost = remember { OverlayHostState() }
-    // 浮窗整块收起的共享状态：进度由这里驱动，各浮窗每帧读取
+    // 浮窗整块收起的共享状态，进度由这里驱动，各浮窗每帧读取
     val windowDismissState = remember { WindowDismissState() }
 
     // 全局按下位置（见 LocalLastTapDown）
     val lastTapDown = remember { mutableStateOf<Offset?>(null) }
     var rootCoordinates by remember { mutableStateOf<LayoutCoordinates?>(null) }
 
-    // 正在进/出的页面层级：0 首页、1 一级子页面、2 及以上浮窗里的浮窗
+    // 正在进/出的页面层级，0 首页、1 一级子页面、2 及以上浮窗里的浮窗
     val navLevel = remember { mutableIntStateOf(1) }
     val windowTransition = remember(navLevel) { windowPageTransition(navLevel) }
 
@@ -296,7 +296,7 @@ fun MainScaffold(
             }
         }
 
-    // 点浮窗外整块收起：所有浮窗读同一个进度一起下滑，走完再一次性清栈
+    // 点浮窗外整块收起，所有浮窗读同一个进度一起下滑，走完再一次性清栈
     val dismissToHome: () -> Unit =
         remember(backStack) {
             {
@@ -310,7 +310,7 @@ fun MainScaffold(
                             animationSpec = tween(durationMillis = WindowSlideMillis, easing = WindowSlideEasing),
                         ) { value, _ -> windowDismissState.progress = value }
                         windowDismissState.progress = 1f
-                        // 卡片此时已在屏幕外，Miuix 的退栈动画看不见
+                        // 卡片此时已在屏幕外，退栈动画看不见
                         navLevel.intValue = 1
                         while (backStack.size > 1) backStack.removeLastOrNull()
                         // 代数前进，被收起的浮窗从此待在屏幕外
@@ -345,7 +345,7 @@ fun MainScaffold(
 
     val interceptPredictiveBack = !predictiveBackEnabled && backStack.size > 1
 
-    // 回到上一层：在非首个 Tab 时先回到首个 Tab
+    // 回到上一层，在非首个 Tab 时先回到首个 Tab
     val isPagerBackHandlerEnabled by remember {
         derivedStateOf { backStack.size == 1 && mainPagerState.selectedPage != 0 }
     }
@@ -356,7 +356,7 @@ fun MainScaffold(
         onBackCompleted = { mainPagerState.animateToPage(0) },
     )
 
-    // 用 snapshotFlow 而非 LaunchedEffect(currentPage)：后者在组合期读，滑动每帧都会重组整棵子树
+    // 用 snapshotFlow 而非 LaunchedEffect(currentPage)，后者在组合期读，滑动每帧都会重组整棵子树
     LaunchedEffect(pagerState) {
         snapshotFlow { pagerState.currentPage }.collect { mainPagerState.syncPage() }
     }
@@ -366,7 +366,7 @@ fun MainScaffold(
             Modifier
                 .fillMaxSize()
                 .background(MiuixTheme.colorScheme.background)
-                // 记录全局按下位置（页面据此判断点击是否落在交互区外）；Initial 阶段不消费
+                // 记录全局按下位置（页面据此判断点击是否落在交互区外），Initial 阶段不消费
                 .onGloballyPositioned { rootCoordinates = it }
                 .pointerInput(Unit) {
                     awaitPointerEventScope {
@@ -380,15 +380,15 @@ fun MainScaffold(
                 },
     ) {
         val wide = maxWidth >= WideLayoutMinWidth
-        // 浮窗页面按短边判断：平板横竖屏都是浮窗，手机始终铺满
+        // 浮窗页面按短边判断，平板横竖屏都是浮窗，手机始终铺满
         val windowed = useWindowedPages(maxWidth, maxHeight)
         CompositionLocalProvider(
             LocalLastTapDown provides lastTapDown,
             LocalOverlayHost provides overlayHost,
-            // 浮窗整块收起的共享进度：所有浮窗读同一个进度一起下滑
+            // 浮窗整块收起的共享进度，所有浮窗读同一个进度一起下滑
             LocalWindowDismissState provides windowDismissState,
         ) {
-            // 首次组合时的页码，固定不变；不在组合期读 currentPage，否则滑动每帧都会重组
+            // 首次组合时的页码，固定不变，不在组合期读 currentPage，否则滑动每帧都会重组
             val firstPage = remember { pagerState.currentPage }
             val systemCorner = rememberNavSystemCornerRadius()
 
@@ -464,7 +464,7 @@ fun MainScaffold(
                                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
                                         blurBackdrop = navBarBackdrop,
                                     )
-                                    // 宽度是本项目的选择（3 个 tab）；只贴底 24dp
+                                    // 宽度是本项目的选择（3 个 tab），只贴底 24dp
                                     if (!wide) {
                                         Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
                                             BottomNavBar(
@@ -478,7 +478,7 @@ fun MainScaffold(
                                     }
                                 }
                             }
-                            // 遮罩只在主页这层：栈里有浮窗页时压暗主页，浮窗自身始终原色
+                            // 遮罩只在主页这层，栈里有浮窗页时压暗主页，浮窗自身始终原色
                             if (windowed) WindowScrim(backStack, windowDismissState)
                             // 浮层（课表详情抽屉等）画在最上层，宽屏时也盖住侧栏
                             overlayHost.content?.invoke()

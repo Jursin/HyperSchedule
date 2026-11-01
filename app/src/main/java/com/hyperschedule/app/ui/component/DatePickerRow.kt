@@ -11,7 +11,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 /** 日期选择器的年份范围，所有日期选择器统一取这里 */
 val DatePickerYearRange = 2000..2099
 
-/** 年/月/日三个滚轮；跳转日期、开始上课日期、节假日日期共用 */
+/** 年/月/日三个滚轮，跳转日期、开始上课日期、节假日日期共用 */
 @Composable
 fun DatePickerRow(
     year: Int,

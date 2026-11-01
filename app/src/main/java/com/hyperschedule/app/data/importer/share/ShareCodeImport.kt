@@ -12,7 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 
-/** 分享码来源：三种第三方课表的口令导入 */
+/** 分享码来源，三种第三方课表的口令导入 */
 enum class ShareCodeSource(
     val label: String,
     val codeName: String,
@@ -23,7 +23,7 @@ enum class ShareCodeSource(
     Nexio("Nexio 课程表", "分享口令", "粘贴分享口令"),
 }
 
-/** 统一用同一套宽松解码 */
+/** 三种来源共用一套宽松解码 */
 internal val ShareJson =
     Json {
         ignoreUnknownKeys = true
@@ -40,7 +40,7 @@ object ShareCodeImport {
     private val StarLinkStructured = Regex("输入：\\s*([^（\\s]+)")
     private val StarLinkCode = Regex("[A-Za-z0-9-]{5,20}")
 
-    /** 取回并解析分享码；网络与格式错误都以带可读 message 的异常抛出 */
+    /** 取回并解析分享码，网络与格式错误都以带可读 message 的异常抛出 */
     suspend fun fetch(
         source: ShareCodeSource,
         input: String,
@@ -90,7 +90,7 @@ internal fun clampTotalWeeks(weeks: Int?): Int =
 
 private val EXTERNAL_DATE = DateTimeFormatter.ofPattern("u-M-d")
 
-/** 日期统一成 yyyy-MM-dd；识别不了返回 null（交给仓库层回落到本周一） */
+/** 日期统一成 yyyy-MM-dd，识别不了返回 null（交给仓库层回落到本周一） */
 internal fun normalizeDate(raw: String?): String? {
     val text =
         raw?.trim()?.substringBefore(' ')?.substringBefore('T')
@@ -110,16 +110,13 @@ internal fun normalizeTime(raw: String?): String? {
     return "%02d:%02d".format(hour, minute)
 }
 
-/**
- * 节次编号必须从 1 连续，否则整份作息会被校验整体拒绝。
- * 不连续时宁可不带作息导入课程，也不让整个文件被拒。
- */
+/** 节次编号必须从 1 连续，不连续时宁可不带作息导入课程，也不让整个文件被拒 */
 internal fun continuousSlots(slots: List<TimeSlotJson>): List<TimeSlotJson> {
     val sorted = slots.sortedBy { it.number }
     return if (sorted.withIndex().all { (index, slot) -> slot.number == index + 1 }) sorted else emptyList()
 }
 
-/** 合并重复课程：去掉首尾空白后按节次与周次归并，自定义时间的课程原样保留 */
+/** 合并重复课程，去掉首尾空白后按节次与周次归并，自定义时间的课程原样保留 */
 internal fun mergeCourses(courses: List<CourseJson>): List<CourseJson> {
     val normalized =
         courses.map {
@@ -139,7 +136,7 @@ private val CourseKey = compareBy<CourseJson>({ it.name }, { it.teacher }, { it.
 private fun mergeSectionCourses(courses: List<CourseJson>): List<CourseJson> {
     if (courses.size <= 1) return courses
 
-    // 第一步：同课程周次相同且节次相连的合成一条
+    // 同课程周次相同且节次相连的合成一条
     val byWeeks = courses.sortedWith(CourseKey.thenBy { it.weeks.joinToString(",") }.thenBy { it.startSection ?: 0 })
     val joined = mutableListOf<CourseJson>()
     var current = byWeeks.first()
@@ -160,7 +157,7 @@ private fun mergeSectionCourses(courses: List<CourseJson>): List<CourseJson> {
     }
     joined += current
 
-    // 第二步：同课程同节次的周次取并集
+    // 同课程同节次的周次取并集
     val bySection = joined.sortedWith(CourseKey.thenBy { it.startSection ?: 0 }.thenBy { it.endSection ?: 0 })
     val merged = mutableListOf<CourseJson>()
     var head = bySection.first()

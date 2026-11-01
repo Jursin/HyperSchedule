@@ -77,7 +77,6 @@ import kotlin.time.Duration.Companion.milliseconds
 /** 页面在前台时检查目录变化的间隔 */
 private const val DIR_REFRESH_INTERVAL = 3_000L
 
-/** WebDAV 输入框草稿 */
 private class WebDavDraft(settings: WebDavSettings) {
     var serverUrl by mutableStateOf(settings.serverUrl)
     var username by mutableStateOf(settings.username)
@@ -162,7 +161,7 @@ fun BackupPage(
         scope.launch {
             val result = runCatching { repository.migrate(old, target, store.state.backup.keepCount) }
             busy = false
-            // 备份真的搬过去了，内容指纹依然有效；新目录是空的才清掉，让下次备份补一份
+            // 备份真的搬过去了，内容指纹依然有效，新目录是空的才清掉，让下次备份补一份
             applyDir(target, keepHash = result.getOrDefault(0) > 0)
             result.fold(
                 onSuccess = { if (it > 0) context.toast("已迁移 $it 份备份") },
@@ -171,7 +170,7 @@ fun BackupPage(
         }
     }
 
-    /** 写一份备份并记下指纹与时间；内容没变且目录里那份还在时返回 null */
+    /** 写一份备份并记下指纹与时间，内容没变且目录里那份还在时返回 null */
     suspend fun saveBackup(target: BackupDir): String? {
         val data = repository.build()
         val hash = repository.fingerprint(data)
@@ -207,7 +206,6 @@ fun BackupPage(
         }
     }
 
-    // WebDAV
 
     fun currentWebDav(): WebDavSettings = store.state.webDav
 
@@ -249,7 +247,7 @@ fun BackupPage(
         )
     }
 
-    /** 上传快照到云端；内容没变且云端那份还在时返回 null */
+    /** 上传快照到云端，内容没变且云端那份还在时返回 null */
     suspend fun saveWebDavBackup(settings: WebDavSettings): String? {
         val client = webDavClient(settings)
         val data = repository.build()
@@ -417,7 +415,7 @@ fun BackupPage(
 
     fun confirmRestore(target: RestoreTarget) {
         val dirNow = currentDir()
-        // 本地备份必须知道往哪个目录留现场；云端备份不依赖本地目录
+        // 本地备份必须知道往哪个目录留现场，云端备份不依赖本地目录
         if (!target.remote && dirNow == null) return
         restoreTarget = null
         busy = true

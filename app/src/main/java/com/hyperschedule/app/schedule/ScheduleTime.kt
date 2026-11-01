@@ -8,16 +8,13 @@ import java.time.temporal.ChronoUnit
 /** 学期总周数默认值（设置页可改） */
 const val DEFAULT_TOTAL_WEEKS = 20
 
-/** 学期总周数上限 */
 const val MAX_TOTAL_WEEKS = 60
 
-/** 节次数量范围 */
 val SECTION_COUNT_RANGE = 6..20
 
-/** 上午 / 下午 / 晚上 */
 enum class SectionPeriod { MORNING, AFTERNOON, EVENING }
 
-/** 默认作息：8 节（产品指定） */
+/** 默认作息，8 节 */
 val DEFAULT_SECTION_TIMES: List<Pair<String, String>> = listOf(
     "08:00" to "09:35",
     "10:05" to "11:40",
@@ -29,11 +26,10 @@ val DEFAULT_SECTION_TIMES: List<Pair<String, String>> = listOf(
     "20:45" to "22:20",
 )
 
-/** 开学日所在周的周一 */
 fun semesterStartMonday(startDate: LocalDate): LocalDate =
     startDate.minusDays((startDate.dayOfWeek.value - 1).toLong())
 
-/** 今天所在教学周（不夹取：未开学 ≤0、超出总周数 >N）；用 floorDiv，开学前一天要落到第 0 周 */
+/** 今天所在教学周，不夹取，用 floorDiv 保证开学前一天落到第 0 周 */
 fun currentWeekOf(startDate: LocalDate, today: LocalDate): Int =
     Math.floorDiv(ChronoUnit.DAYS.between(semesterStartMonday(startDate), today), 7L).toInt() + 1
 
@@ -43,7 +39,7 @@ fun weekDatesOf(startDate: LocalDate, week: Int): List<LocalDate> {
     return List(7) { monday.plusDays(it.toLong()) }
 }
 
-/** 当前时间落在第几节（1..N）；按传入的作息表计算（课表作息可能被导入覆盖），不在任何节次内返回 -1 */
+/** 当前时间落在第几节（1..N），按传入的作息表计算（课表作息可能被导入覆盖），不在任何节次内返回 -1 */
 fun currentSectionAt(times: List<Pair<String, String>>, now: LocalTime): Int {
     val index =
         times.indexOfFirst { (start, end) ->
@@ -54,7 +50,7 @@ fun currentSectionAt(times: List<Pair<String, String>>, now: LocalTime): Int {
     return if (index >= 0) index + 1 else -1
 }
 
-/** "HH:mm" → 当天第几分钟；格式不合法返回 null */
+/** "HH:mm" → 当天第几分钟，格式不合法返回 null */
 fun parseMinutes(time: String?): Int? {
     if (time.isNullOrBlank()) return null
     val parts = time.split(":")
@@ -85,11 +81,8 @@ fun adjustDate(
     return LocalDate.of(year, safeMonth, day.coerceIn(1, maxDay))
 }
 
-/** 汉字与数字之间的固定间距 */
 private const val DIGIT_GAP = "\u200A"
 
-/** 只匹配汉字与数字的交界 */
 private val DIGIT_BOUNDARY = Regex("(?<=[\\u4e00-\\u9fff])(?=[0-9])|(?<=[0-9])(?=[\\u4e00-\\u9fff])")
 
-/** 汉字与数字相邻处补窄间距 */
 internal fun String.cjkDigitGap(): String = replace(DIGIT_BOUNDARY, DIGIT_GAP)

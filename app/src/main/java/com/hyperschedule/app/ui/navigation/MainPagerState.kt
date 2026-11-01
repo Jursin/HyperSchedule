@@ -44,12 +44,7 @@ class MainPagerState(
 
     private var navJob: Job? = null
 
-    /**
-     * 底栏应跟随的页码：导航中返回目标页，否则返回实际页
-     * （直接读 [PagerState.currentPage] 会在跨页动画途中读到中间页）
-     *
-     * 包一层 [derivedStateOf]，读取方只在结果变化时重组，否则滑动每帧都会带动整棵子树
-     */
+    /** 底栏应跟随的页码，导航中返回目标页，否则返回实际页，包一层 [derivedStateOf] 让读取方只在结果变化时重组 */
     val targetPage: State<Int> =
         derivedStateOf {
             if (isNavigating) selectedPage else pagerState.currentPage
@@ -67,7 +62,7 @@ class MainPagerState(
             coroutineScope.launch {
                 val myJob = coroutineContext.job
                 try {
-                    // PreventUserInput：否则动画途中起手的滑动会把它顶掉，表现为"切一半又弹回去"
+                    // PreventUserInput，否则动画途中起手的滑动会把它顶掉，表现为"切一半又弹回去"
                     pagerState.scroll(MutatePriority.PreventUserInput) {
                         val spec =
                             if (abs(targetIndex - pagerState.currentPage) > 1) {

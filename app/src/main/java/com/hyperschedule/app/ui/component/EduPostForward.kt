@@ -45,7 +45,7 @@ class EduPostBridge {
     }
 }
 
-/** 拦截 XHR / fetch / 表单提交，把 body 交给原生并打上请求 id */
+/** 拦截 XHR/fetch/表单提交，把 body 交给原生并打上请求 id */
 internal val EduPostInterceptScript =
     """
     (function() {
@@ -189,7 +189,7 @@ internal val EduPostInterceptScript =
     })();
     """.trimIndent()
 
-/** 请求 id 的头与查询参数，与页面脚本里的一致 */
+/** 请求 id 的头与查询参数，取自页面脚本 */
 private const val PostIdHeader = "X-WebView-Post-Id"
 private const val PostIdParam = "_webview_post_id"
 

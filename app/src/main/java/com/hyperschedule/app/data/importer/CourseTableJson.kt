@@ -6,7 +6,7 @@ import com.hyperschedule.app.schedule.parseMinutes
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** 课程表单表导出 JSON：courses 必填，timeSlots / config / comboSchedule 可缺省；其余字段解析时忽略 */
+/** 课程表单表导出 JSON，courses 必填，timeSlots/config/comboSchedule 可缺省，其余字段解析时忽略 */
 @Serializable
 data class CourseTableJson(
     val courses: List<CourseJson> = emptyList(),
@@ -48,7 +48,7 @@ data class CourseTableConfigJson(
     val defaultClassDuration: Int? = null,
 )
 
-/** 组合作息：基准作息之外，每条日期规则各带一套公共作息 */
+/** 组合作息，基准作息之外，每条日期规则各带一套公共作息 */
 @Serializable
 data class ComboScheduleJson(
     val name: String? = null,
@@ -89,10 +89,7 @@ object CourseTableJsonParser {
 /** 严格 HH:mm */
 private val TimePattern = Regex("(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]")
 
-/**
- * 导入前的结构校验，不合法直接抛 [IllegalArgumentException]，
- * 由调用方把 message 提示给用户，整个文件拒绝导入。
- */
+/** 导入前的结构校验，不合法直接抛 [IllegalArgumentException]，由调用方把 message 提示给用户并整个文件拒绝 */
 fun CourseTableJson.requireValidForImport() {
     courses.forEach {
         it.requireValidPlacement()
@@ -102,7 +99,7 @@ fun CourseTableJson.requireValidForImport() {
     comboSchedule?.publicSchedules?.forEach { it.requireValidSchedule() }
 }
 
-/** 星期与节次落在能显示出来的范围内：坏数据导入后会变成永远看不到的课 */
+/** 星期与节次落在能显示出来的范围内，坏数据导入后会变成永远看不到的课 */
 private fun CourseJson.requireValidPlacement() {
     require(day in 1..7) { "「$name」的上课星期必须是 1~7" }
     if (isCustomTime) return
@@ -142,7 +139,7 @@ private fun List<TimeSlotJson>.requireValidSlots() {
     }
 }
 
-/** 组合作息里的一节公共作息：日期区间可解析且不倒挂，节次同样要过校验 */
+/** 组合作息里的一节公共作息，日期区间可解析且不倒挂，节次同样要过校验 */
 private fun PublicScheduleJson.requireValidSchedule() {
     val start = parseDateOrNull(startDate)
     val end = parseDateOrNull(endDate)

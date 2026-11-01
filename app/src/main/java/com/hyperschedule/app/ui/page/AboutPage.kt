@@ -121,7 +121,7 @@ fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean =
 
     Scaffold(
         topBar = {
-            // 滚到顶时才有底色：有模糊时交给毛玻璃，没有模糊时铺不透明 surface
+            // 滚到顶时才有底色，有模糊时交给毛玻璃，没有模糊时铺不透明 surface
             BlurredTopAppBar(
                 title = "关于",
                 blurBackdrop = if (scrollProgress == 1f) topBarBackdrop else null,
@@ -173,9 +173,9 @@ private fun AboutContentBody(
     val density = LocalDensity.current
     val isDark = isDarkTheme()
 
-    // 图标/名称渐变取色层：不跟随模糊开关，只要支持 RuntimeShader 就始终启用
+    // 图标/名称渐变取色层，不跟随模糊开关，只要支持 RuntimeShader 就始终启用
     val gradientBackdrop = rememberAppBlurBackdrop(true)
-    // 卡片半透明采样层：跟随模糊效果开关
+    // 卡片半透明采样层，跟随模糊效果开关
     val cardBackdrop = rememberAppBlurBackdrop(useBlur)
     val logoBlend =
         remember(isDark) {
@@ -194,7 +194,7 @@ private fun AboutContentBody(
             }
         }
 
-    // 卡片半透明天色：透出底部渐变（InstallerX 的 Default 混色）
+    // 卡片半透明天色，透出底部渐变
     val cardBlend =
         remember(isDark) {
             if (isDark) {
@@ -207,7 +207,6 @@ private fun AboutContentBody(
             }
         }
 
-    // 布局状态
     var logoHeightDp by remember { mutableStateOf(300.dp) }
     val displayCutoutInsets = WindowInsets.displayCutout.asPaddingValues()
     val horizontalSafeInsets = WindowInsets.safeDrawing.only(WindowInsetsSides.Horizontal).asPaddingValues()

@@ -113,7 +113,7 @@ fun CourseReminderPage(
         }
     }
 
-    // 绕行前要现绑 shell 侧服务，首次要等它起进程；进页面先热一下，到点就不用干等
+    // 绕行前要现绑 shell 侧服务，首次要等它起进程，进页面先热一下，到点就不用干等
     LaunchedEffect(islandSupported, shizukuGranted) {
         if (!islandSupported || !shizukuGranted) return@LaunchedEffect
         withContext(Dispatchers.IO) { PrivilegedService.get(context) }

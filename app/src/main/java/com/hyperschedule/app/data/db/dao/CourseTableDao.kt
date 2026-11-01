@@ -11,7 +11,6 @@ import kotlinx.coroutines.flow.Flow
 
 private const val SQL_CONFIG = "SELECT * FROM course_table_config WHERE courseTableId = :courseTableId"
 
-/** 课表元数据与课表配置访问 */
 @Dao
 interface CourseTableDao {
 

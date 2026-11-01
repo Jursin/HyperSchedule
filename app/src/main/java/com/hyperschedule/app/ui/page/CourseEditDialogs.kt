@@ -27,11 +27,10 @@ import com.hyperschedule.app.ui.component.TimeWheelRow
 import com.hyperschedule.app.ui.component.WeekRangeSelectGrid
 import com.hyperschedule.app.ui.page.courseedit.GroupDraft
 
-/** 自定义时间的兜底时刻 */
 private const val DefaultStartMinutes = 8 * 60
 private const val DefaultEndMinutes = 9 * 60
 
-/** 上课星期：周一~周日滚轮 */
+/** 上课星期，周一~周日滚轮 */
 @Composable
 internal fun DayPickerDialog(
     current: Int,
@@ -56,7 +55,7 @@ internal fun DayPickerDialog(
     }
 }
 
-/** 上课时间：默认选节次，勾选「自定义时间」后改成时:分双滚轮 */
+/** 上课时间，默认选节次，勾选「自定义时间」后改成时:分双滚轮 */
 @Composable
 internal fun TimeDialog(
     group: GroupDraft,
@@ -161,7 +160,7 @@ internal fun TimeDialog(
     }
 }
 
-/** 上课周次：全部 / 单周 / 双周 + 格子拖选，冲突周灰显 */
+/** 上课周次，全部/单周/双周 + 格子拖选，冲突周灰显 */
 @Composable
 internal fun WeeksDialog(
     initial: Set<Int>,
@@ -254,7 +253,7 @@ internal fun WeeksDialog(
     }
 }
 
-/** 一组「标题 + 滚轮」，与其它对话框的滚轮标签使用同一套样式 */
+/** 一组「标题 + 滚轮」，滚轮标签统一走这一套样式 */
 @Composable
 private fun SectionPickColumn(
     label: String,

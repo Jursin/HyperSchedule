@@ -5,10 +5,10 @@ import com.hyperschedule.app.schedule.SECTION_COUNT_RANGE
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
 
-/** 编辑页里的一个节次草稿；起止时间为空串表示未设置 */
+/** 编辑页里的一个节次草稿，起止时间为空串表示未设置 */
 internal data class SlotDraft(val start: String, val end: String)
 
-/** 编辑页里的一个特殊节次草稿；[days] 为空时不允许保存 */
+/** 编辑页里的一个特殊节次草稿，[days] 为空时不允许保存 */
 internal data class SpecialDraft(
     val id: String,
     val name: String,
@@ -28,10 +28,10 @@ internal data class PlanDraft(
     val specials: List<SpecialDraft>,
 )
 
-/** 编辑页的分组：同一时段的连续节次放一张卡 */
+/** 编辑页的分组，同一时段的连续节次放一张卡 */
 internal data class SectionGroup(val period: SectionPeriod, val indices: List<Int>)
 
-/** 每节课时长：40..100 分钟，5 分钟一档 */
+/** 每节课时长，40..100 分钟，5 分钟一档 */
 internal val ClassDurationValues = (40..100 step 5).toList()
 
 /** 时段分隔未设置时的兜底时刻，保证节次卡片仍有归属 */
@@ -72,7 +72,7 @@ internal fun buildDraft(detail: PlanDetail): PlanDraft {
     )
 }
 
-/** 节次按开始时间落到上午/下午/晚上；未设置的节次跟随上一节 */
+/** 节次按开始时间落到上午/下午/晚上，未设置的节次跟随上一节 */
 internal fun groupSections(slots: List<SlotDraft>, splitAM: Int, splitAE: Int): List<SectionGroup> {
     val groups = mutableListOf<SectionGroup>()
     var last = SectionPeriod.MORNING

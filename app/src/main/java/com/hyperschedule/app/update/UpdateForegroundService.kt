@@ -21,7 +21,6 @@ import com.hyperschedule.app.R
 import com.hyperschedule.app.reminder.notificationManager
 import com.hyperschedule.app.reminder.openApp
 
-/** 下载进度与完成通知 */
 internal object UpdateNotification {
     const val ID = 0x1A20
 
@@ -29,7 +28,7 @@ internal object UpdateNotification {
 
     private const val CHANNEL = "app_update"
 
-    /** 通道建过一次就够；下载每 1% 都查一次是白跑的系统调用 */
+    /** 通道建过一次就够，下载每 1% 都查一次是白跑的系统调用 */
     @Volatile private var channelReady = false
 
     fun show(context: Context, progress: Float) {

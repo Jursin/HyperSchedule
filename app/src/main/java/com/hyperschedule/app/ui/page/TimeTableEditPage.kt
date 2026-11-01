@@ -38,7 +38,7 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 编辑作息：所有改动留在内存，点保存才写入；直接返回会丢弃 */
+/** 编辑作息，所有改动留在内存，点保存才写入，直接返回会丢弃 */
 @Composable
 fun TimeTableEditPage(
     planId: String,
@@ -343,7 +343,7 @@ private fun PlanEditContent(
     }
 }
 
-/** 节次列表：按上午/下午/晚上分组，一行一节 */
+/** 节次列表，按上午/下午/晚上分组，一行一节 */
 @Composable
 private fun SectionTimeSections(
     groups: List<SectionGroup>,
@@ -370,7 +370,7 @@ private fun SectionTimeSections(
     }
 }
 
-/** 特殊课程列表：一行一节，末尾是添加入口 */
+/** 特殊课程列表，一行一节，末尾是添加入口 */
 @Composable
 private fun SpecialCourseSection(
     specials: List<SpecialDraft>,

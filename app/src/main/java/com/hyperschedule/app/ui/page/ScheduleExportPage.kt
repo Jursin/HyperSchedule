@@ -34,17 +34,16 @@ import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 导出格式：扩展名与保存窗口用的 MIME */
+/** 导出格式，扩展名与保存窗口用的 MIME */
 private enum class ExportFormat(val extension: String, val mimeType: String) {
     JSON("json", "application/json"),
     ICS("ics", "text/calendar"),
 }
 
-/** 文件名里的日期 */
 private val FileNameDate = DateTimeFormatter.ofPattern("yyyyMMdd")
 private val UnsupportedFileNameChars = Regex("""[\\/:*?"<>|]""")
 
-/** 课表导出：选择课表与格式；JSON 存课表结构，ICS 按实际日期展开日历事件 */
+/** 课表导出，选择课表与格式，JSON 存课表结构，ICS 按实际日期展开日历事件 */
 @Composable
 fun ScheduleExportPage(
     tables: List<TableSummary>,
@@ -62,7 +61,7 @@ fun ScheduleExportPage(
     val activeId = selectedId?.takeIf { it in ids } ?: ids.firstOrNull()
     val selectedIndex = ids.indexOf(activeId).coerceAtLeast(0)
     var busy by remember { mutableStateOf(false) }
-    // 系统保存窗口的回调是异步的：内容先算好放这里，选好路径再写
+    // 系统保存窗口的回调是异步的，内容先算好放这里，选好路径再写
     var pending by remember { mutableStateOf<Pair<ExportFormat, String>?>(null) }
 
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
@@ -104,7 +103,7 @@ fun ScheduleExportPage(
                 runCatching {
                     withContext(Dispatchers.IO) {
                         val data = repository.loadExportData(tableId)
-                        // 空课表不生成文件：导出的内容再导回来会被判定为无效
+                        // 空课表不生成文件，导出的内容再导回来会被判定为无效
                         require(data.courses.isNotEmpty()) { "课表为空" }
                         when (format) {
                             ExportFormat.JSON -> buildTableJson(data)
@@ -166,7 +165,7 @@ fun ScheduleExportPage(
     }
 }
 
-/** 文件名：课表名_日期.扩展名，去掉路径不允许的字符 */
+/** 文件名，课表名_日期.扩展名，去掉路径不允许的字符 */
 private fun exportFileName(tableName: String, extension: String): String {
     val base = tableName.ifBlank { "课表" }.replace(UnsupportedFileNameChars, "_").take(30)
     return "${base}_${LocalDate.now().format(FileNameDate)}.$extension"

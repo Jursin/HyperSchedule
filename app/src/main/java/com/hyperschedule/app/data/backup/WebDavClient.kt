@@ -15,7 +15,6 @@ const val WEBDAV_FOLDER = "HyperSchedule"
 private const val CONNECT_TIMEOUT_MS = 10_000
 private const val READ_TIMEOUT_MS = 30_000
 
-/** 跟随重定向的最大次数 */
 private const val MAX_REDIRECTS = 2
 
 /** HttpURLConnection 认识的方法，其余得绕开它的白名单 */
@@ -51,7 +50,6 @@ class WebDavClient(
     /** 凭据只发给这个域名，重定向到别处时不带 */
     private val host = runCatching { URL(baseUrl).host }.getOrNull()
 
-    /** 备份目录地址 */
     val dirUrl: String = "$baseUrl/$WEBDAV_FOLDER"
 
     private fun fileUrl(name: String): String = "$dirUrl/$name"
@@ -95,7 +93,7 @@ class WebDavClient(
             parseList(response.text)
         }
 
-    /** 上传一份备份，覆盖同名文件；目录不在了就顺手补建 */
+    /** 上传一份备份，覆盖同名文件，目录不在了就顺手补建 */
     suspend fun upload(name: String, text: String) =
         withContext(Dispatchers.IO) {
             val ready = runCatching { ensureDir() }.getOrElse { throw BackupException(networkMessage(it)) }
@@ -105,7 +103,6 @@ class WebDavClient(
             if (!response.isSuccessful) throw BackupException(uploadMessage(response.code))
         }
 
-    /** 下载一份备份的原文 */
     suspend fun download(name: String): String =
         withContext(Dispatchers.IO) {
             val response = request("GET", fileUrl(name))
@@ -117,7 +114,7 @@ class WebDavClient(
             }
         }
 
-    /** 删除一份备份；已经不在了也算成功 */
+    /** 删除一份备份，已经不在了也算成功 */
     suspend fun delete(name: String) =
         withContext(Dispatchers.IO) {
             val code = request("DELETE", fileUrl(name)).code
@@ -136,7 +133,7 @@ class WebDavClient(
     private fun networkMessage(error: Throwable): String =
         if (error is IOException) "连接失败：${error.message ?: "网络不可用"}" else (error.message ?: "连接失败")
 
-    /** 发一次 WebDAV 请求；扩展方法不在 HttpURLConnection 的白名单里，只能改它的内部字段 */
+    /** 发一次 WebDAV 请求，扩展方法不在 HttpURLConnection 的白名单里，只能改它的内部字段 */
     private fun request(
         method: String,
         url: String,
@@ -234,7 +231,7 @@ class WebDavClient(
         for (block in RESPONSE_BLOCK.findAll(xml)) {
             val href = HREF.find(block.value)?.groupValues?.get(1) ?: continue
             val raw = href.substringAfterLast('/', "")
-            // 目录自身以 / 结尾，这里取不到文件名，正好跳过
+            // 目录自身以/结尾，这里取不到文件名，正好跳过
             if (raw.isEmpty()) continue
             val name = runCatching { URLDecoder.decode(raw, "UTF-8") }.getOrDefault(raw)
             val size = CONTENT_LENGTH.find(block.value)?.groupValues?.get(1)?.toLongOrNull() ?: 0L

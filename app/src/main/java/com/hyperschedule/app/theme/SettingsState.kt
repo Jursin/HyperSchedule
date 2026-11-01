@@ -24,7 +24,6 @@ private class Setting(
 
 private fun boolSetting(
     key: String,
-    default: Boolean,
     get: (SettingsState) -> Boolean,
     backedUp: Boolean = true,
     set: (SettingsState, Boolean) -> SettingsState,
@@ -32,12 +31,12 @@ private fun boolSetting(
     key = key,
     backedUp = backedUp,
     write = { editor, state -> editor.putBoolean(key, get(state)) },
-    read = { prefs, state -> set(state, prefs.getBoolean(key, default)) },
+    // 缺键时回落到 data class 里的默认值
+    read = { prefs, state -> set(state, prefs.getBoolean(key, get(state))) },
 )
 
 private fun intSetting(
     key: String,
-    default: Int,
     get: (SettingsState) -> Int,
     coerce: (Int) -> Int = { it },
     backedUp: Boolean = true,
@@ -46,12 +45,11 @@ private fun intSetting(
     key = key,
     backedUp = backedUp,
     write = { editor, state -> editor.putInt(key, get(state)) },
-    read = { prefs, state -> set(state, coerce(prefs.getInt(key, default))) },
+    read = { prefs, state -> set(state, coerce(prefs.getInt(key, get(state)))) },
 )
 
 private fun stringSetting(
     key: String,
-    default: String?,
     get: (SettingsState) -> String?,
     backedUp: Boolean = true,
     secret: Boolean = false,
@@ -61,12 +59,11 @@ private fun stringSetting(
     backedUp = backedUp,
     secret = secret,
     write = { editor, state -> editor.putString(key, get(state)) },
-    read = { prefs, state -> set(state, prefs.getString(key, default)) },
+    read = { prefs, state -> set(state, prefs.getString(key, get(state))) },
 )
 
 private inline fun <reified T : Enum<T>> enumSetting(
     key: String,
-    default: T,
     crossinline get: (SettingsState) -> T,
     crossinline set: (SettingsState, T) -> SettingsState,
 ) = Setting(
@@ -74,156 +71,148 @@ private inline fun <reified T : Enum<T>> enumSetting(
     write = { editor, state -> editor.putString(key, get(state).name) },
     read = { prefs, state ->
         val saved = prefs.getString(key, null)
-        set(state, saved?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: default)
+        set(state, saved?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: get(state))
     },
 )
 
-/** 全部设置项，保存与加载都按这张表走 */
+/** 全部设置项 */
 private val Prefs =
     listOf(
-        enumSetting("themeMode", ThemeMode.System, { it.themeMode }) { s, v -> s.copy(themeMode = v) },
-        boolSetting("blur", true, { it.blur }) { s, v -> s.copy(blur = v) },
-        boolSetting("predictiveBack", true, { it.predictiveBack }) { s, v -> s.copy(predictiveBack = v) },
-        boolSetting("customColor", false, { it.customColor }) { s, v -> s.copy(customColor = v) },
-        boolSetting("dynamicColor", true, { it.dynamicColor }) { s, v -> s.copy(dynamicColor = v) },
-        boolSetting("floatingNav", false, { it.floatingNav }) { s, v -> s.copy(floatingNav = v) },
-        intSetting("launchPage", 0, { it.launchPage }, coerce = { it.coerceIn(0, 1) }) { s, v ->
+        enumSetting("themeMode", { it.themeMode }) { s, v -> s.copy(themeMode = v) },
+        boolSetting("blur", { it.blur }) { s, v -> s.copy(blur = v) },
+        boolSetting("predictiveBack", { it.predictiveBack }) { s, v -> s.copy(predictiveBack = v) },
+        boolSetting("customColor", { it.customColor }) { s, v -> s.copy(customColor = v) },
+        boolSetting("dynamicColor", { it.dynamicColor }) { s, v -> s.copy(dynamicColor = v) },
+        boolSetting("floatingNav", { it.floatingNav }) { s, v -> s.copy(floatingNav = v) },
+        intSetting("launchPage", { it.launchPage }, coerce = { it.coerceIn(0, 1) }) { s, v ->
             s.copy(launchPage = v)
         },
-        intSetting("seedColor", 0xFF6750A4.toInt(), { it.seedColor }) { s, v -> s.copy(seedColor = v) },
-        boolSetting("checkUpdateOnStart", true, { it.checkUpdateOnStart }) { s, v -> s.copy(checkUpdateOnStart = v) },
-        enumSetting("updateSource", UpdateSource.GitHub, { it.updateSource }) { s, v -> s.copy(updateSource = v) },
-        boolSetting("acceptPrerelease", false, { it.acceptPrerelease }) { s, v -> s.copy(acceptPrerelease = v) },
-        stringSetting("lastUpdateCheck", "", { it.lastUpdateCheck }, backedUp = false) { s, v ->
+        intSetting("seedColor", { it.seedColor }) { s, v -> s.copy(seedColor = v) },
+        boolSetting("checkUpdateOnStart", { it.checkUpdateOnStart }) { s, v -> s.copy(checkUpdateOnStart = v) },
+        enumSetting("updateSource", { it.updateSource }) { s, v -> s.copy(updateSource = v) },
+        boolSetting("acceptPrerelease", { it.acceptPrerelease }) { s, v -> s.copy(acceptPrerelease = v) },
+        stringSetting("lastUpdateCheck", { it.lastUpdateCheck }, backedUp = false) { s, v ->
             s.copy(lastUpdateCheck = v.orEmpty())
         },
-        stringSetting("githubProxyUrl", "", { it.githubProxyUrl }) { s, v -> s.copy(githubProxyUrl = v.orEmpty()) },
-        enumSetting("paletteStyle", PaletteStyle.TonalSpot, { it.paletteStyle }) { s, v -> s.copy(paletteStyle = v) },
-        boolSetting("showNonCurrentWeek", true, { it.showNonCurrentWeek }) { s, v -> s.copy(showNonCurrentWeek = v) },
-        stringSetting("currentTableId", null, { it.currentTableId }) { s, v -> s.copy(currentTableId = v) },
-        boolSetting("gridLines", false, { it.style.gridLines }) { s, v -> s.copy(style = s.style.copy(gridLines = v)) },
-        intSetting("cardHeight", ScheduleStyle.Default.cardHeight, { it.style.cardHeight }) { s, v ->
-            s.copy(style = s.style.copy(cardHeight = v))
-        },
-        intSetting("cardCorner", ScheduleStyle.Default.cardCorner, { it.style.cardCorner }) { s, v ->
-            s.copy(style = s.style.copy(cardCorner = v))
-        },
-        boolSetting("cardBorder", false, { it.style.cardBorder }) { s, v -> s.copy(style = s.style.copy(cardBorder = v)) },
-        boolSetting("contentCenter", true, { it.style.contentCenter }) { s, v ->
+        stringSetting("githubProxyUrl", { it.githubProxyUrl }) { s, v -> s.copy(githubProxyUrl = v.orEmpty()) },
+        enumSetting("paletteStyle", { it.paletteStyle }) { s, v -> s.copy(paletteStyle = v) },
+        boolSetting("showNonCurrentWeek", { it.showNonCurrentWeek }) { s, v -> s.copy(showNonCurrentWeek = v) },
+        stringSetting("currentTableId", { it.currentTableId }) { s, v -> s.copy(currentTableId = v) },
+        boolSetting("gridLines", { it.style.gridLines }) { s, v -> s.copy(style = s.style.copy(gridLines = v)) },
+        intSetting("cardHeight", { it.style.cardHeight }) { s, v -> s.copy(style = s.style.copy(cardHeight = v)) },
+        intSetting("cardCorner", { it.style.cardCorner }) { s, v -> s.copy(style = s.style.copy(cardCorner = v)) },
+        boolSetting("cardBorder", { it.style.cardBorder }) { s, v -> s.copy(style = s.style.copy(cardBorder = v)) },
+        boolSetting("contentCenter", { it.style.contentCenter }) { s, v ->
             s.copy(style = s.style.copy(contentCenter = v))
         },
         Setting(
             key = "cardTextScale",
             write = { editor, state -> editor.putFloat("cardTextScale", state.style.textScale) },
             read = { prefs, state ->
-                val scale = ScheduleStyle.snapTextScale(prefs.getFloat("cardTextScale", 1f))
+                val scale = ScheduleStyle.snapTextScale(prefs.getFloat("cardTextScale", state.style.textScale))
                 state.copy(style = state.style.copy(textScale = scale))
             },
         ),
-        boolSetting("showPosition", true, { it.style.showPosition }) { s, v ->
+        boolSetting("showPosition", { it.style.showPosition }) { s, v ->
             s.copy(style = s.style.copy(showPosition = v))
         },
-        boolSetting("showTeacher", true, { it.style.showTeacher }) { s, v ->
+        boolSetting("showTeacher", { it.style.showTeacher }) { s, v ->
             s.copy(style = s.style.copy(showTeacher = v))
         },
-        boolSetting("positionPrefix", true, { it.style.positionPrefix }) { s, v ->
+        boolSetting("positionPrefix", { it.style.positionPrefix }) { s, v ->
             s.copy(style = s.style.copy(positionPrefix = v))
         },
-        boolSetting("breakDividers", true, { it.style.breakDividers }) { s, v ->
+        boolSetting("breakDividers", { it.style.breakDividers }) { s, v ->
             s.copy(style = s.style.copy(breakDividers = v))
         },
-        boolSetting("todayShowSection", true, { it.todayStyle.showSection }) { s, v ->
+        boolSetting("todayShowSection", { it.todayStyle.showSection }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showSection = v))
         },
-        boolSetting("todayShowPosition", true, { it.todayStyle.showPosition }) { s, v ->
+        boolSetting("todayShowPosition", { it.todayStyle.showPosition }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showPosition = v))
         },
-        boolSetting("todayShowTeacher", true, { it.todayStyle.showTeacher }) { s, v ->
+        boolSetting("todayShowTeacher", { it.todayStyle.showTeacher }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showTeacher = v))
         },
-        boolSetting("todayShowCredit", true, { it.todayStyle.showCredit }) { s, v ->
+        boolSetting("todayShowCredit", { it.todayStyle.showCredit }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showCredit = v))
         },
-        boolSetting("todayShowRemark", true, { it.todayStyle.showRemark }) { s, v ->
+        boolSetting("todayShowRemark", { it.todayStyle.showRemark }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showRemark = v))
         },
-        boolSetting("todayShowPeriods", true, { it.todayStyle.showPeriods }) { s, v ->
+        boolSetting("todayShowPeriods", { it.todayStyle.showPeriods }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showPeriods = v))
         },
-        boolSetting("reminderEnabled", false, { it.reminder.enabled }) { s, v ->
+        boolSetting("reminderEnabled", { it.reminder.enabled }) { s, v ->
             s.copy(reminder = s.reminder.copy(enabled = v))
         },
         intSetting(
             "reminderPreMinutes",
-            ReminderSettings.Default.preMinutes,
             { it.reminder.preMinutes },
             coerce = { ReminderSettings.snapPreMinutes(it) },
         ) { s, v -> s.copy(reminder = s.reminder.copy(preMinutes = v)) },
-        boolSetting("reminderInClass", false, { it.reminder.inClass }) { s, v ->
+        boolSetting("reminderInClass", { it.reminder.inClass }) { s, v ->
             s.copy(reminder = s.reminder.copy(inClass = v))
         },
-        boolSetting("reminderAutoDnd", false, { it.reminder.autoDnd }) { s, v ->
+        boolSetting("reminderAutoDnd", { it.reminder.autoDnd }) { s, v ->
             s.copy(reminder = s.reminder.copy(autoDnd = v))
         },
         intSetting(
             "reminderDndMode",
-            ReminderSettings.Default.dndMode,
             { it.reminder.dndMode },
             coerce = { it.coerceIn(ReminderSettings.DND_MODE_LABELS.indices) },
         ) { s, v -> s.copy(reminder = s.reminder.copy(dndMode = v)) },
         // 这几项都是本机状态，不进备份
-        boolSetting("backupAuto", false, { it.backup.autoBackup }) { s, v ->
+        boolSetting("backupAuto", { it.backup.autoBackup }) { s, v ->
             s.copy(backup = s.backup.copy(autoBackup = v))
         },
         intSetting(
             "backupKeep",
-            BackupSettings.Default.keepCount,
             { it.backup.keepCount },
             coerce = { BackupSettings.coerceKeep(it) },
             backedUp = false,
         ) { s, v -> s.copy(backup = s.backup.copy(keepCount = v)) },
-        stringSetting("backupLocation", "", { it.backup.location }, backedUp = false) { s, v ->
+        stringSetting("backupLocation", { it.backup.location }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(location = v.orEmpty()))
         },
-        stringSetting("backupLocationLabel", "", { it.backup.locationLabel }, backedUp = false) { s, v ->
+        stringSetting("backupLocationLabel", { it.backup.locationLabel }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(locationLabel = v.orEmpty()))
         },
-        stringSetting("backupLastHash", "", { it.backup.lastHash }, backedUp = false) { s, v ->
+        stringSetting("backupLastHash", { it.backup.lastHash }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(lastHash = v.orEmpty()))
         },
-        stringSetting("backupLastTime", "", { it.backup.lastTime }, backedUp = false) { s, v ->
+        stringSetting("backupLastTime", { it.backup.lastTime }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(lastTime = v.orEmpty()))
         },
-        stringSetting("backupLastError", "", { it.backup.lastError }, backedUp = false) { s, v ->
+        stringSetting("backupLastError", { it.backup.lastError }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(lastError = v.orEmpty()))
         },
         // WebDAV 配置全部是本机状态，账号密码绝不能进备份
-        boolSetting("webdavAuto", false, { it.webDav.autoBackup }, backedUp = false) { s, v ->
+        boolSetting("webdavAuto", { it.webDav.autoBackup }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(autoBackup = v))
         },
         intSetting(
             "webdavKeep",
-            WebDavSettings.DEFAULT_KEEP,
             { it.webDav.keepCount },
             coerce = { WebDavSettings.coerceKeep(it) },
             backedUp = false,
         ) { s, v -> s.copy(webDav = s.webDav.copy(keepCount = v)) },
-        stringSetting("webdavServer", "", { it.webDav.serverUrl }, backedUp = false) { s, v ->
+        stringSetting("webdavServer", { it.webDav.serverUrl }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(serverUrl = v.orEmpty()))
         },
-        stringSetting("webdavUser", "", { it.webDav.username }, backedUp = false) { s, v ->
+        stringSetting("webdavUser", { it.webDav.username }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(username = v.orEmpty()))
         },
-        stringSetting("webdavPassword", "", { it.webDav.password }, backedUp = false, secret = true) { s, v ->
+        stringSetting("webdavPassword", { it.webDav.password }, backedUp = false, secret = true) { s, v ->
             s.copy(webDav = s.webDav.copy(password = v.orEmpty()))
         },
-        stringSetting("webdavLastHash", "", { it.webDav.lastHash }, backedUp = false) { s, v ->
+        stringSetting("webdavLastHash", { it.webDav.lastHash }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(lastHash = v.orEmpty()))
         },
-        stringSetting("webdavLastTime", "", { it.webDav.lastTime }, backedUp = false) { s, v ->
+        stringSetting("webdavLastTime", { it.webDav.lastTime }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(lastTime = v.orEmpty()))
         },
-        stringSetting("webdavLastError", "", { it.webDav.lastError }, backedUp = false) { s, v ->
+        stringSetting("webdavLastError", { it.webDav.lastError }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(lastError = v.orEmpty()))
         },
     )
@@ -252,7 +241,7 @@ class SettingsStore private constructor(context: Context) {
         save()
     }
 
-    /** 只改内存状态，用于滑块拖动等高频改动；手势结束时再调用 [save] 落盘 */
+    /** 只改内存状态，用于滑块拖动等高频改动，手势结束时再调用 [save] 落盘 */
     fun preview(transform: (SettingsState) -> SettingsState) {
         state = transform(state)
     }
@@ -271,7 +260,7 @@ class SettingsStore private constructor(context: Context) {
     /** 导出可备份的设置项，排除本机状态键 */
     fun snapshot(): PrefsSnapshot = PrefsSnapshot.of(preferences.all, backedUpKeys)
 
-    /** 恢复设置；快照里没有的键保持当前值 */
+    /** 恢复设置，快照里没有的键保持当前值 */
     fun restore(snapshot: PrefsSnapshot) {
         preferences.edit { putAll(snapshot) }
         reload()
@@ -294,7 +283,6 @@ class SettingsStore private constructor(context: Context) {
     }
 }
 
-/** 设置项；默认值同时作为读写缺失时的兜底 */
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.System,
     val blur: Boolean = true,
@@ -304,22 +292,21 @@ data class SettingsState(
     val floatingNav: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
-    val updateSource: UpdateSource = UpdateSource.GitHub,
+    val updateSource: UpdateSource = UpdateSource.Gitee,
     val acceptPrerelease: Boolean = false,
-    val lastUpdateCheck: String = "", // 上次静默检查更新的日期，用于每日节流
+    val lastUpdateCheck: String = "",
     val githubProxyUrl: String = "",
     val paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
     val seedColor: Int = 0xFF6750A4.toInt(),
-    val showNonCurrentWeek: Boolean = true, // 课表里是否显示本周不上（灰显）的课
-    val currentTableId: String? = null, // 当前使用的课表，空或失效时回退到最早创建的一张
-    val style: ScheduleStyle = ScheduleStyle(), // 课程表外观
-    val todayStyle: TodayStyle = TodayStyle(), // 今日课表外观
-    val reminder: ReminderSettings = ReminderSettings(), // 课程提醒
-    val backup: BackupSettings = BackupSettings(), // 备份与恢复
-    val webDav: WebDavSettings = WebDavSettings(), // WebDAV 云端备份
+    val showNonCurrentWeek: Boolean = true,
+    val currentTableId: String? = null,
+    val style: ScheduleStyle = ScheduleStyle(),
+    val todayStyle: TodayStyle = TodayStyle(),
+    val reminder: ReminderSettings = ReminderSettings(),
+    val backup: BackupSettings = BackupSettings(),
+    val webDav: WebDavSettings = WebDavSettings(),
 )
 
-/** 备份设置，只有 [autoBackup] 跟着备份走，其余都是本机状态 */
 data class BackupSettings(
     val autoBackup: Boolean = false,
     val keepCount: Int = DEFAULT_KEEP,
@@ -334,8 +321,6 @@ data class BackupSettings(
     companion object {
         const val DEFAULT_KEEP = 5
 
-        val Default = BackupSettings()
-
         /** 保留份数候选，下拉直接用它 */
         val KEEP_OPTIONS = listOf(3, 5, 10)
 
@@ -345,7 +330,6 @@ data class BackupSettings(
     }
 }
 
-/** WebDAV 备份设置，全部是本机状态，账号密码绝不进备份文件 */
 data class WebDavSettings(
     val serverUrl: String = "",
     val username: String = "",
@@ -356,14 +340,11 @@ data class WebDavSettings(
     val lastTime: String = "",
     val lastError: String = "",
 ) {
-    /** 账号信息填全了才有得谈连接 */
     val configured: Boolean
         get() = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
 
     companion object {
         const val DEFAULT_KEEP = 5
-
-        val Default = WebDavSettings()
 
         fun coerceKeep(value: Int): Int = BackupSettings.coerceKeep(value)
 
@@ -371,7 +352,6 @@ data class WebDavSettings(
     }
 }
 
-/** 课程提醒设置 */
 data class ReminderSettings(
     val enabled: Boolean = false,
     val preMinutes: Int = 10,
@@ -379,17 +359,15 @@ data class ReminderSettings(
     val autoDnd: Boolean = false,
     val dndMode: Int = 0,
 ) {
-    /** ICS 导出用的提醒分钟数：总开关关闭时不写提醒，0 表示准时 */
+    /** ICS 导出用的提醒分钟数 */
     val icsAlarmMinutes: Int?
         get() = if (enabled) preMinutes else null
 
     companion object {
         val Default = ReminderSettings()
 
-        /** 课前提醒档位，5 分钟一跳；0 表示准时 */
         val PRE_MINUTE_OPTIONS = (0..30 step 5).toList()
 
-        /** 自动勿扰的档位，下标即 [dndMode] */
         val DND_MODE_LABELS = listOf("完全勿扰", "静音模式", "勿扰模式")
 
         fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "${minutes}分钟".cjkDigitGap()
@@ -402,12 +380,11 @@ data class ReminderSettings(
     }
 }
 
-/** 课程表外观：抽屉里能改的都在这里，改动即时生效 */
 data class ScheduleStyle(
-    val gridLines: Boolean = false,
+    val gridLines: Boolean = true,
     val cardHeight: Int = 92,
     val cardCorner: Int = 10,
-    val cardBorder: Boolean = false,
+    val cardBorder: Boolean = true,
     val contentCenter: Boolean = true,
     val textScale: Float = 1f,
     val showPosition: Boolean = true,
@@ -416,7 +393,7 @@ data class ScheduleStyle(
     val breakDividers: Boolean = true,
 ) {
     companion object {
-        /** 各滑块的关键点（默认值）就取这里 */
+        /** 各滑块的关键点（默认值） */
         val Default = ScheduleStyle()
         const val MIN_CARD_HEIGHT = 62
         const val MAX_CARD_HEIGHT = 100
@@ -434,7 +411,6 @@ data class ScheduleStyle(
     }
 }
 
-/** 今日课表外观：课程卡信息行里显示哪些字段，改动即时生效 */
 data class TodayStyle(
     val showSection: Boolean = true,
     val showPosition: Boolean = true,

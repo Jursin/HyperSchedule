@@ -15,18 +15,17 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-/** 小米超级岛 */
 internal object SuperIsland {
 
     private const val CHANNEL = "class_island"
 
-    /** 运营场景标识：系统按它归组同一门课的多条岛通知 */
+    /** 运营场景标识，系统按它归组同一门课的多条岛通知 */
     private const val BUSINESS_TAG = "course_reminder"
 
     /** 岛存活时间的上界（秒） */
     private const val ISLAND_TIMEOUT_MAX_SECONDS = 6 * 3600
 
-    /** 澎湃 OS 自报是否有超级岛；`get(String)` 读不到属性，只能用 `getBoolean` */
+    /** 系统自报是否有超级岛，`get(String)` 读不到属性，只能用 `getBoolean` */
     private const val KEY_ISLAND_FEATURE = "persist.sys.feature.island"
 
     /** 系统按 sequence 判新旧，单调递增即可 */
@@ -44,7 +43,6 @@ internal object SuperIsland {
     /** 设备支持且 Shizuku 授权在手才能发岛 */
     fun canPost(): Boolean = isSupported() && ShizukuAccess.hasPermission
 
-    /** 课前倒计时岛 */
     fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime): Boolean {
         val expires = (course.end ?: course.start).toEpochMillis()
         return post(
@@ -70,7 +68,6 @@ internal object SuperIsland {
         )
     }
 
-    /** 课中倒计时岛 */
     fun notifyInClass(context: Context, course: DayCourse): Boolean {
         val end = course.end?.toEpochMillis() ?: return false
         return post(
@@ -170,7 +167,6 @@ internal object SuperIsland {
             )
         }.toString()
 
-    /** 主信息 */
     private fun baseInfo(title: String, content: String) =
         buildJsonObject {
             put("type", 2)
@@ -189,7 +185,6 @@ internal object SuperIsland {
             put("colorContentDark", "#cccccc")
         }
 
-    /** 提示行 */
     private fun hintInfo(
         content: String,
         timerTarget: Long,
@@ -233,7 +228,7 @@ internal object SuperIsland {
             put("narrowFont", false)
         }
 
-    /** 按钮组件：发广播落到 [ClassDndReceiver]，课前课中都是同一个勿扰开关 */
+    /** 按钮组件，发广播落到 [ClassDndReceiver]，课前课中都是同一个勿扰开关 */
     private fun dndAction(appComponent: String) =
         buildJsonObject {
             put("actionTitle", "上课勿扰")
@@ -252,7 +247,7 @@ internal object SuperIsland {
             .coerceIn(60L, ISLAND_TIMEOUT_MAX_SECONDS.toLong())
             .toInt()
 
-    /** 发岛：断网绕开系统校验后再 notify，返回是否真的绕行了 */
+    /** 发岛，断网绕开系统校验后再 notify，返回是否真的绕行了 */
     private fun post(
         context: Context,
         id: Int,
@@ -272,7 +267,7 @@ internal object SuperIsland {
                 .setContentIntent(openApp(context))
                 .setOnlyAlertOnce(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                // 不设 category：系统按 miui.focus.param 自己排版，多给一个分类反而会被分到别的渲染分支
+                // 不设 category，系统按 miui.focus.param 自己排版，多给一个分类反而会被分到别的渲染分支
                 .addExtras(
                     Bundle().apply {
                         putBundle(

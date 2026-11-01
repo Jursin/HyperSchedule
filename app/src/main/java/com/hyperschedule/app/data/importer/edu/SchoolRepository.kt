@@ -25,7 +25,7 @@ class SchoolRepository(
             .filter { school -> school.adapters.any { it.category in ImportCategories } }
             .sortedBy { it.initial.uppercase() + it.name }
 
-    /** 拉一次远端索引，返回是否换了新版本；失败抛异常 */
+    /** 拉一次远端索引，返回是否换了新版本，失败抛异常 */
     suspend fun update(): Boolean =
         withContext(Dispatchers.IO) {
             val url = repoStore.indexUrl()
@@ -33,7 +33,7 @@ class SchoolRepository(
             val remote = SchoolIndexParser.parse(bytes)
             require(remote.schools.isNotEmpty() && remote.versionId.isNotBlank()) { "索引内容不完整" }
             require(remote.protocolVersion <= SUPPORTED_PROTOCOL_VERSION) { "索引协议不兼容，请更新应用" }
-            // 版本号是 TIME_yyyyMMddHHmmss_xxx，同一仓库回滚或不变都不写入；换了仓库则直接接受
+            // 版本号是 TIME_yyyyMMddHHmmss_xxx，同一仓库回滚或不变都不写入，换了仓库则直接接受
             val local = load().versionId
             val sameSource = sourceFile.exists() && sourceFile.readText() == url
             if (sameSource && local.isNotEmpty() && remote.versionId <= local) return@withContext false

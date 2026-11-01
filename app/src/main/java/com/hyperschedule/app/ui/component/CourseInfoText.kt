@@ -30,19 +30,19 @@ internal object InfoIconId {
     const val REMARK = "infoRemark"
 }
 
-/** 图标盒：墨迹约占盒 0.78，取 15sp 略小于 14sp 正文 */
+/** 图标盒，墨迹约占 0.78 盒宽 */
 private val IconBoxSize = 15.sp
 
-/** 图标后跟不换行空格（NBSP）：图标与其文字粘成一块，位置不够时整块换行 */
+/** 图标后跟不换行空格（NBSP），图标与其文字粘成一块，位置不够时整块换行 */
 internal fun AnnotatedString.Builder.infoIcon(id: String, alt: String) {
     appendInlineContent(id, alt)
     append('\u00A0')
 }
 
-/** 两个字段之间的间距：用可断行的空格，换行点落在这里，行尾不会留下分隔符 */
+/** 两个字段之间的间距，用可断行的空格，换行点落在这里，行尾不会留下分隔符 */
 internal fun AnnotatedString.Builder.fieldGap() = append("  ")
 
-/** 字段值整块不换行：空格转不换行空格，字符间再加 word joiner，放不下时图标与文本一起换行 */
+/** 字段值整块不换行，空格转不换行空格，字符间再加 word joiner，放不下时图标与文本一起换行 */
 internal fun AnnotatedString.Builder.fieldValue(text: String) {
     if (text.isEmpty()) return
     val sb = StringBuilder(text.length * 2)
@@ -105,7 +105,7 @@ internal fun endTimeOf(course: Course, slotMap: Map<Int, TimeSlot>): String? =
 
 internal fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(text) }.getOrNull()
 
-/** 周次压缩：1-8, 10, 12-16 */
+/** 周次压缩，1-8, 10, 12-16 */
 internal fun formatWeeks(weeks: List<Int>): String {
     if (weeks.isEmpty()) return "无周次"
     val sorted = weeks.distinct().sorted()
@@ -125,7 +125,7 @@ internal fun formatWeeks(weeks: List<Int>): String {
     return "第${parts.joinToString(", ")}周".cjkDigitGap()
 }
 
-/** 学分显示：整数不带小数点 */
+/** 学分显示，整数不带小数点 */
 internal fun formatCredit(value: Float): String =
     if (value % 1f == 0f) value.toInt().toString() else value.toString()
 

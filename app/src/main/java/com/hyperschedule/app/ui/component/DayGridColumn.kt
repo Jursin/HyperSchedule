@@ -41,7 +41,6 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
-/** 单日列 */
 @Composable
 internal fun DayGridColumn(
     layout: ScheduleLayout,
@@ -53,9 +52,7 @@ internal fun DayGridColumn(
     onCourseClick: (Course) -> Unit,
     modifier: Modifier = Modifier,
     onPendingTap: ((Int) -> Unit)? = null,
-    // 放假当天
     isHoliday: Boolean = false,
-    // 补课当天
     isWorkSwap: Boolean = false,
     // 补课列显示的课属于别的星期，禁用拖动
     dragEnabled: Boolean = true,
@@ -204,8 +201,7 @@ internal fun DayGridColumn(
                 }
             }
 
-        // 自定义时间课
-        courses.filter { it.course.isCustomTime }.forEach { item ->
+            courses.filter { it.course.isCustomTime }.forEach { item ->
             val top = parseMinutes(item.course.customStartTime)?.let(layout::minuteToY) ?: return@forEach
             val bottom = parseMinutes(item.course.customEndTime)?.let(layout::minuteToY) ?: return@forEach
             val courseHeight = (bottom - top).coerceAtLeast(20.dp)

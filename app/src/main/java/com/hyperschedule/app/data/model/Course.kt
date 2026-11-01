@@ -7,11 +7,7 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 
-/**
- * 课程：标准节次时间与自定义时间二选一（isCustomTime 为 true 时忽略 start/endSection）。
- *
- * 只作 Room 实体使用；导入导出走 data.importer 里的 DTO，实体本身不作传输格式。
- */
+/** 课程，标准节次时间与自定义时间二选一（isCustomTime 为 true 时忽略 start/endSection），只作 Room 实体，导入导出走 data.importer 里的 DTO */
 @Entity(
     tableName = "courses",
     foreignKeys = [
@@ -38,12 +34,12 @@ data class Course(
     val customStartTime: String? = null, // "HH:mm"
     val customEndTime: String? = null,
     val colorInt: Int, // 课程色板索引，按课名首次出现顺序分配
-    val colorArgb: Int? = null, // 自定义颜色；为空时回落到 colorInt 对应的色板色
+    val colorArgb: Int? = null, // 自定义颜色，为空时回落到 colorInt 对应的色板色
     val remark: String? = null, // 限 300 字
     val credit: Float? = null,
 ) {
     companion object {
-        /** 课程色板容量：colorInt 取值 [0, COLOR_COUNT) */
+        /** 课程色板容量，colorInt 取值 [0, COLOR_COUNT) */
         const val COLOR_COUNT = 13
     }
 }
@@ -67,7 +63,6 @@ data class CourseWeek(
     val weekNumber: Int,
 )
 
-/** 课程 + 其生效周次 */
 data class CourseWithWeeks(
     @Embedded val course: Course,
     @Relation(parentColumn = "id", entityColumn = "courseId")

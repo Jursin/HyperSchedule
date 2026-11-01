@@ -18,7 +18,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 课表管理：课表平铺，单选切换使用，右侧编辑/删除；最后一张不可删 */
+/** 课表管理，课表平铺，单选切换使用，右侧编辑/删除，最后一张不可删 */
 @Composable
 fun CourseTableManagePage(
     tables: List<TableSummary>,

@@ -22,7 +22,7 @@ import com.hyperschedule.app.ui.component.TimeWheelLabel
 import com.hyperschedule.app.ui.component.WeekdaySelectGrid
 import top.yukonga.miuix.kmp.basic.TextField
 
-/** 新增/编辑特殊节次：名称、起止时间、上课星期依次往下排 */
+/** 新增/编辑特殊节次，名称、起止时间、上课星期依次往下排 */
 @Composable
 internal fun SpecialBlockDialog(
     initial: SpecialDraft,
@@ -76,7 +76,7 @@ internal fun SpecialBlockDialog(
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
-        // 滚轮与「上课星期」自成一组，组内间距比对话框的块间距小一档；末尾留白避免格子贴着底边
+        // 滚轮与「上课星期」自成一组，组内间距比对话框的块间距小一档，末尾留白避免格子贴着底边
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             TimeRangeRow(
                 startHour = startHour,

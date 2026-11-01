@@ -28,7 +28,7 @@ import top.yukonga.miuix.kmp.basic.SliderDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 课程表外观抽屉：改动即时生效，不需要「应用」按钮 */
+/** 课程表外观抽屉，改动即时生效，不需要「应用」按钮 */
 @Composable
 fun ScheduleAppearanceSheet(
     show: Boolean,
@@ -142,15 +142,10 @@ fun ScheduleAppearanceSheet(
     }
 }
 
-/** 吸附到关键点的距离，占整条轨道的比例（与 Slider 的默认手感一致） */
+/** 吸附到关键点的距离，占整条轨道的比例 */
 private const val KeyPointMagnet = 0.05f
 
-/**
- * 滑块条目：关键点标在默认值上，按档位震动。
- *
- * Miuix 的 Slider 只认拖动（要越过触摸阈值才开始拖），这里在轨道上补一层点击：
- * 点哪儿就跳到哪儿，换算方式与 Slider 内部一致（两端扣掉滑块半径，再按档位取整）。
- */
+/** 滑块条目，关键点标在默认值上并按档位震动，滑块只认拖动，这里在轨道上补一层点击，点哪儿就跳到哪儿 */
 @Composable
 private fun StyleSlider(
     title: String,
@@ -230,7 +225,7 @@ private fun StyleSlider(
     )
 }
 
-/** 点击位置换算成值：与 Slider 内部的 `horizontalVisualFraction` + 档位取整保持同一套算法 */
+/** 点击位置换算成值，两端扣掉滑块半径后按档位取整 */
 private fun tapValueAt(
     x: Float,
     width: Float,

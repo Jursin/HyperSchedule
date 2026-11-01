@@ -4,13 +4,11 @@ import com.hyperschedule.app.data.remote.httpGet
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 更新源 */
 enum class UpdateSource(val label: String) {
     GitHub("GitHub"),
     Gitee("Gitee"),
 }
 
-/** 一次发布里的安装包 */
 data class ReleaseAsset(
     val name: String,
     val url: String,
@@ -18,17 +16,15 @@ data class ReleaseAsset(
     val sha256: String?,
 )
 
-/** 一次发布 */
 data class ReleaseInfo(val version: String, val assets: List<ReleaseAsset>)
 
-/** 版本检查与安装包选择 */
 object AppUpdate {
     private const val GITHUB_REPO = "Jursin/HyperSchedule"
     private const val GITEE_REPO = "Hello_Jursin/HyperSchedule"
     private const val GITHUB_API = "https://api.github.com"
     private const val GITEE_API = "https://gitee.com/api/v5"
 
-    /** 拉取指定源的最新发布，[acceptPrerelease] 为假时过滤掉测试版；未发版时按检查失败上报 */
+    /** 拉取指定源的最新发布，[acceptPrerelease] 为假时过滤掉测试版，未发版时按检查失败上报 */
     fun fetchRelease(source: UpdateSource, acceptPrerelease: Boolean, proxy: String): ReleaseInfo {
         val base = if (source == UpdateSource.GitHub) GITHUB_API else GITEE_API
         val repo = if (source == UpdateSource.GitHub) GITHUB_REPO else GITEE_REPO

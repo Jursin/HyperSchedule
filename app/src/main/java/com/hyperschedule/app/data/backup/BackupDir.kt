@@ -7,7 +7,6 @@ import android.provider.DocumentsContract
 import androidx.core.net.toUri
 import java.io.IOException
 
-/** 备份目录里的一项 */
 data class BackupEntry(
     val name: String,
     val size: Long,
@@ -34,7 +33,6 @@ interface BackupDir {
     fun delete(name: String)
 }
 
-/** 应用建的子目录名 */
 const val BACKUP_FOLDER = "HyperSchedule"
 
 /** 外部存储提供者与内部存储卷的标识，用来把 document id 还原成看得懂的路径 */
@@ -42,7 +40,6 @@ private const val EXTERNAL_STORAGE_AUTHORITY = "com.android.externalstorage.docu
 private const val INTERNAL_VOLUME = "primary:"
 private const val INTERNAL_VOLUME_LABEL = "内部存储"
 
-/** 备份目录解析 */
 object BackupDirs {
 
     /** 所选目录的展示名，取不到路径时只返回文件夹名 */
@@ -73,7 +70,7 @@ object BackupDirs {
         return if (relative.isBlank()) INTERNAL_VOLUME_LABEL else "$INTERNAL_VOLUME_LABEL/$relative"
     }
 
-    /** 按存下来的位置字符串还原目录；返回 null 表示没有配置或位置已无法解析 */
+    /** 按存下来的位置字符串还原目录，返回 null 表示没有配置或位置已无法解析 */
     fun from(context: Context, location: String?, label: String): BackupDir? {
         if (location.isNullOrBlank()) return null
         val uri = runCatching { location.toUri() }.getOrNull() ?: return null
@@ -97,7 +94,7 @@ class SafBackupDir(
 
     private val rootDocId: String = DocumentsContract.getTreeDocumentId(treeUri)
 
-    /** 子目录的 document id；首次访问时按需创建 */
+    /** 子目录的 document id，首次访问时按需创建 */
     private var folderDocId: String? = null
 
     private fun childrenUri(documentId: String) =

@@ -6,7 +6,7 @@ import com.hyperschedule.app.data.importer.CourseTableConfigJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
 import kotlinx.serialization.json.Json
 
-/** 教务脚本回传的四类负载，字段与课程表 JSON 导入的 DTO 一致 */
+/** 教务脚本回传的四类负载，字段沿用课程表 JSON 导入的 DTO */
 object EduImportJson {
     private val json =
         Json {

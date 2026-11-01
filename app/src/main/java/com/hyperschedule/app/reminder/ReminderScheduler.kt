@@ -19,7 +19,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlin.time.Duration.Companion.milliseconds
 
-/** 课程提醒的闹钟调度 */
 internal object ReminderScheduler {
 
     const val ACTION_REMINDER = "com.hyperschedule.app.action.REMINDER"
@@ -27,19 +26,17 @@ internal object ReminderScheduler {
     const val EXTRA_DAY = "day"
     const val EXTRA_COURSE_ID = "course_id"
 
-    /** 课前提醒 */
     const val TYPE_PRE_CLASS = 1
 
-    /** 上课：课中通知与勿扰的开始 */
+    /** 上课，课中通知与勿扰的开始 */
     const val TYPE_CLASS_START = 2
 
-    /** 下课：课中通知与勿扰的结束 */
+    /** 下课，课中通知与勿扰的结束 */
     const val TYPE_CLASS_END = 3
 
-    /** 跨零点重排 */
     const val TYPE_DAY_ROLLOVER = 4
 
-    /** 实时动态按分钟对账：进度条与「还剩几分钟」都靠它走 */
+    /** 实时动态按分钟对账，进度条与「还剩几分钟」都靠它走 */
     const val TYPE_LIVE_TICK = 5
 
     /** 一天最多排这么多节课，超出的不管（正常课表不会到这个量级） */
@@ -50,7 +47,7 @@ internal object ReminderScheduler {
     private const val ROLLOVER_HOUR = 0
     private const val ROLLOVER_MINUTE = 5
 
-    /** 重排请求合并窗口：连点开关、连续保存课程时只跑最后一次 */
+    /** 重排请求合并窗口，连点开关、连续保存课程时只跑最后一次 */
     private const val RESYNC_DEBOUNCE_MILLIS = 300L
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -59,7 +56,6 @@ internal object ReminderScheduler {
     @Volatile
     private var pending: Job? = null
 
-    /** 请求重排 */
     fun resync(context: Context) {
         val app = context.applicationContext
         pending?.cancel()
@@ -93,7 +89,7 @@ internal object ReminderScheduler {
             day = now.toLocalDate().plusDays(1),
             course = null,
         )
-        // 应用是被用户打开或闹钟触发的，此刻可能正上着课：顺手对齐一次课中状态
+        // 应用是被用户打开或闹钟触发的，此刻可能正上着课，顺手对齐一次课中状态
         ReminderRuntime.sync(context, data.reminder, today, now)
     }
 
@@ -149,7 +145,7 @@ internal object ReminderScheduler {
     private fun requestCode(dayOffset: Int, type: Int, index: Int): Int =
         dayOffset * 100_000 + type * 1_000 + index
 
-    /** 排下一次实时动态对账：落在下一分钟整点，收起时由 [cancelLiveTick] 撤掉 */
+    /** 排下一次实时动态对账，落在下一分钟整点，收起时由 [cancelLiveTick] 撤掉 */
     fun scheduleLiveTick(context: Context, now: LocalDateTime) {
         setAlarm(
             context = context,
@@ -180,7 +176,7 @@ internal object ReminderScheduler {
         cancel(context, alarmManager, LIVE_TICK_REQUEST_CODE)
     }
 
-    /** 取消只针对已经存在的闹钟：FLAG_NO_CREATE 既不会顺路新建，也不会抹掉上一次带上的附加信息 */
+    /** 取消只针对已经存在的闹钟，FLAG_NO_CREATE 既不会顺路新建，也不会抹掉上一次带上的附加信息 */
     private fun cancel(context: Context, alarmManager: AlarmManager, requestCode: Int) {
         val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_NO_CREATE) ?: return
         alarmManager.cancel(pending)
@@ -203,7 +199,7 @@ internal object ReminderScheduler {
                 .putExtra(EXTRA_DAY, day.toString())
                 .apply { if (course != null) putExtra(EXTRA_COURSE_ID, course.id) }
         val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_UPDATE_CURRENT, intent) ?: return
-        // 没有精确闹钟权限时退回允许休眠的普通闹钟：可能晚几分钟，但不至于完全不响
+        // 没有精确闹钟权限时退回允许休眠的普通闹钟，可能晚几分钟，但不至于完全不响
         runCatching {
             if (ReminderPermissions.canScheduleExactAlarms(context)) {
                 alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
@@ -213,7 +209,7 @@ internal object ReminderScheduler {
         }
     }
 
-    /** 取消与注册共用同一个 Intent：PendingIntent 只按 action + 目标类匹配，附加信息不参与 */
+    /** 取消与注册共用同一个 Intent，PendingIntent 只按 action + 目标类匹配，附加信息不参与 */
     private fun reminderIntent(context: Context): Intent =
         Intent(context, ReminderReceiver::class.java).setAction(ACTION_REMINDER)
 

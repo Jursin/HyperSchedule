@@ -5,7 +5,6 @@ import androidx.room.ForeignKey
 import androidx.room.PrimaryKey
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 
-/** 课表元数据 */
 @Entity(tableName = "course_tables")
 data class CourseTable(
     @PrimaryKey val id: String,

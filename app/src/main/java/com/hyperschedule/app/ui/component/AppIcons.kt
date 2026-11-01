@@ -7,7 +7,7 @@ import androidx.compose.ui.graphics.vector.PathParser
 import androidx.compose.ui.graphics.vector.group
 import androidx.compose.ui.unit.dp
 
-/** 24dp 画布的图标：[scale] 用于缩小路径，让不同来源的图标视觉重量一致 */
+/** 24dp 画布的图标，[scale] 用于缩小路径，统一各图标的视觉重量 */
 private fun appIcon(
     name: String,
     pathData: String,

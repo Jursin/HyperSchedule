@@ -36,10 +36,8 @@ internal data class GridStep(
     val deleteIds: List<String> = emptyList(),
 )
 
-/** 一次网格改动 */
 internal data class GridChange(val forward: GridStep, val backward: GridStep)
 
-/** 拖动会话 */
 internal data class DragSession(
     // 起拖时所在的周
     val week: Int,
@@ -73,7 +71,6 @@ private fun Course.sectionRange(): IntRange {
 private fun IntRange.overlaps(other: IntRange): Boolean =
     !isEmpty() && !other.isEmpty() && first <= other.last && other.first <= last
 
-/** 网格内的拖动与撤销 */
 internal class ScheduleEditor(
     private val layout: ScheduleLayout,
     private val density: Density,
@@ -97,7 +94,6 @@ internal class ScheduleEditor(
     /** 当前页日期列矩形（root） */
     private var liveGrid: Rect? = null
 
-    /** 手指位置 */
     val fingerState = mutableStateOf(Offset.Zero)
 
     /** 被浮层顶替的原卡 */

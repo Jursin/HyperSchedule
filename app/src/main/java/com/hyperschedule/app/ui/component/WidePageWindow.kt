@@ -44,7 +44,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 浮窗整块收起的状态，全局一份 */
 class WindowDismissState {
-    /** 收起代数：前进说明该浮窗已被收起 */
+    /** 收起代数，前进说明该浮窗已被收起 */
     var generation by mutableIntStateOf(0)
 
     /** 收起进度 0..1 */
@@ -54,7 +54,6 @@ class WindowDismissState {
     var active by mutableStateOf(false)
 }
 
-/** 浮窗投影的模糊半径 */
 private val WindowShadowRadius = 24.dp
 
 private val DefaultDismissState = WindowDismissState()
@@ -62,7 +61,7 @@ private val DefaultDismissState = WindowDismissState()
 /** 由 MainScaffold 提供 */
 val LocalWindowDismissState = staticCompositionLocalOf { DefaultDismissState }
 
-/** 把整页收成屏幕中央的浮窗，由调用方判断是否宽屏；遮罩在主页那层画 */
+/** 把整页收成屏幕中央的浮窗，由调用方判断是否宽屏，遮罩在主页那层画 */
 @Composable
 fun WidePageWindow(
     onDismiss: () -> Unit,
@@ -76,7 +75,7 @@ fun WidePageWindow(
         val dismissState = LocalWindowDismissState.current
         // 诞生时的收起代数，代数变了说明自己已被收起
         val bornGeneration = remember { dismissState.generation }
-        // 卡片完全滑出屏幕的距离，必须滑满全程，否则会和之后 Miuix 的退栈动画接成两段
+        // 卡片完全滑出屏幕的距离，必须滑满全程，否则会和之后的退栈动画接成两段
         val dismissTravel =
             with(LocalDensity.current) {
                 ((maxHeight + cardHeight) / 2 + WindowShadowRadius).coerceAtLeast(0.dp).toPx()
@@ -141,7 +140,7 @@ fun WidePageWindow(
     }
 }
 
-/** 浮窗内容：把页面边距换成窗口内边距，面板色与 surface 不同时换一层表面色 */
+/** 浮窗内容，把页面边距换成窗口内边距，面板色与 surface 不同时换一层表面色 */
 @Composable
 private fun WindowContent(
     panel: Color,

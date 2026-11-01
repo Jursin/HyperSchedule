@@ -49,11 +49,11 @@ private const val AfternoonEndHour = 18
 /** 已结束课程整卡文字的透明度 */
 private const val EndedTextAlpha = 0.45f
 
-/** 右侧状态文案：只有「正在上课」用强调色 */
+/** 右侧状态文案，只有「正在上课」用强调色 */
 private const val StatusOngoing = "正在上课"
 private const val StatusEnded = "已结束"
 
-/** 今日课程卡片：按上午/下午/晚上分组，行内左侧信息、右侧时间与状态 */
+/** 今日课程卡片，按上午/下午/晚上分组，行内左侧信息、右侧时间与状态 */
 @Composable
 fun TodayCourseList(
     courses: List<CourseWithWeeks>,
@@ -61,14 +61,14 @@ fun TodayCourseList(
     pageDate: LocalDate,
     modifier: Modifier = Modifier,
     style: TodayStyle = TodayStyle.Default,
-    // 调休当天：课是从被调那天挪过来的，课名后挂一个「调」角标
+    // 调休当天，课是从被调那天挪过来的，课名后挂一个「调」角标
     mark: String? = null,
-    // 课前提醒提前量（分钟）：0 表示不显示上课倒计时
+    // 课前提醒提前量（分钟），0 表示不显示上课倒计时
     preClassMinutes: Int = 0,
     onCourseClick: (Course) -> Unit = {},
 ) {
     val slotMap = remember(slots) { slots.associateBy { it.number } }
-    // 30 秒刷一次「现在」；日期用全局那套跨零点刷新，跟日期分页保持同一个今天
+    // 30 秒刷一次「现在」，日期用全局那套跨零点刷新，跟日期分页保持同一个今天
     val now by
         produceState(LocalTime.now()) {
             while (true) {
@@ -87,7 +87,7 @@ fun TodayCourseList(
 
     Column(modifier = modifier.fillMaxWidth()) {
         if (style.showPeriods) {
-            // 按时段分组：一个时段内多门课共用一张卡片
+            // 按时段分组，一个时段内多门课共用一张卡片
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 groups.forEach { (title, items) ->
                     if (items.isEmpty()) return@forEach
@@ -117,7 +117,7 @@ fun TodayCourseList(
                 }
             }
         } else {
-            // 关闭时段分隔：每门课单独一张卡片
+            // 关闭时段分隔，每门课单独一张卡片
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 groups.forEach { (_, items) ->
                     items.forEach { item ->
@@ -184,7 +184,7 @@ private fun TodayCourseRow(
         }
     val scheme = MiuixTheme.colorScheme
     val info = remember(course, style) { infoLine(course, style) }
-    // 上课中显示课程进度，临上课时显示倒计时；两者占卡片内同一个位置
+    // 上课中显示课程进度，临上课时显示倒计时，两者占卡片内同一个位置
     val progress =
         when {
             pageDate != today || startClock == null -> null
@@ -215,7 +215,7 @@ private fun TodayCourseRow(
                         // 课名太长时省略而不是把角标挤出去
                         modifier = Modifier.weight(1f, fill = false),
                     )
-                    // 调休角标，与课表卡片同一套取色
+                    // 调休角标
                     if (mark != null) {
                         HolidayMarkBadge(
                             mark = mark,
@@ -261,10 +261,10 @@ private fun TodayCourseRow(
     }
 }
 
-/** 进度条：0~1 的比例 + 右下角文案 */
+/** 进度条，0~1 的比例 + 右下角文案 */
 private data class RowProgress(val fraction: Float, val label: String)
 
-/** 上课中：按已进行时长占全课时的比例推进 */
+/** 上课中，按已进行时长占全课时的比例推进 */
 private fun ongoingProgress(
     now: LocalTime,
     start: LocalTime,
@@ -276,7 +276,7 @@ private fun ongoingProgress(
     return RowProgress(elapsed, "${remainingLabel(Duration.between(now, end))}下课".cjkDigitGap())
 }
 
-/** 临上课：课前提醒窗口内按已过去的比例推进，窗口之外不显示 */
+/** 临上课，课前提醒窗口内按已过去的比例推进，窗口之外不显示 */
 private fun countdownProgress(
     now: LocalTime,
     start: LocalTime,
@@ -289,7 +289,7 @@ private fun countdownProgress(
     return RowProgress(elapsed, "${remainingLabel(Duration.between(now, start))}上课".cjkDigitGap())
 }
 
-/** 剩余时长：分钟向上取整（不到一分钟也不会显示 0），满一小时才带小时 */
+/** 剩余时长，分钟向上取整（不到一分钟也不会显示 0），满一小时才带小时 */
 private fun remainingLabel(left: Duration): String {
     val minutes = ceil(left.seconds / 60.0).toInt().coerceAtLeast(1)
     val hours = minutes / 60
@@ -339,10 +339,10 @@ private fun coursePeriod(course: Course, slotMap: Map<Int, TimeSlot>): Int {
     }
 }
 
-/** 信息行里的一个字段：图标 id、无障碍文案、显示值 */
+/** 信息行里的一个字段，图标 id、无障碍文案、显示值 */
 private data class InfoField(val icon: String, val alt: String, val value: String)
 
-/** 信息行：按外观开关筛出要显示的字段，各自带图标（与课程详情卡同一套） */
+/** 信息行，按外观开关筛出要显示的字段，各自带图标 */
 private fun infoFields(course: Course, style: TodayStyle): List<InfoField> =
     buildList {
         // 自定义时间课的「节次」就是右侧显示的那段时间，不再重复

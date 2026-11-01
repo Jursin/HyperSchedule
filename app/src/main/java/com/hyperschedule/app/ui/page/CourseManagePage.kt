@@ -65,7 +65,7 @@ import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
-/** 课程管理：同名课程聚合成一张卡，点击进入编辑；长按进入多选，可批量删除 */
+/** 课程管理，同名课程聚合成一张卡，点击进入编辑，长按进入多选，可批量删除 */
 @Composable
 fun CourseManagePage(
     courses: List<CourseWithWeeks>,
@@ -89,7 +89,7 @@ fun CourseManagePage(
                 .sortedWith { a, b -> collator.compare(a.first, b.first) }
         }
 
-    // 选中的课程名；非空即处于多选状态
+    // 选中的课程名，非空即处于多选状态
     var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
     var deleteConfirm by remember { mutableStateOf(false) }
     val selecting = selected.isNotEmpty()
@@ -286,7 +286,7 @@ private fun CourseManageCard(
     }
 }
 
-/** 教师 / 学分这类次要信息：小图标给出语义锚点 */
+/** 教师/学分这类次要信息，小图标给出语义锚点 */
 @Composable
 private fun MetaRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {

@@ -16,24 +16,24 @@ import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
 
-/** 节假日与调休：按年份存 SharedPreferences，远端数据源为 holiday-calendar */
+/** 节假日与调休，按年份存 SharedPreferences，远端数据源为 holiday-calendar */
 class HolidayRepository private constructor(context: Context) {
     private val preferences = context.getSharedPreferences("holiday_settings", Context.MODE_PRIVATE)
 
-    /** 数据版本；写入后自增，[observe] 据此重新读取 */
+    /** 数据版本，写入后自增，[observe] 据此重新读取 */
     private val revisionFlow = MutableStateFlow(0)
 
-    /** 某年的条目，写入 / 拉取后自动更新 */
+    /** 某年的条目，写入/拉取后自动更新 */
     fun observe(year: Int): Flow<List<HolidayEntry>> =
         revisionFlow.map { readEntries(year) }.flowOn(Dispatchers.IO)
 
-    /** 某段日期内的条目；学期跨年时把两年合并 */
+    /** 某段日期内的条目，学期跨年时把两年合并 */
     suspend fun entriesIn(startDate: LocalDate, endDate: LocalDate): List<HolidayEntry> =
         withContext(Dispatchers.IO) {
             (startDate.year..endDate.year).flatMap { readEntries(it) }
         }
 
-    /** 新增或覆盖；[old] 非空表示编辑原条目（可跨年移动） */
+    /** 新增或覆盖，[old] 非空表示编辑原条目（可跨年移动） */
     suspend fun upsert(entry: HolidayEntry, old: HolidayEntry? = null) =
         withContext(Dispatchers.IO) {
             val targetYear = yearOf(entry.date) ?: return@withContext
@@ -75,7 +75,7 @@ class HolidayRepository private constructor(context: Context) {
         writeEntries(year, (kept + added).sortedBy { it.date })
     }
 
-    /** 去掉被手工条目占用的日期；区间被切开时按连续段拆成多条 */
+    /** 去掉被手工条目占用的日期，区间被切开时按连续段拆成多条 */
     private fun HolidayEntry.trimming(takenKeys: Set<String>): List<HolidayEntry> {
         if (takenKeys.isEmpty()) return listOf(this)
         val start = parseDateOrNull(date) ?: return listOf(this)
@@ -160,7 +160,7 @@ class HolidayRepository private constructor(context: Context) {
 
 private fun yearOf(date: String): Int? = runCatching { LocalDate.parse(date).year }.getOrNull()
 
-/** 条目覆盖的「日期|类型」键；区间假期按天展开，最多 366 天防脏数据 */
+/** 条目覆盖的「日期|类型」键，区间假期按天展开，最多 366 天防脏数据 */
 private fun HolidayEntry.dateKeys(): List<String> {
     val start = parseDateOrNull(date) ?: return emptyList()
     val end = (parseDateOrNull(endDate) ?: start).coerceAtLeast(start)
@@ -171,7 +171,7 @@ private fun HolidayEntry.dateKeys(): List<String> {
         .toList()
 }
 
-/** holiday-calendar 响应：{"dates":[{"date","name","name_cn","type"}]} */
+/** holiday-calendar 的响应体，形如 {"dates":[{"date","name","name_cn","type"}]} */
 private fun parseRemote(text: String): List<HolidayEntry> {
     val dates = runCatching { JSONObject(text).optJSONArray("dates") }.getOrNull() ?: return emptyList()
     val parsed =

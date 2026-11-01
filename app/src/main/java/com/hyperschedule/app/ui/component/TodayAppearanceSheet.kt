@@ -9,7 +9,7 @@ import com.hyperschedule.app.theme.TodayStyle
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 
-/** 今日课表外观抽屉：课程卡信息行显示哪些字段，改动即时生效 */
+/** 今日课表外观抽屉，课程卡信息行显示哪些字段，改动即时生效 */
 @Composable
 fun TodayAppearanceSheet(
     show: Boolean,

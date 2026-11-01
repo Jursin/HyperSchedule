@@ -8,19 +8,18 @@ import com.hyperschedule.app.data.model.TimeTable
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
 
-/** 网格几何：一节的默认高度，实际高度由外观设置传入 */
+/** 网格几何，一节的默认高度，实际高度由外观设置传入 */
 internal val DefaultSectionHeight = 92.dp
 
-/** 午休 / 晚休分界线占的高度 */
 internal val DividerHeight = 24.dp
 
 /** 特殊节次横带的最小高度，太短的时段也要放得下两行时间 */
 private val MinBandHeight = 32.dp
 
-/** 没有节次时长可参考时的兜底分钟数 */
+/** 没有节次时长时的兜底分钟数 */
 private const val FallbackSectionMinutes = 45
 
-/** 一条特殊节次横带：首尾相接的时段已经合并，[name] 是合并后的名称 */
+/** 一条特殊节次横带，首尾相接的时段已经合并，[name] 是合并后的名称 */
 @Immutable
 internal data class SpecialBand(
     val name: String,
@@ -31,19 +30,13 @@ internal data class SpecialBand(
     val height: Dp,
 )
 
-/** 午休 / 晚休分界线 */
 @Immutable
 internal data class BreakDivider(
     val top: Dp,
     val label: String,
 )
 
-/**
- * 课表网格的纵向几何：节次顶、分界线、特殊节次横带共用一套坐标。
- *
- * 特殊节次按起止时间插值成一条横带，插在它压到的**第一个节次之前**，把后面的节次整体下推；
- * 节次本身高度不变，所以课程卡永远落在节次边界上，不会被横带盖住。
- */
+/** 课表网格的纵向几何，节次顶、分界线、特殊节次横带共用一套坐标，特殊节次插在它压到的第一个节次之前并把后面整体下推，节次高度不变 */
 @Immutable
 internal class ScheduleLayout private constructor(
     /** 下标即节次序号（1 起），[topOf] 越界时贴到首/末节 */
@@ -53,7 +46,7 @@ internal class ScheduleLayout private constructor(
     val height: Dp,
     val dividers: List<BreakDivider>,
     val bands: List<SpecialBand>,
-    /** 时间锚点：分钟 → 纵向位置，用于自定义时间课与横带插值 */
+    /** 时间锚点，分钟 → 纵向位置，用于自定义时间课与横带插值 */
     private val anchors: List<Anchor>,
 ) {
     val sectionCount: Int get() = sectionTops.size - 1
@@ -63,7 +56,7 @@ internal class ScheduleLayout private constructor(
         return sectionTops[section.coerceIn(1, sectionCount)]
     }
 
-    /** 跨 [first]..[last] 节的卡片高度：含中间的横带与分界线 */
+    /** 跨 [first]..[last] 节的卡片高度，含中间的横带与分界线 */
     fun heightOf(first: Int, last: Int): Dp {
         if (sectionCount == 0) return 0.dp
         val end = topOf((last.coerceAtLeast(first)).coerceIn(1, sectionCount))
@@ -71,7 +64,7 @@ internal class ScheduleLayout private constructor(
         return (end + sectionHeight - start).coerceAtLeast(sectionHeight)
     }
 
-    /** 纵坐标落在第几节：落在分界线/横带上时归到下面那一节 */
+    /** 纵坐标落在第几节，落在分界线/横带上时归到下面那一节 */
     fun sectionAt(y: Dp): Int {
         for (section in 1..sectionCount) {
             if (y < topOf(section) + sectionHeight) return section
@@ -79,13 +72,13 @@ internal class ScheduleLayout private constructor(
         return sectionCount
     }
 
-    /** 分钟 → 纵向位置；作息两端按边缘斜率外推，并夹在网格内 */
+    /** 分钟 → 纵向位置，作息两端按边缘斜率外推，并夹在网格内 */
     fun minuteToY(minute: Int): Dp = yFor(anchors, minute).coerceIn(0f, height.value).dp
 
     private data class Anchor(val minute: Int, val y: Float)
 
     companion object {
-        /** 空网格：没有节次时用它，调用方不必到处判空 */
+        /** 空网格，没有节次时用它，调用方不必到处判空 */
         val Empty =
             ScheduleLayout(
                 sectionTops = listOf(0.dp),
@@ -96,7 +89,7 @@ internal class ScheduleLayout private constructor(
                 anchors = emptyList(),
             )
 
-        /** 分钟 → 纵向位置；两端按边缘斜率外推 */
+        /** 分钟 → 纵向位置，两端按边缘斜率外推 */
         private fun yFor(anchorList: List<Anchor>, minute: Int): Float {
             if (anchorList.isEmpty()) return 0f
             val first = anchorList.first()
@@ -123,13 +116,7 @@ internal class ScheduleLayout private constructor(
             return edge.y + (minute - edge.minute) * rate
         }
 
-        /**
-         * 按作息与特殊节次算出整套几何。
-         *
-         * [morningSplit] / [eveningSplit] 为 "HH:mm"，空串或解析失败时按 [TimeTable] 的默认值处理；
-         * 分界线只会出现在上午/下午、下午/晚上交界且两侧都有节次的位置。
-         * [showBreakDividers] 关闭时不产生分界线，也不留那一段高度。
-         */
+        /** 按作息与特殊节次算出整套几何，[morningSplit]/[eveningSplit] 空串或解析失败时用 [TimeTable] 默认值，[showBreakDividers] 关闭时不产生分界线 */
         fun build(
             sectionTimes: List<Pair<String, String>>,
             specialBlocks: List<SpecialTimeBlock>,
@@ -169,7 +156,7 @@ internal class ScheduleLayout private constructor(
             val baseAnchors = buildAnchors(sectionTimes, baseTops, sectionDp)
             val unique = baseAnchors.distinctBy { it.minute }
 
-            // 3. 横带：顶落在哪一节的卡片区间内，就插到那一节前面
+            // 3. 横带，顶落在哪一节的卡片区间内，就插到那一节前面
             val referenceMinutes =
                 sectionTimes.firstNotNullOfOrNull { (start, end) ->
                     val from = parseMinutes(start)
@@ -215,7 +202,7 @@ internal class ScheduleLayout private constructor(
             }
             // 末尾不留悬空的分界缝，否则贴底的横带会凭空上移一截
             val baseTotal = if (count in dividerAfter) y - DividerHeight.value else y
-            // 锚点落在最后一节之后（count + 1）：贴表底依次往下堆
+            // 锚点落在最后一节之后（count + 1），贴表底依次往下堆
             var tailY = baseTotal
             rawBands.forEach { band ->
                 if (band.anchorSection == count + 1) {
@@ -260,7 +247,7 @@ internal class ScheduleLayout private constructor(
             )
         }
 
-        /** 节次按开始时间落到上午/下午/晚上；未设置时间的节次跟随上一节 */
+        /** 节次按开始时间落到上午/下午/晚上，未设置时间的节次跟随上一节 */
         private fun classifyPeriods(
             sectionTimes: List<Pair<String, String>>,
             morningSplit: String,
@@ -303,7 +290,7 @@ internal class ScheduleLayout private constructor(
     }
 }
 
-/** 未定位置的横带：先按原始坐标排序，再扫描落位 */
+/** 未定位置的横带，先按原始坐标排序，再扫描落位 */
 private data class RawBand(
     val index: Int,
     val anchorSection: Int,
@@ -311,7 +298,6 @@ private data class RawBand(
     val height: Float,
 )
 
-/** 合并后的一条横带 */
 private data class MergedBlock(
     val names: List<String>,
     val startTime: String,
@@ -323,10 +309,7 @@ private data class MergedBlock(
         get() = names.filter { it.isNotBlank() }.distinct().joinToString("、")
 }
 
-/**
- * 特殊节次合并成横带：时段完全相同的并成一条（上课星期取并集），名称去重后连起来。
- * 横带本身是横向铺开的，上下相邻的时段各占一条，不再纵向接在一起。
- */
+/** 特殊节次合并成横带，时段完全相同的并成一条（上课星期取并集），名称去重后连起来，横带横向铺开，上下相邻的时段各占一条 */
 private fun mergeBlocks(blocks: List<SpecialTimeBlock>): List<MergedBlock> {
     val byTime = LinkedHashMap<Pair<Int, Int>, MutableList<SpecialTimeBlock>>()
     blocks.forEach { block ->

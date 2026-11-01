@@ -14,7 +14,6 @@ import top.yukonga.miuix.kmp.basic.Checkbox
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 复选框 + 文字：对话框里的「自定义时间」「全部 / 单周 / 双周」等都用它 */
 @Composable
 fun CheckLabel(
     state: ToggleableState,
@@ -29,7 +28,7 @@ fun CheckLabel(
     }
 }
 
-/** 设置项右侧的值文本；placeholder 用弱化色表示尚未设置 */
+/** 设置项右侧的值文本，placeholder 用弱化色表示尚未设置 */
 @Composable
 fun ValueLabel(
     text: String,

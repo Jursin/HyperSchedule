@@ -68,10 +68,7 @@ import top.yukonga.miuix.kmp.basic.ColorPalette
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 
-/**
- * 课程编辑页：所有改动都留在内存，点保存才一次写入；直接返回会丢弃。
- * [initialName] 为空表示新建，此时用 [prefillDay] / [prefillStart] / [prefillEnd] 预填第一张卡。
- */
+/** 课程编辑页，所有改动都留在内存，点保存才一次写入，直接返回会丢弃，[initialName] 为空表示新建并用 [prefillDay]/[prefillStart]/[prefillEnd] 预填第一张卡 */
 @Composable
 fun CourseEditPage(
     initialName: String,
@@ -103,7 +100,7 @@ fun CourseEditPage(
     var colorArgb by remember { mutableStateOf(seed.colorArgb) }
     var credit by remember { mutableStateOf(seed.credit) }
     val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seed.groups) } }
-    // 库里已有、当前草稿仍保留的时段 id；保存时用它算出要删除的行
+    // 库里已有、当前草稿仍保留的时段 id，保存时用它算出要删除的行
     var savedIds by remember { mutableStateOf(seed.groups.map { it.id }.toSet()) }
 
     fun currentState() = EditState(name, colorInt, colorArgb, credit, groups.toList())

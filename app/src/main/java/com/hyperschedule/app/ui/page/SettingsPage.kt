@@ -58,7 +58,7 @@ fun SettingsPage(
     val totalWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
     var totalWeeksDraft by remember { mutableIntStateOf(totalWeeks) }
 
-    // 学期信息只有一份：写课表配置，课表页与今日页都读它
+    // 学期信息只有一份，写课表配置，课表页与今日页都读它
     fun applySemester(startDate: String?, weeks: Int) {
         val tableId = table?.tableId ?: return
         scope.launch { repository.updateSemesterConfig(tableId, startDate, weeks) }
@@ -66,7 +66,7 @@ fun SettingsPage(
 
     // 空串 = 未设置
     val startDate = remember(config?.semesterStartDate) { parseDateOrNull(config?.semesterStartDate.orEmpty()) }
-    // 当前周数由开学日期推算，与开始上课日期互推：改一边会同步另一边
+    // 当前周数由开学日期推算，与开始上课日期互推，改一边会同步另一边
     val today = rememberToday()
     val currentWeek = remember(startDate, today) { startDate?.let { currentWeekOf(it, today) } }
     val currentWeekLabel =
@@ -169,7 +169,7 @@ fun SettingsPage(
             appBlur = state.blur,
             onDismiss = { showCurrentWeekDialog = false },
             onConfirm = {
-                // 反推第一周的周一：让「今天」正好落在选定周，且开学日期本身就是周一
+                // 反推第一周的周一，让「今天」正好落在选定周，且开学日期本身就是周一
                 val firstMonday = semesterStartMonday(LocalDate.now()).minusWeeks((weekDraft - 1).toLong())
                 applySemester(firstMonday.toString(), totalWeeks)
                 showCurrentWeekDialog = false

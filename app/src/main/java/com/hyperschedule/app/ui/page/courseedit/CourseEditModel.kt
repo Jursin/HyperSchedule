@@ -7,7 +7,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.formatCredit
 import java.util.UUID
 
-/** 编辑页里的一个时段草稿：保存前只存在内存里 */
+/** 编辑页里的一个时段草稿，保存前只存在内存里 */
 internal data class GroupDraft(
     val id: String,
     val day: Int,
@@ -31,7 +31,7 @@ internal data class EditState(
     val groups: List<GroupDraft>,
 )
 
-/** 从库里读出的初始草稿；[initialName] 为空时按预填的星期与节次造一张空卡 */
+/** 从库里读出的初始草稿，[initialName] 为空时按预填的星期与节次造一张空卡 */
 internal fun buildSeed(
     initialName: String,
     prefillDay: Int,
@@ -101,7 +101,6 @@ internal fun buildSeed(
     )
 }
 
-/** 冲突判断用的时段 */
 internal data class Slot(
     val day: Int,
     val startSection: Int?,
@@ -171,7 +170,7 @@ internal fun GroupDraft.toCourse(
         credit = credit,
     )
 
-/** 时段摘要：自定义时间用「时:分 - 时:分」，否则用节次 */
+/** 时段摘要，自定义时间用「时:分 - 时:分」，否则用节次 */
 internal fun timeText(group: GroupDraft): String =
     if (group.isCustomTime) {
         val from = group.customStartTime.orEmpty()

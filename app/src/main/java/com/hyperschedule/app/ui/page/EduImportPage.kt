@@ -78,7 +78,6 @@ import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 首字母索引条的字母表 */
 private val IndexLetters = ('A'..'Z').map { it.toString() }
 
 /** 分享码入口已覆盖这两个通用工具 */
@@ -92,7 +91,6 @@ private val SchoolTabs =
         "通用工具" to Adapter.TOOL,
     )
 
-/** 一行的类型 */
 private sealed interface SchoolRow {
     data class Header(val letter: String) : SchoolRow
 
@@ -101,7 +99,7 @@ private sealed interface SchoolRow {
     data object Divider : SchoolRow
 }
 
-/** 教务系统导入第一步，选择学校；更新入口在右下角 */
+/** 教务系统导入第一步，选择学校，更新入口在右下角 */
 @Composable
 fun EduImportPage(
     repository: SchoolRepository,
@@ -473,7 +471,6 @@ private fun Adapter.categoryLabel(): String =
         else -> "其他"
     }
 
-/** 一行学校 */
 @Composable
 private fun SchoolItem(
     school: School,

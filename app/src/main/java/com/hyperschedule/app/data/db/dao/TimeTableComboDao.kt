@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.Flow
 private const val SQL_COMBO = "SELECT * FROM time_table_combos WHERE id = :id"
 private const val SQL_RULES = "SELECT * FROM time_table_combo_rules WHERE comboId = :comboId ORDER BY startDate ASC"
 
-/** 组合作息与它的日期规则 */
 @Dao
 interface TimeTableComboDao {
 

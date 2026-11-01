@@ -16,7 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 
-/** 课程提醒依赖的系统权限：查询状态、跳系统授权页 */
+/** 课程提醒依赖的系统权限，查询状态、跳系统授权页 */
 object ReminderPermissions {
 
     /** 页面展示用的权限快照，进入页面与回到前台各取一次 */
@@ -41,7 +41,7 @@ object ReminderPermissions {
     val supportsPromotedNotifications: Boolean
         get() = Build.VERSION.SDK_INT >= 36
 
-    /** 通知总开关：13 起的运行时权限与系统通知开关任一不满足都发不出通知 */
+    /** 通知总开关，13 起的运行时权限与系统通知开关任一不满足都发不出通知 */
     fun notificationsEnabled(context: Context): Boolean {
         val runtimeGranted =
             Build.VERSION.SDK_INT < 33 ||
@@ -50,14 +50,14 @@ object ReminderPermissions {
         return runtimeGranted && NotificationManagerCompat.from(context).areNotificationsEnabled()
     }
 
-    /** 通知是否允许「置顶/实况」展示；低于 36 直接当作不支持 */
+    /** 通知是否允许「置顶/实况」展示，低于 36 直接当作不支持 */
     fun canPostPromotedNotifications(context: Context): Boolean {
         if (!supportsPromotedNotifications) return false
         val manager = context.getSystemService(NotificationManager::class.java) ?: return false
         return manager.canPostPromotedNotifications()
     }
 
-    /** 精确闹钟：31 起需要单独授权，更早的版本默认允许 */
+    /** 精确闹钟，31 起需要单独授权，更早的版本默认允许 */
     fun canScheduleExactAlarms(context: Context): Boolean {
         if (Build.VERSION.SDK_INT < 31) return true
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return false

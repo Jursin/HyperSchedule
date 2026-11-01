@@ -11,14 +11,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 
-/**
- * 格子多选手势，周次网格与星期行共用：
- * - 点按：切换按下的那一格；
- * - 按住拖过一串格子：按下格未选就整段选中，已选就整段取消，往回拖会跟着缩短。
- *
- * [hitTest] 把指针位置换算成格子编号，返回 null 表示落在格子外；
- * [canStart] 为 false 的格子按下后不响应，等手指抬起才算结束。
- */
+/** 格子多选手势，周次网格与星期行共用，点按切换按下那一格，按住拖过一串格子时按下格未选就整段选中、已选就整段取消，往回拖会跟着缩短 */
 @Composable
 internal fun Modifier.cellDragSelect(
     enabled: Boolean,
@@ -40,7 +33,7 @@ internal fun Modifier.cellDragSelect(
             val down = awaitFirstDown(requireUnconsumed = false)
             val anchor = hit.value(down.position)?.takeIf { startable.value(it) }
             if (anchor == null) {
-                // 落在格子外或不可选的格子上：等所有手指抬起，免得被下一格当成续接的手势
+                // 落在格子外或不可选的格子上，等所有手指抬起，免得被下一格当成续接的手势
                 do {
                     val event = awaitPointerEvent()
                 } while (event.changes.any { it.pressed })

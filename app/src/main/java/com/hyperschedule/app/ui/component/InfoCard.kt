@@ -38,13 +38,11 @@ private val InfoBackgroundDark = Color(0xFF2A2A2A)
 private val InfoContentLight = Color(0xFF4D4D4D)
 private val InfoContentDark = Color(0xFFCFCFCF)
 
-/** 黄底 */
 private val WarningBackgroundLight = Color(0xFFFFF3D6)
 private val WarningBackgroundDark = Color(0xFF3A2F13)
 private val WarningContentLight = Color(0xFF8A6100)
 private val WarningContentDark = Color(0xFFFFD27A)
 
-/** 红底 */
 private val CautionBackgroundLight = Color(0xFFFFE7E5)
 private val CautionBackgroundDark = Color(0xFF3D1F1D)
 private val CautionContentLight = Color(0xFFB3261E)

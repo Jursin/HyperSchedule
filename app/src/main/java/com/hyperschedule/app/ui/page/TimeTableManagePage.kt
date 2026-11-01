@@ -20,14 +20,14 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 待删除的作息：公共作息或组合作息 */
+/** 待删除的作息，公共作息或组合作息 */
 private data class DeleteTarget(
     val id: String,
     val name: String,
     val isCombo: Boolean,
 )
 
-/** 作息管理：专属、公共、组合作息平铺，单选切换使用，右侧编辑/删除 */
+/** 作息管理，专属、公共、组合作息平铺，单选切换使用，右侧编辑/删除 */
 @Composable
 fun TimeTableManagePage(
     overview: ScheduleOverview?,

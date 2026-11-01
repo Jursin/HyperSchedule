@@ -54,11 +54,11 @@ internal object NexioShare {
     }
 }
 
-/** 单双周标记：0 每周、1 单周、2 双周 */
+/** 单双周标记，0 每周、1 单周、2 双周 */
 private const val WEEK_ODD = 1
 private const val WEEK_EVEN = 2
 
-/** 显式周次优先，否则按起止周 + 单双周展开；都对不上时按整学期处理 */
+/** 显式周次优先，否则按起止周 + 单双周展开，都对不上时按整学期处理 */
 private fun NexioCourse.resolveWeeks(totalWeeks: Int): List<Int> {
     val maxWeek = totalWeeks.coerceAtLeast(1)
     val selected = selectedWeeks.orEmpty().filter { it in 1..maxWeek }.distinct().sorted()

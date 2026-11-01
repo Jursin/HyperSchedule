@@ -19,20 +19,18 @@ import top.yukonga.miuix.kmp.basic.NumberPicker
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 时间滚轮的取值范围 */
 val HourRange = 0..23
 val MinuteRange = 0..59
 
-/** 滚轮统一规格：可见行数、行高；字号统一用 title2，避免各对话框高矮不一 */
+/** 滚轮统一规格，可见行数、行高，字号统一用 title2，避免各对话框高矮不一 */
 internal object WheelSpec {
     const val VISIBLE_ITEM_COUNT = 3
     val ItemHeight = 60.dp
 }
 
-/** 分钟 5 分钟一档 */
 private val MinuteSteps = (0..55 step 5).toList()
 
-/** 通用单滚轮：星期、节次、年份等都用它，规格与其他滚轮保持一致 */
+/** 通用单滚轮，星期、节次、年份等都用它 */
 @Composable
 fun NumberWheelRow(
     value: Int,
@@ -102,7 +100,6 @@ fun TimeWheelRow(
     }
 }
 
-/** 起止时间 */
 @Composable
 fun TimeRangeRow(
     startHour: Int,
@@ -139,7 +136,7 @@ fun TimeRangeRow(
     }
 }
 
-/** 滚轮上方的小标题，所有对话框共用这一种样式；整块内容的标题（如上课星期）用 [textAlign] 左对齐 */
+/** 滚轮上方的小标题，所有对话框共用这一种样式，整块内容的标题（如上课星期）用 [textAlign] 左对齐 */
 @Composable
 fun TimeWheelLabel(text: String, textAlign: TextAlign = TextAlign.Center, gap: Dp = 4.dp) {
     Text(

@@ -142,7 +142,7 @@ internal fun GroupCard(
     }
 }
 
-/** 一行 = 左侧图标 + 标签 + 右侧内容（内容区整体右对齐）；给了 [onClick] 时整行可点 */
+/** 一行 = 左侧图标 + 标签 + 右侧内容（内容区整体右对齐），给了 [onClick] 时整行可点 */
 @Composable
 internal fun InfoRow(
     icon: ImageVector,
@@ -215,7 +215,7 @@ internal fun ValueText(text: String, placeholder: Boolean = false) {
     )
 }
 
-/** 行内输入框：无底框，右对齐；空值显示灰色提示，有值用正文色 */
+/** 行内输入框，无底框，右对齐，空值显示灰色提示，有值用正文色 */
 @Composable
 internal fun InlineField(
     value: String,
@@ -365,7 +365,7 @@ internal fun ColorCard(
     }
 }
 
-/** 色板一行放几个；13 个色 + 1 个自定义正好两整行 */
+/** 色板一行放几个，13 个色 + 1 个自定义正好两整行 */
 private const val PaletteColumns = 7
 private val PaletteEdge = 8.dp
 private val PaletteCellSpacing = 6.dp
@@ -377,13 +377,13 @@ private val CellInset = 2.5.dp
 /** 色块尺寸上限，超出部分转成格子内边距，宽屏下不至于越拉越大 */
 private val PaletteMaxCell = 46.dp
 
-/** 颜色格选中描边宽度；色块向内让出的距离与圆角收缩量都用它，保证贴合 */
+/** 颜色格选中描边宽度，色块向内让出的距离与圆角收缩量都用它，保证贴合 */
 private val BorderWidth = 2.dp
 
-/** 颜色格外轮廓圆角；色块圆角取 外轮廓圆角 - 描边宽，两者同心 */
+/** 颜色格外轮廓圆角，色块圆角取外轮廓圆角减描边宽，两者同心 */
 private val CellCornerRadius = 10.dp
 
-/** 颜色格：选中时外圈主题色描边，内部填淡化的课程色 */
+/** 颜色格，选中时外圈主题色描边，内部填淡化的课程色 */
 @Composable
 internal fun ColorCell(
     color: Color?,

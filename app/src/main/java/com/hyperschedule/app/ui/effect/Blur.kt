@@ -77,7 +77,7 @@ private fun Modifier.backdropBlur(
     shape = { shape },
     effects = {
         val sigma = blurRadius * density * SIGMA_PER_RADIUS
-        // 先抬高再挂效果：记录层按这个范围扩边，模糊的 clamp 边缘落在可见区域之外
+        // 先抬高再挂效果，记录层按这个范围扩边，模糊的 clamp 边缘落在可见区域之外
         padding = sigma * PADDING_SIGMA
         effect(BlurEffect(radiusX = sigma, radiusY = sigma, edgeTreatment = TileMode.Clamp))
         blendColors(BlurColors(blendColors = listOf(BlendColorEntry(blendColor))))

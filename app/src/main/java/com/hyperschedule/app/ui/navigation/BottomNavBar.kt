@@ -78,7 +78,7 @@ internal val tabs =
         Tab("设置", MiuixIcons.Settings),
     )
 
-/** 单个 tab：等分宽度、满高；纯视觉，手势统一由外层处理 */
+/** 单个 tab，等分宽度、满高，纯视觉，手势统一由外层处理 */
 @Composable
 internal fun RowScope.NavBarTab(
     index: Int,
@@ -103,7 +103,6 @@ internal fun RowScope.NavBarTab(
     )
 }
 
-/** 底部导航栏 */
 @Composable
 internal fun BottomNavBar(
     initialPage: Int,
@@ -153,8 +152,7 @@ internal fun BottomNavBar(
                 )
             }
 
-        // 用 collect 而非 collectLatest：后者会在新值到来时取消上一次收集，
-        // 连续点击时指示器动画被反复打断，观感发涩
+        // 用 collect 而非 collectLatest，后者会在新值到来时取消上一次收集，连续点击时指示器动画被反复打断，观感发涩
         LaunchedEffect(indicator, targetPage) {
             snapshotFlow { targetPage.value }.collect {
                 if (it != currentIndex) {
@@ -231,8 +229,7 @@ internal fun BottomNavBar(
             density = density,
         )
 
-        // 手势层：按在栏上任意位置即可拖动（无「抓胶囊」判定），位移按手指增量累加，
-        // 越过项中心即换选中项，松手按手指位置吸附最近项
+        // 手势层，按在栏上任意位置即可拖动，无「抓胶囊」判定，位移按手指增量累加，越过项中心即换选中项，松手吸附最近项
         Box(
             Modifier
                 .fillMaxSize()
@@ -295,7 +292,7 @@ internal fun BottomNavBar(
     }
 }
 
-/** 选中指示器：左右边界各自动弹，宽度随两条边变化 */
+/** 选中指示器，左右边界各自动弹，宽度随两条边变化 */
 @Composable
 private fun Indicator(
     animation: NavIndicatorAnimation,
@@ -310,7 +307,7 @@ private fun Indicator(
     val overlayHeightPx = with(density) { NavBarMetrics.overlayHeight.toPx() }
     val pressInsetPx = with(density) { NavBarMetrics.pressInset.toPx() }
 
-    // 按下：整体缩 6dp + 填充加深
+    // 按下，整体缩 6dp + 填充加深
     val pressProgress by
         animateFloatAsState(
             targetValue = if (pressed) 1f else 0f,
@@ -344,48 +341,45 @@ private fun Indicator(
     )
 }
 
-/** 按下缩放与加亮的弹簧曲线 */
 private val PressSpec = spring<Float>(dampingRatio = 0.9f, stiffness = 438f)
 
-/** 底栏尺寸，数值取自日历真机实测（1080×2400，density 2.8125） */
+/** 底栏尺寸 */
 internal object NavBarMetrics {
     val containerHeight: Dp = 54.dp // 实测 152px
-    val containerRadius: Dp = containerHeight / 2 // 圆角 = 高度 / 2
+    val containerRadius: Dp = containerHeight / 2
     val containerPadding: Dp = 8.dp // 实测 22px
     val overlayHeight: Dp = containerHeight - 6.dp // 指示器上下各内缩 3dp
-    val overlayRadius: Dp = containerRadius - 3.dp // 指示器圆角 = 容器圆角 − 3dp
-    val indicatorOverhang: Dp = 5.dp // 指示器每边比条目槽宽出的量
-    val pressInset: Dp = 6.dp // 按下时宽高各缩 6dp
-    val iconSize: Dp = 26.dp // 按可见墨迹 57×53px 校准（日历盒子 28dp）
+    val overlayRadius: Dp = containerRadius - 3.dp
+    val indicatorOverhang: Dp = 5.dp
+    val pressInset: Dp = 6.dp
+    val iconSize: Dp = 26.dp // 按可见墨迹 57×53px 校准
     val labelFontSize: Dp = 11.dp // footnote3，注意是 dp
     val barShadowRadius: Dp = 10.dp
-    val liftShadowDelta: Dp = 8.dp // 拖动中额外抬升，对应日历 setElevation(8dp)
+    val liftShadowDelta: Dp = 8.dp // 拖动中额外抬升
     const val LIFT_SHADOW_ALPHA = 0.8f // 抬升时投影浓度放大系数
     const val BAR_BLUR_RADIUS = 20f // 模糊半径（dp），全分辨率高斯
 }
 
-/** 底栏配色，取日历底栏用到的 miuix 颜色资源 */
 internal object NavBarColors {
     val Light =
         NavBarPalette(
-            container = Color(0xFFFFFFFF), // surface_highest_light
+            container = Color(0xFFFFFFFF),
             // 蒙层要留出至少三成透明度，否则 blurred backdrop 被压成纯色，肉眼看就是实心白条
             blurTint = Color(0xFFFFFFFF).copy(0.68f),
-            selector = Color(0x0F000000), // black_level9
+            selector = Color(0x0F000000),
             selectorPressed = Color(0x29000000), // 按下 16%
-            icon = Color(0xFF000000), // black_level1，选中不变色
-            iconPressed = Color(0x99000000), // black_level4
+            icon = Color(0xFF000000), // 选中不变色
+            iconPressed = Color(0x99000000),
             barShadowAlpha = 0.1f,
         )
 
     val Dark =
         NavBarPalette(
-            // 实测容器为 21，对应 white_solid_20，而非 surface_highest 的 #2C2C2C
             container = Color(0xFF181818),
             blurTint = Color(0xFF181818).copy(0.72f),
-            selector = Color(0x1FFFFFFF), // white_level9
+            selector = Color(0x1FFFFFFF),
             selectorPressed = Color(0x42FFFFFF),
-            icon = Color(0xF2FFFFFF), // white_level1_1
+            icon = Color(0xF2FFFFFF),
             iconPressed = Color(0x91FFFFFF),
             barShadowAlpha = 0.2f,
         )

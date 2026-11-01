@@ -34,11 +34,10 @@ import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-// 网格几何
 private val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
 
-/** 星期行：年份 + 周一~周日 + 日期，今天蓝色加粗；未设置开学日期时只有星期名 */
+/** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗，未设置开学日期时只有星期名 */
 @Composable
 internal fun WeekdayRow(
     startDate: LocalDate?,
@@ -51,7 +50,7 @@ internal fun WeekdayRow(
         remember(startDate, week) {
             if (startDate != null) weekDatesOf(startDate, week) else null
         }
-    // 列宽与网格一致
+    // 列宽跟随网格
     Box(modifier = Modifier.fillMaxWidth().height(WeekdayRowHeight)) {
         if (gridLines) {
             val color = gridLineColor()
@@ -102,7 +101,7 @@ internal fun WeekdayRow(
     }
 }
 
-/** 左侧节次列：序号 + 起止时间三行；特殊节次只显示起止时间；当前节次整列跟随主题色 */
+/** 左侧节次列，序号 + 起止时间三行，特殊节次只显示起止时间，当前节次整列跟随主题色 */
 @Composable
 internal fun SectionTimesColumn(
     layout: ScheduleLayout,
@@ -153,14 +152,12 @@ internal fun SectionTimesColumn(
     }
 }
 
-/** 网格线颜色 */
 @Composable
 private fun gridLineColor(): Color {
     val isDark = isDarkTheme()
     return MiuixTheme.colorScheme.onSurface.copy(alpha = if (isDark) 0.20f else 0.07f)
 }
 
-/** 日期列竖线 */
 private fun DrawScope.drawDayColumnLines(color: Color) {
     val start = SectionColumnWidth.toPx()
     val columnWidth = (size.width - start) / DAY_NAMES.size
@@ -170,7 +167,6 @@ private fun DrawScope.drawDayColumnLines(color: Color) {
     }
 }
 
-/** 网格线 */
 @Composable
 internal fun ScheduleGridLines(layout: ScheduleLayout, modifier: Modifier = Modifier) {
     val color = gridLineColor()
@@ -188,7 +184,6 @@ internal fun ScheduleGridLines(layout: ScheduleLayout, modifier: Modifier = Modi
     }
 }
 
-/** 特殊节次横带 */
 @Composable
 internal fun SpecialBlockBands(layout: ScheduleLayout, modifier: Modifier = Modifier) {
     if (layout.bands.isEmpty()) return
@@ -231,7 +226,6 @@ internal fun SpecialBlockBands(layout: ScheduleLayout, modifier: Modifier = Modi
     }
 }
 
-/** 星期集合拆成连续的几段 */
 private fun consecutiveDays(days: Set<Int>): List<IntRange> {
     val runs = mutableListOf<IntRange>()
     var start = 0
@@ -246,7 +240,7 @@ private fun consecutiveDays(days: Set<Int>): List<IntRange> {
     return runs
 }
 
-/** 午休 / 晚休分界线：铺满日期列的一条圆角条，文字居中 */
+/** 午休/晚休分界线，铺满日期列的一条圆角条，文字居中 */
 @Composable
 internal fun BreakDividerRow(divider: BreakDivider, modifier: Modifier = Modifier) {
     Box(
@@ -255,7 +249,7 @@ internal fun BreakDividerRow(divider: BreakDivider, modifier: Modifier = Modifie
                 .fillMaxWidth()
                 .height(DividerHeight)
                 .offset(y = divider.top)
-                // 与课程卡同一圈间距，左右才和卡片对齐
+                // 课程卡外圈同样的间距，左右才对齐
                 .padding(horizontal = CardInset, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {

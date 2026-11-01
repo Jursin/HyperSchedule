@@ -21,7 +21,7 @@ internal object WakeUpCrypto {
         key: ByteArray,
     ): ByteArray = desCipher(cipher, key, decrypt = true)
 
-    /** 协议的十六进制：每个字节的两个半字节各自翻转位序 */
+    /** 协议的十六进制，每个字节的两个半字节各自翻转位序 */
     fun nativeHexEncode(bytes: ByteArray): String =
         bytes.joinToString("") { byte ->
             val low = reverseNibble(byte.toInt() and 0x0f)
@@ -71,7 +71,7 @@ internal object WakeUpCrypto {
 
     fun base64Decode(text: String): ByteArray = Base64.decode(text, Base64.DEFAULT)
 
-    /** 与 Android 原生 `URLEncoder` + 少量差分编码对齐的表单转义 */
+    /** 表单 URL 编码，另加少量差分编码的转义 */
     fun androidQuote(value: String): String {
         val encoded =
             buildString {
@@ -90,7 +90,7 @@ internal object WakeUpCrypto {
     fun formEncode(items: List<Pair<String, String?>>): String =
         items.joinToString("&") { (key, value) -> "$key=${androidQuote(value.orEmpty())}" }
 
-    /** 设备唯一标识：固定 androidId 派生，用大写十六进制，保证多台设备行为一致 */
+    /** 设备唯一标识，固定 androidId 派生，用大写十六进制，保证多台设备行为一致 */
     fun cuid(androidId: String): String = md5Hex("com.baidu$androidId").uppercase() + "|0"
 
     fun adid(androidId: String): String {
@@ -139,7 +139,7 @@ internal object WakeUpCrypto {
         magic: String,
     ): String = md5Hex("$magic[${md5Hex(token)}]@$base64Params")
 
-    // DES 逐字移植自 WakeUp 客户端：置换表下标从 0 开始，与标准 DES 不同，不能换成 javax.crypto
+    // WakeUp 分享码的 DES 变体，置换表下标从 0 开始，与标准 DES 不同，不能换成 javax.crypto
 
     private fun desCipher(
         input: ByteArray,

@@ -17,7 +17,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 整宽 50dp 的动作按钮（列表末尾的删除、添加等）：左侧图标 + 文案 */
+/** 整宽 50dp 的动作按钮，左侧图标 + 文案 */
 @Composable
 fun WideActionButton(
     text: String,

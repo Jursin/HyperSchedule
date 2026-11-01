@@ -8,10 +8,8 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.edit
 import java.io.File
 
-/** 本地索引与脚本的根目录 */
 internal const val EduRepoRoot = "edu/repo"
 
-/** 适配仓库来源 */
 enum class EduRepo(
     val label: String,
     val url: String,
@@ -21,7 +19,6 @@ enum class EduRepo(
     CUSTOM("自定义仓库", ""),
 }
 
-/** 教务仓库设置 */
 data class EduRepoConfig(
     val autoSync: Boolean = true,
     val repo: EduRepo = EduRepo.GITEE,

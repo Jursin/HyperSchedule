@@ -47,21 +47,21 @@ import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
-/** 抽屉里的一门课：是否本周生效用于标题后缀 */
+/** 抽屉里的一门课，是否本周生效用于标题后缀 */
 data class CourseDetailItem(
     val course: Course,
     val weeks: List<Int>,
     val activeInWeek: Boolean,
 )
 
-/** 课程详情抽屉：列出被点格子里的所有课程，每张卡带一个「编辑」按钮 */
+/** 课程详情抽屉，列出被点格子里的所有课程，每张卡带一个「编辑」按钮 */
 @Composable
 fun CourseDetailSheet(
     items: List<CourseDetailItem>,
     show: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
-    // 被点那一格的放假 / 调休角标
+    // 被点那一格的放假/调休角标
     mark: String? = null,
     onEdit: (Course) -> Unit = {},
     onAdd: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
@@ -93,7 +93,7 @@ fun CourseDetailSheet(
     ) {
         val listState = rememberLazyListState()
         val currentIndex = items.indexOfFirst { it.activeInWeek }
-        // 打开时翻到本周那张卡；内容放得下时滚动会被钳住，等于不动
+        // 打开时翻到本周那张卡，内容放得下时滚动会被钳住，等于不动
         LaunchedEffect(show) {
             if (show && currentIndex >= 0) listState.scrollToItem(currentIndex)
         }
@@ -208,7 +208,7 @@ private fun EditPill(onClick: () -> Unit) {
     }
 }
 
-/** 第一行：周次 + 节次；第二行：地点 + 教师 + 学分（各自带图标，字段间用空格断行）；备注单独一行 */
+/** 周次 + 节次一行，地点 + 教师 + 学分一行，备注单独一行 */
 private fun summaryText(course: Course, weeks: List<Int>): AnnotatedString =
     buildAnnotatedString {
         infoIcon(InfoIconId.WEEKS, "周次")

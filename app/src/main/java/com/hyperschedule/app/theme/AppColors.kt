@@ -7,7 +7,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 课程色叠加到底色上的不透明度，课程卡、管理列表与占位格共用 */
 const val CourseTintAlpha = 0.15f
 
-/** 浮层面板的实测底色：浅色略深于白、深色略浅于底 */
+/** 浮层面板的实测底色，浅色略深于白、深色略浅于底 */
 private val PanelLight = Color(0xFFF2F2F2)
 private val PanelDark = Color(0xFF1E1E1E)
 
@@ -20,7 +20,7 @@ private fun panelColor(dynamic: Color): Color =
         else -> PanelLight
     }
 
-/** 选择格未选中时的底色：叠在对话框底色上，深浅色都留一档差 */
+/** 选择格未选中时的底色，叠在对话框底色上，深浅色都留一档差 */
 @Composable
 fun selectCellIdleColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
 
@@ -28,11 +28,10 @@ fun selectCellIdleColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha =
 @Composable
 fun panelOutlineColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f)
 
-/** 抽屉面板 */
 @Composable
 fun sheetPanelColor(): Color = panelColor(MiuixTheme.colorScheme.surfaceContainer)
 
-/** 抽屉里的卡片：浅色纯白、深色 #303030，动态取色跟随主题 */
+/** 抽屉里的卡片，浅色纯白、深色 #303030，动态取色跟随主题 */
 @Composable
 fun sheetCardColor(): Color =
     when {
@@ -41,6 +40,5 @@ fun sheetCardColor(): Color =
         else -> Color.White
     }
 
-/** 整页浮窗的面板 */
 @Composable
 fun pageWindowColor(): Color = panelColor(MiuixTheme.colorScheme.surface)

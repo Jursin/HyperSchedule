@@ -18,7 +18,6 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** 更新弹窗状态 */
 sealed interface UpdateDialogState {
     data object None : UpdateDialogState
 
@@ -43,7 +42,7 @@ internal object AppForeground {
     var resumed: Boolean = false
 }
 
-/** 检查、下载与安装；进程级单例，Activity 重建不会中断下载 */
+/** 检查、下载与安装，进程级单例，Activity 重建不会中断下载 */
 class UpdateController private constructor(private val context: Context) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 

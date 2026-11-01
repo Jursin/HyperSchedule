@@ -21,10 +21,8 @@ private const val CHANNEL_LIVE = "class_live"
 /** 进度条按百分制给，系统实时动态的样式也认这一套 */
 private const val PROGRESS_MAX = 100
 
-/** 通知的展示与取消 */
 internal object ReminderNotifier {
 
-    /** 课前与课中的固定 id */
     const val PRE_CLASS_ID = 0x1A11
     const val IN_CLASS_ID = 0x1A12
 
@@ -152,7 +150,6 @@ internal object ReminderNotifier {
         runCatching { notificationManager(context)?.notify(id, builder.build()) }
     }
 
-    /** 实时动态样式 */
     private fun progressStyle(context: Context, progress: Int): Notification.Style {
         if (Build.VERSION.SDK_INT < 36) return Notification.BigTextStyle()
         return Notification.ProgressStyle()
@@ -169,7 +166,6 @@ internal object ReminderNotifier {
         return ((elapsed.coerceIn(0L, totalMillis) * PROGRESS_MAX) / totalMillis).toInt()
     }
 
-    /** 上课勿扰按钮 */
     private fun dndAction(context: Context): Notification.Action =
         Notification.Action.Builder(
             null,

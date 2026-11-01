@@ -13,7 +13,7 @@ import top.yukonga.miuix.kmp.icon.extended.Redo
 import top.yukonga.miuix.kmp.icon.extended.Undo
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 撤销 / 重做按钮：栈为空时对应按钮不出现 */
+/** 撤销/重做按钮，栈为空时对应按钮不出现 */
 @Composable
 internal fun HistoryFabColumn(
     canUndo: Boolean,

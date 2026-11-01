@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import com.hyperschedule.app.schedule.adjustDate
 import java.time.LocalDate
 
-/** 日期滚轮对话框：跳转日期、开始上课日期、组合规则、节假日日期共用 */
+/** 日期滚轮对话框 */
 @Composable
 fun DatePickerDialog(
     title: String,
@@ -33,7 +33,7 @@ fun DatePickerDialog(
     }
 }
 
-/** 单个数字滚轮的对话框：节次数量、每节课时长、总周数等共用 */
+/** 单个数字滚轮的对话框 */
 @Composable
 fun NumberPickerDialog(
     title: String,

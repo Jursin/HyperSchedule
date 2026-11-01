@@ -16,10 +16,10 @@ import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 import top.yukonga.miuix.kmp.theme.defaultTextStyles
 
-/** 等宽数字：MiSans 用 thum，其他字体用 tnum；不支持的字体自动忽略 */
+/** 等宽数字，MiSans 用 thum，其他字体用 tnum，不支持的字体自动忽略 */
 private const val TabularFigures = "\"thum\" 1, \"tnum\" 1"
 
-/** 全站文本样式：在 Miuix 默认字号上打开等宽数字 */
+/** 全站文本样式，在默认字号上打开等宽数字 */
 private val TabularTextStyles: TextStyles =
     defaultTextStyles().let { base ->
         fun TextStyle.tabular() = copy(fontFeatureSettings = TabularFigures)
@@ -101,6 +101,6 @@ fun PaletteStyle.toMiuixStyle(): ThemePaletteStyle = when (this) {
     PaletteStyle.Expressive -> ThemePaletteStyle.Expressive
 }
 
-/** 当前是否深色主题：按背景亮度判断，动态取色下同样成立 */
+/** 当前是否深色主题，按背景亮度判断，动态取色下同样成立 */
 @Composable
 fun isDarkTheme(): Boolean = MiuixTheme.colorScheme.background.luminance() < 0.5f

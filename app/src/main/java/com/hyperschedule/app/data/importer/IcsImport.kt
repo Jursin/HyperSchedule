@@ -29,7 +29,7 @@ object IcsImport {
         val startMonday = resolveStartMonday(events)
         val grouped = LinkedHashMap<LessonKey, MutableList<IcsEvent>>()
         events.forEach { event ->
-            // 描述里没有「第N周」时按开学周反推；早于开学的事件会落到第 0 周，下面一并过滤
+            // 描述里没有「第N周」时按开学周反推，早于开学的事件会落到第 0 周，下面一并过滤
             val week = event.week ?: currentWeekOf(startMonday, event.date)
             if (week !in 1..MAX_TOTAL_WEEKS) return@forEach
             val key =
@@ -73,7 +73,7 @@ object IcsImport {
         )
     }
 
-    /** 展开 RFC 5545 的折行：以空格或制表符开头的行接在上一行后面 */
+    /** 展开 RFC 5545 的折行，以空格或制表符开头的行接在上一行后面 */
     private fun unfold(text: String): List<String> {
         val lines = mutableListOf<StringBuilder>()
         text.lineSequence().forEach { raw ->
@@ -175,7 +175,7 @@ object IcsImport {
         return result
     }
 
-    /** EXDATE：被排除的日期（假期、调休等），可能有多行，每行逗号分隔；可能只写日期，也可能带时刻 */
+    /** EXDATE，被排除的日期（假期、调休等），可能有多行，每行逗号分隔，可能只写日期，也可能带时刻 */
     private fun excludedDates(properties: Map<String, List<Pair<String, String>>>): Set<LocalDate> =
         properties["EXDATE"].orEmpty().flatMap { (head, value) ->
             value.split(',').mapNotNull { token ->
@@ -199,11 +199,11 @@ object IcsImport {
             runCatching { LocalDateTime.parse(core, DateTimePattern) }.getOrNull()
                 ?: runCatching { LocalDateTime.parse(core, ShortDateTimePattern) }.getOrNull()
                 ?: return null
-        // 其他时区一律按字面时间处理：跨时区换算需要完整的 VTIMEZONE 数据，收益不大
+        // 其他时区一律按字面时间处理，跨时区换算需要完整的 VTIMEZONE 数据，收益不大
         return if (utc) parsed.plusHours(UTC_OFFSET_HOURS) else parsed
     }
 
-    /** 开学周：有「第N周」的事件能直接反推出第 1 周的周一，取出现最多的那天 */
+    /** 开学周，有「第N周」的事件能直接反推出第 1 周的周一，取出现最多的那天 */
     private fun resolveStartMonday(events: List<IcsEvent>): LocalDate {
         val candidates =
             events.mapNotNull { event ->
@@ -241,7 +241,7 @@ object IcsImport {
             .joinToString(" · ")
             .ifBlank { null }
 
-    /** ICS 文本转义：\, \; \\ \n */
+    /** ICS 文本转义，\, \; \\ \n */
     private fun unescape(text: String): String {
         val builder = StringBuilder(text.length)
         var index = 0

@@ -34,7 +34,7 @@ import top.yukonga.miuix.kmp.icon.extended.Backup
 import top.yukonga.miuix.kmp.icon.extended.ConvertFile
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 课表顶栏：周次标题（可点开跳转）、星期行与三个入口按钮 */
+/** 课表顶栏，周次标题（可点开跳转）、星期行与三个入口按钮 */
 @Composable
 internal fun ScheduleTopBar(
     startDate: LocalDate?,

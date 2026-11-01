@@ -9,7 +9,6 @@ import kotlinx.coroutines.withContext
 /** 脚本缓存目录，换仓库时整目录清掉 */
 internal const val EduScriptsPath = "$EduRepoRoot/schools/resources"
 
-/** 内置脚本目录 */
 private const val EduScriptAssets = "offline_repo/schools/resources"
 
 /** 教务适配脚本仓库，脚本地址为 {repo}/raw/{branch}/resources/{resourceFolder}/{scriptPath} */

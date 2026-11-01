@@ -6,7 +6,7 @@ import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** 通知正文的拼法：地点与教师都可能没填，缺哪项都不能留下多余的分隔符 */
+/** 通知正文的拼法，地点与教师都可能没填，缺哪项都不能留下多余的分隔符 */
 class ReminderNotifierTest {
 
     private val course =

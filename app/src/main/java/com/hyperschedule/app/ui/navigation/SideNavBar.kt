@@ -58,7 +58,7 @@ private val NavItemGap = 4.dp
 private val NavIconSize = 24.dp
 private val NavPanelPadding = 8.dp
 
-/** 圆角取条目高的一半，和底栏一样是胶囊 */
+/** 圆角取条目高的一半，做成胶囊形 */
 private val NavShape = RoundedCornerShape(NavItemHeight / 2)
 
 /** 图标中心钉在折叠宽度的中线上，展开时不跟着平移 */
@@ -69,7 +69,7 @@ private val NavLabelStyle = TextStyle(fontSize = 16.sp)
 private val NavExpandMotion =
     spring<Float>(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow)
 
-/** 宽屏侧栏：面板用抽屉面板色，靠一档色差分层，选中项是胶囊 */
+/** 宽屏侧栏，面板用抽屉面板色，靠一档色差分层，选中项是胶囊 */
 @Composable
 internal fun SideNavBar(
     selectedPage: Int,
@@ -98,7 +98,7 @@ internal fun SideNavBar(
                 .padding(NavPanelPadding),
         verticalArrangement = Arrangement.spacedBy(NavItemGap),
     ) {
-        // 折叠按钮：只有图标，只换字色不铺按下底色
+        // 折叠按钮，只有图标，只换字色不铺按下底色
         SideNavRow(
             icon = MiuixIcons.Sidebar,
             palette = palette,
@@ -124,7 +124,7 @@ internal fun SideNavBar(
     }
 }
 
-/** 侧栏的一行：折叠按钮和 tab 共用，整行命中，按下换字色，选中铺一层胶囊底色 */
+/** 侧栏的一行，折叠按钮和 tab 共用，整行命中，按下换字色，选中铺一层胶囊底色 */
 @Composable
 private fun SideNavRow(
     icon: ImageVector,
@@ -187,7 +187,7 @@ private fun SideNavRow(
     }
 }
 
-/** 侧栏配色：面板与文字取主题色，选中/按下是把文字色压淡 */
+/** 侧栏配色，面板与文字取主题色，选中/按下是把文字色压淡 */
 @Composable
 private fun sideNavPalette(): SideNavPalette {
     val onSurface = MiuixTheme.colorScheme.onSurface

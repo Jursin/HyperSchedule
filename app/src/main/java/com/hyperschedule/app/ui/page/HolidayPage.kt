@@ -57,7 +57,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val HolidayYears = 2024..2035
 
-/** 节假日与调休：按年维护假期区间与补班日，右下角可拉取远端数据 */
+/** 节假日与调休，按年维护假期区间与补班日，右下角可拉取远端数据 */
 @Composable
 fun HolidayPage(
     repository: HolidayRepository,
@@ -201,7 +201,7 @@ fun HolidayPage(
     }
 }
 
-/** 一组条目：有内容时一张卡片，末尾跟一个整宽添加入口 */
+/** 一组条目，有内容时一张卡片，末尾跟一个整宽添加入口 */
 @Composable
 private fun HolidayGroup(
     title: String,
@@ -328,7 +328,7 @@ private fun HolidayEditDialog(
     }
 }
 
-/** 调休「跟随课程」：小标题右侧显示推算出的日期，下面是周次与星期两个滚轮 */
+/** 调休「跟随课程」，小标题右侧显示推算出的日期，下面是周次与星期两个滚轮 */
 @Composable
 private fun FollowCourseField(
     semesterStart: LocalDate?,
@@ -390,7 +390,7 @@ private fun FollowCourseField(
     }
 }
 
-/** 一行日期选择：小标题 + 一张卡片 */
+/** 一行日期选择，小标题 + 一张卡片 */
 @Composable
 private fun DateField(
     label: String,
@@ -415,7 +415,7 @@ private fun DateField(
     }
 }
 
-/** yyyy-MM-dd → yyyy/MM/dd；无法解析时原样返回 */
+/** yyyy-MM-dd → yyyy/MM/dd，无法解析时原样返回 */
 private fun displayDate(value: String): String = parseDateOrNull(value)?.let(::formatDate) ?: value
 
 private fun entrySummary(entry: HolidayEntry): String {

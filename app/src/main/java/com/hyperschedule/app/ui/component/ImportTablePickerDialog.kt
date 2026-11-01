@@ -14,7 +14,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 
-/** 导入到课表，文件 / 分享码 / 教务脚本共用，[onAddTable] 为空时不显示新建入口 */
+/** 导入到课表，文件/分享码/教务脚本共用，[onAddTable] 为空时不显示新建入口 */
 @Composable
 fun ImportTablePickerDialog(
     tables: List<TableSummary>,

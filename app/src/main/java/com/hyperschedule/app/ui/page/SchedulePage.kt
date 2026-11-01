@@ -128,10 +128,8 @@ fun SchedulePage(
     val totalWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
     val currentWeek = remember(startDate, today) { startDate?.let { currentWeekOf(it, today) } }
 
-    // 放假 / 调休
     val holidayPlan = rememberHolidayPlan(holidayRepository, startDate, totalWeeks)
 
-    // 拖动与撤销
     val editor =
         rememberScheduleEditor(
             layout = layout,
@@ -158,7 +156,7 @@ fun SchedulePage(
     var detailAnchor by remember { mutableStateOf<Course?>(null) }
     // 点开的卡属于哪一周
     var detailWeek by remember { mutableIntStateOf(0) }
-    // 那一格的放假 / 调休角标
+    // 那一格的放假/调休角标
     var detailMark by remember { mutableStateOf<String?>(null) }
     var detailVisible by remember { mutableStateOf(false) }
     var appearanceVisible by remember { mutableStateOf(false) }
@@ -242,7 +240,7 @@ fun SchedulePage(
     // pager 在 root 里的左上角
     var pagerOrigin by remember { mutableStateOf(Offset.Zero) }
 
-    // 兜底
+    // 拖动结束但指针记录还在时清掉
     val dragging = editor.drag != null
     LaunchedEffect(dragging) {
         if (!dragging && touchState.pointerId != null) touchState.end()

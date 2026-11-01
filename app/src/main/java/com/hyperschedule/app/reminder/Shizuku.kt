@@ -15,7 +15,7 @@ import androidx.core.net.toUri
 /** Shizuku 系服务的接入状态与授权 */
 internal object ShizukuAccess {
 
-    /** 优先 Shevery；装了原版 Shizuku 也认 */
+    /** 优先 Shevery，装了原版 Shizuku 也认 */
     private val MANAGER_PACKAGES = listOf("com.hamondev.shevery", "moe.shizuku.privileged.api")
 
     private const val REQUEST_CODE = 0x5A1
@@ -30,7 +30,7 @@ internal object ShizukuAccess {
                 runCatching { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }
                     .getOrDefault(false)
 
-    /** 已安装的管理器包名：服务没起时靠它把用户领过去 */
+    /** 已安装的管理器包名，服务没起时靠它把用户领过去 */
     private fun managerPackage(context: Context): String? =
         MANAGER_PACKAGES.firstOrNull {
             runCatching { context.packageManager.getPackageInfo(it, 0) }.isSuccess
@@ -46,7 +46,7 @@ internal object ShizukuAccess {
         runCatching { context.startActivity(launch) }
     }
 
-    /** 请求授权；结果通过 [onResult] 异步回来 */
+    /** 请求授权，结果通过 [onResult] 异步回来 */
     fun requestPermission(onResult: (Boolean) -> Unit) {
         if (!isRunning) return onResult(false)
         if (hasPermission) return onResult(true)
@@ -95,7 +95,7 @@ internal object ShizukuAccess {
     }
 }
 
-/** 发岛绕行：临时切断「小米服务框架」的网络，让系统侧校验连不上网 */
+/** 发岛绕行，临时切断「小米服务框架」的网络，让系统侧校验连不上网 */
 internal object ShizukuBypass {
 
     private const val TAG = "CourseReminder"
@@ -107,12 +107,7 @@ internal object ShizukuBypass {
     private const val RULE_DENY = 2
     private const val RESTORE_DELAY_MILLIS = 100L
 
-    /**
-     * 断网 → [block] → 恢复，返回是否真的断过网。没授权、断网失败都直接跑 [block]，
-     * 恢复放在 finally 里，保证网络不会一直是被切断的状态。
-     *
-     * 加锁串行执行：课前提醒和上课闹钟可能同时触发，两次断网交错会把防火墙状态弄乱。
-     */
+    /** 断网 → [block] → 恢复，返回是否真的断过网，没授权或断网失败都直接跑 [block]，加锁串行避免两次断网交错弄乱防火墙状态 */
     @Synchronized
     fun withBypass(context: Context, block: () -> Unit): Boolean {
         if (!ShizukuAccess.hasPermission || !setXmsfNetwork(context, enabled = false)) {
@@ -129,10 +124,7 @@ internal object ShizukuBypass {
         }
     }
 
-    /**
-     * 先借 shell 身份的 [PrivilegedService] 去调：应用进程里这两个方法是隐藏 API，
-     * 高版本上反射会直接抛 `NoSuchMethodException`；服务不可用时退回应用内直连。
-     */
+    /** 先借 shell 身份的 [PrivilegedService] 调这两个隐藏 API，高版本应用进程里反射会抛 `NoSuchMethodException`，服务不可用时退回应用内直连 */
     private fun setXmsfNetwork(context: Context, enabled: Boolean): Boolean {
         val uid =
             runCatching { context.packageManager.getPackageUid(XMSF_PACKAGE, 0) }
@@ -147,7 +139,7 @@ internal object ShizukuBypass {
         return setXmsfNetworkInProcess(uid, enabled)
     }
 
-    /** 应用内直连：用 Shizuku 的 binder 包装换成 shell 身份再发出去 */
+    /** 应用内直连，用 Shizuku 的 binder 包装换成 shell 身份再发出去 */
     @SuppressLint("PrivateApi")
     private fun setXmsfNetworkInProcess(uid: Int, enabled: Boolean): Boolean =
         runCatching {

@@ -1,6 +1,6 @@
 package com.hyperschedule.app.ui.component
 
-/** 注入到页面的 Promise 桥，脚本通过 shiguangBridge / shiguangBridgePromise 调用原生 */
+/** 注入到页面的 Promise 桥，脚本通过 shiguangBridge/shiguangBridgePromise 调用原生 */
 internal val EduPromiseBridgeScript =
     """
     (function() {

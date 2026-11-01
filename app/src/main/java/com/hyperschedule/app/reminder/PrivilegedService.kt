@@ -12,15 +12,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import rikka.shizuku.Shizuku
 
-/** 以 shell 身份运行的服务：绑定管理与服务实现都在这里 */
+/** 以 shell 身份运行的服务，绑定管理与服务实现都在这里 */
 internal object PrivilegedService {
 
     private const val TAG = "CourseReminder"
 
-    /**
-     * 首次绑定要等 Shevery 起进程：`app_process` 冷启动约 1 秒，
-     * 失败时服务端还会退避重试三次，留够余量。
-     */
+    /** 首次绑定要等 Shevery 起进程，`app_process` 冷启动约 1 秒，失败时服务端还会退避重试三次，留够余量 */
     private const val BIND_TIMEOUT_SECONDS = 8L
 
     @Volatile
@@ -43,7 +40,7 @@ internal object PrivilegedService {
             }
         }
 
-    /** 已绑过直接复用，否则现绑一次；拿不到就返回 null，由调用方退回应用内直连 */
+    /** 已绑过直接复用，否则现绑一次，拿不到就返回 null，由调用方退回应用内直连 */
     @Synchronized
     fun get(context: Context): IPrivilegedService? {
         service?.takeIf { it.asBinder().pingBinder() }?.let { return it }
@@ -70,10 +67,7 @@ internal object PrivilegedService {
         }
     }
 
-    /**
-     * `debuggable` 固定 false：置为 true 时 Shevery 会给 `app_process` 加一串 JDWP 调试参数，
-     * 没接调试器时纯属多余。
-     */
+    /** `debuggable` 固定 false，置为 true 时 Shevery 会给 `app_process` 加一串 JDWP 调试参数，没接调试器时纯属多余 */
     private fun userServiceArgs(context: Context): Shizuku.UserServiceArgs =
         Shizuku.UserServiceArgs(
             ComponentName(context.packageName, PrivilegedServiceImpl::class.java.name),
@@ -90,7 +84,7 @@ internal const val CONNECTIVITY_STUB_CLASS = $$"android.net.IConnectivityManager
 /** 由 Shizuku 以 shell 身份拉起的服务实现 */
 class PrivilegedServiceImpl : IPrivilegedService.Stub() {
 
-    /** 收下 APK 后交给 pm 安装；返回 pm 的输出，含 Success 即成功 */
+    /** 收下 APK 后交给 pm 安装，返回 pm 的输出，含 Success 即成功 */
     override fun installApk(source: ParcelFileDescriptor): String {
         val temp = File("/data/local/tmp/hyperschedule-update.apk")
         return runCatching {

@@ -25,7 +25,6 @@ import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 设置类页面 */
 @Composable
 fun PreferenceScreen(
     title: String,
@@ -67,7 +66,6 @@ fun PreferenceScreen(
     }
 }
 
-/** 设置分组标题 */
 @Composable
 fun SectionTitle(
     text: String,
@@ -86,7 +84,6 @@ fun SectionTitle(
     )
 }
 
-/** 一段设置 */
 @Composable
 fun PreferenceSection(
     title: String? = null,
@@ -105,7 +102,6 @@ fun PreferenceSection(
     }
 }
 
-/** 一段条目 */
 @Composable
 fun PreferenceItemSection(
     title: String? = null,

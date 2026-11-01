@@ -13,12 +13,7 @@ private const val LAST_MINUTE = 23 * 60 + 59
 /** 不联动结束时间时，结束时间的默认跨度 */
 private const val DefaultSpanMinutes = 60
 
-/**
- * 两个时间点并排的对话框：节次时间、时段分隔、特殊课程时间都用它。
- *
- * [durationMinutes] 非空表示「改开始时间时结束时间跟着走」（节次时间），为 null 时两端各改各的（时段分隔）。
- * [conflictRanges] 是其它已占用的时间段，命中则确定按钮不可用。
- */
+/** 两个时间点并排的对话框，节次时间、时段分隔、特殊课程时间都用它，[durationMinutes] 非空时改开始时间会带着结束时间走，[conflictRanges] 命中已占用时段则确定按钮不可用 */
 @Composable
 fun TimeRangeDialog(
     title: String,

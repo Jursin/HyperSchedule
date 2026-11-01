@@ -13,7 +13,7 @@ import com.hyperschedule.app.data.model.CourseWeek
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import kotlinx.coroutines.flow.Flow
 
-/** 课程与课程周次访问：标准节次与自定义时间混排，按星期 → 节次 → 自定义时间排序 */
+/** 课程与课程周次访问，标准节次与自定义时间混排，按星期 → 节次 → 自定义时间排序 */
 @Dao
 interface CourseDao {
 
@@ -70,7 +70,7 @@ interface CourseDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertWeeks(courseWeeks: List<CourseWeek>)
 
-    /** 全量替换某门课的周次：先删旧关系再插新关系 */
+    /** 全量替换某门课的周次，先删旧关系再插新关系 */
     @Transaction
     suspend fun updateCourseWeeks(courseId: String, courseWeeks: List<CourseWeek>) {
         deleteWeeksByCourseId(courseId)

@@ -34,12 +34,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/**
- * 周次选择网格：
- * - 单击切换该周；
- * - 按住滑动：按下格未选则把起止之间的周次并入已选，已选则把这些周次移出（已占用的周自动跳过）；
- * - 只是按住不动仍算单击。
- */
+/** 周次选择网格，单击切换该周，按住滑动把起止之间的周次并入或移出已选（已占用的周自动跳过），只是按住不动仍算单击 */
 @Composable
 fun WeekRangeSelectGrid(
     totalWeeks: Int,
@@ -58,7 +53,7 @@ fun WeekRangeSelectGrid(
     val primaryColor = MiuixTheme.colorScheme.primary
     val onSurfaceSummaryColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
     val idleColor = selectCellIdleColor()
-    // 已占用格：深色比未选更明显，浅色与未选一致，只靠文字变弱区分
+    // 已占用格，深色下比未选明显，浅色下只靠文字变弱区分
     val occupiedColor =
         if (isDarkTheme()) MiuixTheme.colorScheme.onSurface.copy(alpha = 0.18f) else idleColor
     val mutedTextColor =
@@ -66,7 +61,7 @@ fun WeekRangeSelectGrid(
 
     var gridWidth by remember { mutableIntStateOf(0) }
 
-    // 手势协程只按这几个 key 重启；选中集用 rememberUpdatedState 取最新值，避免滑选拿到旧快照
+    // 手势协程只按这几个 key 重启，选中集用 rememberUpdatedState 取最新值，避免滑选拿到旧快照
     val selectedWeeksState = rememberUpdatedState(selectedWeeks)
     val occupiedWeeksState = rememberUpdatedState(occupiedWeeks)
     val onToggleWeekState = rememberUpdatedState(onToggleWeek)

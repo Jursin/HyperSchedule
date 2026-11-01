@@ -25,7 +25,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** 安装包的下载、校验与安装 */
 internal object UpdateApk {
     private const val NAME = "hyperschedule.apk"
 
@@ -42,7 +41,7 @@ internal object UpdateApk {
         return if (verify(context, file, asset.sha256, asset.size) == null) file else null
     }
 
-    /** 下载到 filesDir，进度 0f..1f；失败重试一次 */
+    /** 下载到 filesDir，进度 0f..1f，失败重试一次 */
     suspend fun download(
         context: Context,
         asset: ReleaseAsset,
@@ -156,7 +155,7 @@ internal object UpdateApk {
     /** 是否已允许安装未知来源应用 */
     fun canInstall(context: Context): Boolean = context.packageManager.canRequestPackageInstalls()
 
-    /** 跳到「安装未知应用」授权页；跳转失败返回 false，由调用方提示 */
+    /** 跳到「安装未知应用」授权页，跳转失败返回 false，由调用方提示 */
     fun openPermissionSettings(context: Context): Boolean {
         val intent =
             Intent(
@@ -238,7 +237,7 @@ internal object UpdateApk {
         archive: PackageInfo?,
     ): Boolean = archive != null && archive.code() > manager.getPackageInfo(packageName, 0).code()
 
-    /** 签名只要求有交集，兼容密钥轮换；读不到证书时判为不一致 */
+    /** 签名只要求有交集，兼容密钥轮换，读不到证书时判为不一致 */
     @Suppress("DEPRECATION")
     private fun signatures(info: PackageInfo): List<String> =
         (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {

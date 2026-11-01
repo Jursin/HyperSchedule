@@ -18,13 +18,13 @@ import com.hyperschedule.app.schedule.HolidayDay
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 放假当天：课程不上，卡片灰显并标这个字 */
+/** 放假当天，课程不上，卡片灰显并标这个字 */
 internal const val MarkHoliday = "假"
 
-/** 补课当天：这一列是挪过来的课，标这个字 */
+/** 补课当天，这一列是挪过来的课，标这个字 */
 internal const val MarkWorkSwap = "调"
 
-/** 角标取值：放假「假」、补课「调」，都不是时为空 */
+/** 角标取值，放假「假」、补课「调」，都不是时为空 */
 internal fun markOf(isHoliday: Boolean, isWorkSwap: Boolean): String? =
     when {
         isHoliday -> MarkHoliday
@@ -32,19 +32,15 @@ internal fun markOf(isHoliday: Boolean, isWorkSwap: Boolean): String? =
         else -> null
     }
 
-/** 这一天的角标 */
 internal fun HolidayDay.markOrNull(): String? = markOf(holiday, workSwap)
 
-/**
- * 放假 / 调休角标，课表卡片与今日课表共用同一套取色：
- * 「调」是正常上课的一天，用课程色淡底配课程色文字；「假」用中性底，避免和灰卡抢眼。
- */
+/** 放假/调休角标，「调」是正常上课的一天用课程色淡底配课程色文字，「假」用中性底避免和灰卡抢眼 */
 @Composable
 internal fun HolidayMarkBadge(
     mark: String,
     course: Course,
     modifier: Modifier = Modifier,
-    // 只有「调」且课确实在本周生效时才跟着课程色，否则走中性灰（与卡片灰显一致）
+    // 只有「调」且课确实在本周生效时才跟着课程色，否则走中性灰
     accent: Boolean = true,
     fontSize: TextUnit = BadgeFontSize,
 ) {

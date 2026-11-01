@@ -55,7 +55,7 @@ private data class ComboDraft(
     val rules: List<TimeTableComboRule>,
 )
 
-/** 一条新规则：默认从今天开始，单日 */
+/** 一条新规则，默认从今天开始，单日 */
 private fun newRule(comboId: String, targetId: String, start: LocalDate): TimeTableComboRule =
     TimeTableComboRule(
         id = UUID.randomUUID().toString(),
@@ -72,7 +72,7 @@ private fun dateOfOrToday(text: String): LocalDate = parseDateOrNull(text) ?: Lo
 private fun rulesOverlap(rules: List<TimeTableComboRule>): Boolean =
     rules.sortedBy { it.startDate }.zipWithNext().any { (current, next) -> next.startDate <= current.endDate }
 
-/** 编辑组合作息：基准作息 + 按日期区间切换的规则 */
+/** 编辑组合作息，基准作息 + 按日期区间切换的规则 */
 @Composable
 fun ComboEditPage(
     comboId: String,

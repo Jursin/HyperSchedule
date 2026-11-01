@@ -5,35 +5,29 @@ import com.hyperschedule.app.data.model.HolidayEntry
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
-/** 某一天（周次 + 星期）在放假 / 调休规则下怎么画 */
+/** 某一天（周次 + 星期）在放假/调休规则下怎么画 */
 @Immutable
 data class HolidayDay(
-    /** 放假当天：卡片一律灰显并标「假」 */
+    /** 放假当天，卡片一律灰显并标「假」 */
     val holiday: Boolean = false,
-    /** 补课当天：标「调」 */
+    /** 补课当天，标「调」 */
     val workSwap: Boolean = false,
-    /** 该列要显示哪一天的课；0 = 就是本列星期 */
+    /** 该列要显示哪一天的课，0 = 就是本列星期 */
     val displayDay: Int = 0,
-    /** 用哪一周的课；跨周调课时可能与所在页不同，0 = 就是本页周次 */
+    /** 用哪一周的课，跨周调课时可能与所在页不同，0 = 就是本页周次 */
     val displayWeek: Int = 0,
 ) {
     /** 补课列显示的是别的星期（甚至别的周）的课 */
     val remapped: Boolean get() = displayDay > 0 && displayWeek > 0
 
-    /** 这一列实际要画的星期；没换列时就是本列 */
+    /** 这一列实际要画的星期，没换列时就是本列 */
     fun dayOr(fallback: Int): Int = if (displayDay > 0) displayDay else fallback
 
-    /** 这一列实际要画的周次；没换周时就是本页 */
+    /** 这一列实际要画的周次，没换周时就是本页 */
     fun weekOr(fallback: Int): Int = if (displayWeek > 0) displayWeek else fallback
 }
 
-/**
- * 整个学期的放假 / 调休结论，按（周次, 星期）查表。
- *
- * 课表只存「星期 + 周次」，日期要靠开学日现算，所以这里一次性把整学期算完：
- * - 放假：日期落在假期区间内 → [HolidayDay.holiday]
- * - 调休：当天有补班条目 → [HolidayDay.workSwap]，并按「补哪一天」把该列换成那一天的课
- */
+/** 整个学期的放假/调休结论，按（周次, 星期）查表，放假落到 [HolidayDay.holiday]，补班日落到 [HolidayDay.workSwap] 并把该列换成被调那一天的课 */
 @Immutable
 class HolidayPlan private constructor(private val days: Map<Int, HolidayDay>) {
     fun of(week: Int, day: Int): HolidayDay = days[week * 10 + day] ?: HolidayDay()
@@ -43,7 +37,7 @@ class HolidayPlan private constructor(private val days: Map<Int, HolidayDay>) {
 
         fun build(startDate: LocalDate, totalWeeks: Int, entries: List<HolidayEntry>): HolidayPlan {
             if (entries.isEmpty() || totalWeeks <= 0) return Empty
-            // 只认学期范围内的条目：同一个节日名跨年各有一段，混在一起会把补课映射算串
+            // 只认学期范围内的条目，同一个节日名跨年各有一段，混在一起会把补课映射算串
             val semesterStart = semesterStartMonday(startDate)
             val semesterEnd = semesterStart.plusWeeks(totalWeeks.toLong()).minusDays(1)
             val scoped =
@@ -71,7 +65,7 @@ class HolidayPlan private constructor(private val days: Map<Int, HolidayDay>) {
                     val follow = swap?.let { parseDateOrNull(it.followDate) ?: suggested[it.date] }
                     val followWeek = follow?.let { currentWeekOf(startDate, it) } ?: 0
                     val followDay = follow?.dayOfWeek?.value ?: 0
-                    // 映射落在学期外时不换列：只标「调」，课还是本列的
+                    // 映射落在学期外时不换列，只标「调」，课还是本列的
                     val remap = followWeek in 1..totalWeeks && followDay in 1..7
                     val flags =
                         HolidayDay(
@@ -96,7 +90,7 @@ private fun holidayDates(entries: List<HolidayEntry>, semesterEnd: LocalDate): S
         }
     }
 
-/** 条目覆盖的日期区间；日期非法或区间倒置时为空 */
+/** 条目覆盖的日期区间，日期非法或区间倒置时为空 */
 private fun HolidayEntry.datesUntil(semesterEnd: LocalDate): List<LocalDate> {
     val start = parseDateOrNull(date) ?: return emptyList()
     val end = (parseDateOrNull(endDate) ?: start).coerceAtMost(semesterEnd)
@@ -116,7 +110,7 @@ private fun suggestFollowDates(entries: List<HolidayEntry>, semesterEnd: LocalDa
         entries.filter { it.type == HolidayEntry.TYPE_WORKSWAP && parseDateOrNull(it.followDate) == null }
     if (blocks.isEmpty() || pending.isEmpty()) return emptyMap()
 
-    // 补班日归属哪段假期：先按名字（去掉「补班 / 调休」后缀）匹配，否则取最近的一段
+    // 补班日归属哪段假期，先按名字（去掉「补班/调休」后缀）匹配，否则取最近的一段
     val grouped = LinkedHashMap<String, MutableList<Pair<String, LocalDate>>>()
     pending.forEach { swap ->
         val date = parseDateOrNull(swap.date) ?: return@forEach

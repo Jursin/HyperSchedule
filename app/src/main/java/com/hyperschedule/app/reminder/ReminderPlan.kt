@@ -17,7 +17,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 
-/** 提醒要的一节课：当天绝对起止时间 + 通知里要显示的内容 */
+/** 提醒要的一节课，当天绝对起止时间 + 通知里要显示的内容 */
 internal data class DayCourse(
     val id: String,
     val name: String,
@@ -30,7 +30,7 @@ internal data class DayCourse(
     fun isOngoing(now: LocalDateTime): Boolean = end != null && now >= start && now < end
 }
 
-/** 排课要的数据一次读齐：设置、作息、课程、节假日；调度与触发共用同一套解析 */
+/** 排课要的数据一次读齐，设置、作息、课程、节假日，调度与触发共用同一套解析 */
 internal class ReminderData(
     val reminder: ReminderSettings,
     private val startDate: LocalDate,
@@ -108,6 +108,6 @@ private fun CourseWithWeeks.toDayCourse(
     return DayCourse(course.id, course.name, course.position, course.teacher, start, end)
 }
 
-/** 本地时间转绝对毫秒：闹钟、通知、岛上的倒计时都按它对齐 */
+/** 本地时间转绝对毫秒，闹钟、通知、岛上的倒计时都按它对齐 */
 internal fun LocalDateTime.toEpochMillis(): Long =
     atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

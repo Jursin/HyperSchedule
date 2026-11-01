@@ -113,12 +113,12 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
             isDark -> Color(0x4D3482FFL)
             else -> Color(0x333C81FFL)
         }
-    // 内描边与文字都跟着底色走：浅色主色配深色前景才看得清
+    // 内描边与文字都跟着底色走，浅色主色配深色前景才看得清
     val innerBorderColor = if (dynamic) onAccent.copy(alpha = 0.2f) else Color(0x33FFFFFF)
     val labelColor = if (dynamic) onAccent else Color.White
 
     var pressed by remember { mutableStateOf(false) }
-    // 按钮像素尺寸：手势容差判定与光晕位图尺寸
+    // 按钮像素尺寸，手势容差判定与光晕位图尺寸
     var buttonSize by remember { mutableStateOf(IntSize.Zero) }
 
     val pressScale by
@@ -151,7 +151,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
     Box(
         modifier =
             Modifier
-                // 光晕与按钮一起缩放；clip=false 防止层裁剪切掉外溢光晕
+                // 光晕与按钮一起缩放，clip=false 防止层裁剪切掉外溢光晕
                 .graphicsLayer {
                     clip = false
                     scaleX = pressScale
@@ -175,10 +175,10 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                     .pointerInput(buttonSize) {
                         awaitEachGesture {
                             val down = awaitFirstDown(requireUnconsumed = false)
-                            // 立刻消费：按下"今"按钮后，手指横移不再翻动下层 pager
+                            // 立刻消费，按下"今"按钮后手指横移不再翻动下层 pager
                             down.consume()
 
-                            // 容差 12dp：按住后小幅移动不算取消，避免误触
+                            // 容差 12dp，按住后小幅移动不算取消，避免误触
                             val tolerance = 12.dp.toPx()
                             var inside = true
                             pressed = true
@@ -214,7 +214,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                     }
                     .onSizeChanged { buttonSize = it }
                     .semantics { contentDescription = "今" }
-                    // 填充 + 内缩半宽双描边；有模糊时填充交给模糊层
+                    // 填充 + 内缩半宽双描边，有模糊时填充交给模糊层
                     .drawBehind {
                         val radius = BackToNowCornerRadius.toPx()
                         val s = 1.dp.toPx()
@@ -254,23 +254,18 @@ private val BackToNowGlowDy = 8.dp
 /** 光晕外溢区 = 40dp 模糊空间 + 8dp 下移 */
 private val BackToNowGlowPad = 48.dp
 
-/** 背景模糊半径 */
 private const val BackToNowBlurRadius = 3f
 
 /** 光晕模糊半径（半分辨率位图，换算成全尺寸 σ） */
 private const val BackToNowGlowBlurPx = 40f
 
-/** 按压缩放下限 */
 private const val BackToNowPressScale = 0.9f
 
-/** 按压回弹刚度：按下 / 松手 */
+/** 按压回弹刚度，按下/松手 */
 private const val BackToNowPressStiffnessDown = 1755f
 private const val BackToNowPressStiffnessUp = 439f
 
-/**
- * 预渲染光晕位图：画下移 [dy] 的胶囊 → 模糊 → DST_OUT 挖掉按钮区域
- * 必须用软件 Canvas，硬件 Canvas 不支持 BlurMaskFilter
- */
+/** 预渲染光晕位图，画下移 [dy] 的胶囊再模糊并用 DST_OUT 挖掉按钮区域，必须用软件 Canvas，硬件 Canvas 不支持 BlurMaskFilter */
 private fun buildGlowBitmap(
     btnW: Int,
     btnH: Int,
@@ -303,7 +298,7 @@ private fun buildGlowBitmap(
     return bitmap
 }
 
-/** 单个 tab 上报给共享「今」按钮的状态；切页时宿主换槽位，按钮就地收起/展开 */
+/** 单个 tab 上报给共享「今」按钮的状态，切页时宿主换槽位，按钮就地收起/展开 */
 class BackToNowSlot(val visible: State<Boolean>, val onClick: () -> Unit)
 
 class BackToNowHostState {
@@ -317,7 +312,7 @@ val LocalBackToNowHost = compositionLocalOf<BackToNowHostState?> { null }
 /** 当前内容所属的 tab 页码（即 MainScaffold 传入的 page） */
 val LocalTabPageIndex = compositionLocalOf { -1 }
 
-/** 把本页的「今」按钮状态挂到跨页共享的宿主上；[visible] 须是 remember 出来的稳定 State */
+/** 把本页的「今」按钮状态挂到跨页共享的宿主上，[visible] 须是 remember 出来的稳定 State */
 @Composable
 fun ProvideBackToNow(visible: State<Boolean>, onClick: () -> Unit) {
     val host = LocalBackToNowHost.current ?: return

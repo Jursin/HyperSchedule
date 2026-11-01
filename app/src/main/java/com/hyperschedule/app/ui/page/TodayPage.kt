@@ -94,7 +94,7 @@ fun TodayPage(
     val preClassMinutes =
         if (reminder.enabled) reminder.preMinutes else ReminderSettings.Default.preMinutes
 
-    // 放假 / 调休：与课表页共用同一张（周次, 星期）表，翻日期只查表
+    // 放假/调休，与课表页共用同一张（周次, 星期）表，翻日期只查表
     val holidayPlan = rememberHolidayPlan(holidayRepository, startDate, totalWeeks)
 
     var dateDraft by remember { mutableStateOf(dateState.today) }
@@ -171,7 +171,7 @@ fun TodayPage(
         ) { date ->
             val week = startDate?.let { currentWeekOf(it, date) }
             val day = date.dayOfWeek.value
-            // 这一天在放假 / 调休规则下的结论：补课时要看的可能是被调那一天的课（甚至别的周）
+            // 这一天在放假/调休规则下的结论，补课时要看的可能是被调那一天的课（甚至别的周）
             val dayPlan =
                 remember(holidayPlan, week, day) {
                     week?.let { holidayPlan.of(it, day) } ?: HolidayDay()
@@ -195,11 +195,11 @@ fun TodayPage(
                     // 采集点放在外层 pager 上，每页不再各自录制
                     blurBackdrop = null,
                     scrollBehavior = scrollBehavior,
-                    // 顶栏（含日期行）高度作为滚动内容的内边距：内容才能滚到它下方，顶栏有东西可模糊
+                    // 顶栏（含日期行）高度作为滚动内容的内边距，内容才能滚到它下方，顶栏有东西可模糊
                     topInset = paddingValues.calculateTopPadding(),
                     topPadding = 0.dp,
                 ) {
-                    // 放假这天不上课：不列课程，直接走下面的空状态
+                    // 放假这天不上课，不列课程，直接走下面的空状态
                     if (courses.isNotEmpty() && !dayPlan.holiday) {
                         TodayCourseList(
                             courses = courses,
@@ -295,7 +295,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
                 tint = MiuixTheme.colorScheme.onSurface,
             )
         }
-        // 放假 / 调休标在日期旁边：整页都是同一天，标在这里比每行重复更清楚
+        // 放假/调休标在日期旁边，整页都是同一天，标在这里比每行重复更清楚
         if (plan.holiday || plan.workSwap) {
             val accent = plan.workSwap
             val colors = MiuixTheme.colorScheme
@@ -323,7 +323,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
     }
 }
 
-/** 空状态文案；垂直位置由调用方的剩余区域居中决定 */
+/** 空状态文案，垂直位置由调用方的剩余区域居中决定 */
 @Composable
 private fun EmptyCourseHint(isToday: Boolean = false, isHoliday: Boolean = false) {
     val text =

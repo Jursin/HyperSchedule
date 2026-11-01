@@ -11,7 +11,7 @@ import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.data.model.TimeSlot
 import java.time.LocalDate
 
-/** 导出用的整张课表快照；[slotsFor] 给出某一天生效的作息（组合作息按日期切换） */
+/** 导出用的整张课表快照，[slotsFor] 给出某一天生效的作息（组合作息按日期切换） */
 data class TableExportData(
     val startDate: LocalDate?,
     val totalWeeks: Int,
@@ -22,11 +22,11 @@ data class TableExportData(
     val combo: ComboScheduleExport? = null,
 )
 
-/** 实际要展开的最后一周：课程周次可能超出总周数（导入过长学期后又调小了总周数），多出来的也要导出 */
+/** 实际要展开的最后一周，课程周次可能超出总周数（导入过长学期后又调小了总周数），多出来的也要导出 */
 val TableExportData.lastWeek: Int
     get() = maxOf(totalWeeks, courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0)
 
-/** 组合作息快照：组合名 + 每条日期规则各带一套公共作息 */
+/** 组合作息快照，组合名 + 每条日期规则各带一套公共作息 */
 data class ComboScheduleExport(
     val name: String?,
     val publicSchedules: List<PublicScheduleExport>,
@@ -44,7 +44,6 @@ data class PublicScheduleExport(
     }
 }
 
-/** 单表 JSON */
 fun buildTableJson(data: TableExportData): String =
     CourseTableJsonParser.encode(
         CourseTableJson(

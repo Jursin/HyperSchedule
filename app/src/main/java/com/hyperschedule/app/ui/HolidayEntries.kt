@@ -12,7 +12,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 
-/** 订阅学期覆盖到的年份的节假日；没设开学日期就没有日期可比，返回空 */
+/** 订阅学期覆盖到的年份的节假日，没设开学日期就没有日期可比，返回空 */
 @Composable
 fun rememberHolidayEntries(
     repository: HolidayRepository?,
@@ -36,7 +36,7 @@ fun rememberHolidayEntries(
     return flow.collectAsState(emptyList()).value
 }
 
-/** 学期内的节假日方案；没设开学日期时给空方案 */
+/** 学期内的节假日方案，没设开学日期时给空方案 */
 @Composable
 fun rememberHolidayPlan(
     repository: HolidayRepository?,

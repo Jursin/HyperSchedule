@@ -13,10 +13,9 @@ import com.hyperschedule.app.data.model.TimeTableCombo
 import com.hyperschedule.app.data.model.TimeTableComboRule
 import kotlinx.serialization.Serializable
 
-/** 备份格式标识 */
 const val BACKUP_FORMAT = "hyperschedule-backup"
 
-/** 当前备份格式版本；读到更高版本直接拒绝 */
+/** 当前备份格式版本，读到更高版本直接拒绝 */
 const val BACKUP_FORMAT_VERSION = 1
 
 /** 备份文件，编码时不写默认值与 null */
@@ -39,10 +38,8 @@ data class BackupPayload(
     val comboRules: List<RuleRow> = emptyList(),
     val prefs: Map<String, PrefsSnapshot> = emptyMap(),
 ) {
-    /** 课表张数 */
     val tableCount: Int get() = tables.size
 
-    /** 课程门数 */
     val courseCount: Int get() = courses.size
 
     /** 指纹只看内容，不看时间与版本号 */
@@ -305,7 +302,7 @@ data class RuleRow(
     }
 }
 
-/** 一份 SharedPreferences 的类型化快照；分类型存，回写时不用猜类型 */
+/** 一份 SharedPreferences 的类型化快照，分类型存，回写时不用猜类型 */
 @Serializable
 data class PrefsSnapshot(
     val booleans: Map<String, Boolean> = emptyMap(),
@@ -316,7 +313,7 @@ data class PrefsSnapshot(
     val stringSets: Map<String, List<String>> = emptyMap(),
 ) {
     companion object {
-        /** [keys] 为 null 表示整份备份；未知类型跳过 */
+        /** [keys] 为 null 表示整份备份，未知类型跳过 */
         fun of(all: Map<String, *>, keys: Set<String>? = null): PrefsSnapshot {
             val booleans = sortedMapOf<String, Boolean>()
             val ints = sortedMapOf<String, Int>()

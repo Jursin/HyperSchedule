@@ -26,7 +26,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
-/** 落页任务的槽位 */
 internal class PagerSettleSlot {
     var job: Job? = null
 }
@@ -81,7 +80,6 @@ internal fun Modifier.schedulePagerGesture(
     settleSlot: PagerSettleSlot,
     enabled: () -> Boolean,
     blockedPointer: () -> PointerId?,
-    // 可翻的页范围
     pages: () -> IntRange,
     onVerticalScroll: (dy: Float) -> Unit,
 ): Modifier {

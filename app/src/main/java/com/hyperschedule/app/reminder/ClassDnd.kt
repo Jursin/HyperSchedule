@@ -9,7 +9,7 @@ import android.widget.Toast
 import androidx.core.content.edit
 import com.hyperschedule.app.theme.SettingsStore
 
-/** 上课自动勿扰：进入时记下用户原来的档位，退出时只还原自己动过的那一项 */
+/** 上课自动勿扰，进入时记下用户原来的档位，退出时只还原自己动过的那一项 */
 internal object ClassDnd {
 
     private const val PREF = "reminder_runtime"
@@ -26,13 +26,13 @@ internal object ClassDnd {
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
 
-    /** 当前是不是由本应用接管着；通知上的「上课勿扰」按钮靠它判断该开还是该关 */
+    /** 当前是不是由本应用接管着，通知上的「上课勿扰」按钮靠它判断该开还是该关 */
     fun isApplied(context: Context): Boolean = prefs(context).getBoolean(KEY_APPLIED, false)
 
     /** 这次接管是手动开的，此时自动勿扰逻辑不许插手 */
     fun isManual(context: Context): Boolean = prefs(context).getBoolean(KEY_MANUAL, false)
 
-    /** 手动开关：[isApplied] 为真就还给用户，否则按设定档位接管 */
+    /** 手动开关，[isApplied] 为真就还给用户，否则按设定档位接管 */
     fun toggle(context: Context, mode: Int): Boolean {
         if (isApplied(context)) {
             restore(context)
@@ -42,13 +42,13 @@ internal object ClassDnd {
         return apply(context, mode)
     }
 
-    /** 按档位接管系统状态；返回是否真的接管成功 */
+    /** 按档位接管系统状态，返回是否真的接管成功 */
     fun apply(context: Context, mode: Int): Boolean {
         if (!ReminderPermissions.hasDndAccess(context)) return false
         val manager = context.getSystemService(NotificationManager::class.java) ?: return false
         val audio = context.getSystemService(AudioManager::class.java) ?: return false
         val store = prefs(context)
-        // 连着几节课只记第一次接管前的状态：别用上一节课的状态盖掉用户的原设置
+        // 连着几节课只记第一次接管前的状态，别用上一节课的状态盖掉用户的原设置
         if (!store.getBoolean(KEY_APPLIED, false)) {
             store.edit {
                 putBoolean(KEY_APPLIED, true)
@@ -79,7 +79,7 @@ internal object ClassDnd {
         return done
     }
 
-    /** 退出勿扰接管；没接管过时什么都不做，不碰用户自己设的档位 */
+    /** 退出勿扰接管，没接管过时什么都不做，不碰用户自己设的档位 */
     fun restore(context: Context) {
         val prefs = prefs(context)
         if (!prefs.getBoolean(KEY_APPLIED, false)) return
@@ -96,13 +96,13 @@ internal object ClassDnd {
         clear(context)
     }
 
-    /** 一次性忘掉接管记录：开机、应用更新、关闭提醒后原状态已无意义 */
+    /** 一次性忘掉接管记录，开机、应用更新、关闭提醒后原状态已无意义 */
     fun clear(context: Context) {
         prefs(context).edit { clear() }
     }
 }
 
-/** 通知与超级岛上的「上课勿扰」按钮：点一下开，再点一下关 */
+/** 通知与超级岛上的「上课勿扰」按钮，点一下开，再点一下关 */
 class ClassDndReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {

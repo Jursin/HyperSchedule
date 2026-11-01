@@ -20,7 +20,7 @@ import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 教务脚本的 alert / prompt / 单选对话框，页面只负责状态 */
+/** 教务脚本的 alert/prompt/单选对话框，页面只负责状态 */
 internal data class EduAlertState(
     val title: String,
     val content: String,

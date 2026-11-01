@@ -29,22 +29,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.time.Duration.Companion.milliseconds
 
-/** 贴边热区宽度 */
 private val EdgeHotZone = 32.dp
 
-/** 贴边停留多久翻一页 */
 private const val EdgeDwellMs = 500L
 
-/** 松手后等翻页停稳的上限 */
 private const val PagerSettleMs = 500L
 
-/** 页面级触控状态 */
 internal class ScheduleTouchState {
     /** 正按住课程卡拖拽的指针 */
     var pointerId: PointerId? = null
-    /** 按下时的 root 坐标 */
     var downRoot: Offset? = null
-    /** 已越过容差 */
     var started = false
 
     fun begin(pointerId: PointerId, downRoot: Offset) {
@@ -67,13 +61,9 @@ internal class EdgeAutoPager(
     private val zonePx: Float,
 ) {
     private var job: Job? = null
-    /** 循环当前方向 */
     private var direction = 0
-    /** 最近一次算出的方向 */
     private var latest = 0
-    /** 翻页动画在跑 */
     private var animating = false
-    /** Job 代号 */
     private var generation = 0
 
     fun update(centerX: Float, bounds: Rect, pages: IntRange, pagerState: PagerState) {

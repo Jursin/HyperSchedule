@@ -12,7 +12,7 @@ import java.time.LocalDateTime
 import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 
-/** 今天：跨零点自动更新，避免页面一直用启动那天的日期 */
+/** 今天，跨零点自动更新，避免页面一直用启动那天的日期 */
 @Composable
 fun rememberToday(): LocalDate {
     var today by remember { mutableStateOf(LocalDate.now()) }

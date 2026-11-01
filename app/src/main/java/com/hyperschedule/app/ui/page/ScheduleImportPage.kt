@@ -27,20 +27,20 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** 文件导入来源：决定用哪个解析器 */
+/** 文件导入来源，决定用哪个解析器 */
 private enum class ImportSource {
     JSON,
     ICS,
 }
 
-/** 待导入内容：选好文件或取回口令后，等用户指定目标课表 */
+/** 待导入内容，选好文件或取回口令后，等用户指定目标课表 */
 private sealed interface PendingImport {
     data class File(val source: ImportSource, val text: String) : PendingImport
 
     data class Share(val payload: CourseTableJson) : PendingImport
 }
 
-/** 课表导入：选好文件后先选目标课表，可直接新建一张再导入 */
+/** 课表导入，选好文件后先选目标课表，可直接新建一张再导入 */
 @Composable
 fun ScheduleImportPage(
     tables: List<TableSummary>,
@@ -66,7 +66,7 @@ fun ScheduleImportPage(
 
     fun toast(text: String) = Toast.makeText(context, text, Toast.LENGTH_LONG).show()
 
-    /** 内容到手后统一走这里：默认选中当前课表，用户再确认或改选 */
+    /** 内容到手后统一走这里，默认选中当前课表，用户再确认或改选 */
     fun askTargetTable(item: PendingImport) {
         pending = item
         selectedTableId = table?.tableId ?: tables.firstOrNull()?.table?.id

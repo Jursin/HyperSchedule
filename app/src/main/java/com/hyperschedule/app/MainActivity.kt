@@ -74,10 +74,10 @@ class MainActivity : ComponentActivity() {
             val backupRepository = remember { BackupRepository(applicationContext, AppDatabase.get(applicationContext)) }
             val schoolRepository = remember { SchoolRepository(applicationContext, eduRepoStore) }
             val scriptRepository = remember { EduScriptRepository(applicationContext, eduRepoStore) }
-            // 课表级数据在这里常驻订阅：进入课程详情页时无需再等一次数据库
+            // 课表级数据在这里常驻订阅，进入课程详情页时无需再等一次数据库
             val table = rememberCourseTableData(repository, settingsStore)
             val allCourses = rememberCoursesWithWeeks(repository, table?.tableId)
-            // 提醒重排的全部触发点：启动、改提醒设置、换课表、课程增删改（allCourses 换代）
+            // 提醒重排的全部触发点，启动、改提醒设置、换课表、课程增删改（allCourses 换代）
             LaunchedEffect(settings.reminder, settings.currentTableId, allCourses) {
                 ReminderScheduler.resync(applicationContext)
             }
@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
                 val today = LocalDate.now().toString()
                 if (!settings.checkUpdateOnStart || settings.lastUpdateCheck == today) return@LaunchedEffect
                 delay(1500.milliseconds)
-                // 静默检查每天最多一次；手动检查不受限制
+                // 静默检查每天最多一次，手动检查不受限制
                 settingsStore.update { it.copy(lastUpdateCheck = today) }
                 updateController.checkForUpdate(
                     settings.updateSource,

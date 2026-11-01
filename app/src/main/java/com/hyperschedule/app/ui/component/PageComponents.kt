@@ -49,13 +49,11 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
-/** 顶栏标题的左右内边距 */
 internal val TopBarTitlePadding = 28.dp
 
-/** 顶栏图标的边距 */
 internal val TopBarIconPadding = 14.dp
 
-/** 浮窗内顶栏要补的高度：返回按钮圆心对齐窗口圆角的圆心 */
+/** 浮窗内顶栏要补的高度，返回按钮圆心对齐窗口圆角的圆心 */
 @Composable
 private fun windowTopBarInset(): Dp =
     if (LocalInsideFloatingWindow.current) {
@@ -64,7 +62,6 @@ private fun windowTopBarInset(): Dp =
         0.dp
     }
 
-/** 浮窗内顶栏的图标边距 */
 @Composable
 private fun windowTopBarIconPadding(): Dp =
     if (LocalInsideFloatingWindow.current) {
@@ -109,7 +106,7 @@ fun BlurredTopAppBar(
     // 浮窗内顶栏下移、图标边距收紧
     val iconPadding = windowTopBarIconPadding()
     val barModifier = Modifier.appBarBlur(blurBackdrop).windowTopBarTrim(barColor)
-    // 浮窗内一律用单行顶栏，和原生日历的设置页一致
+    // 浮窗内一律用单行顶栏
     val singleLine = pinnedTitle || insideWindow
     // 单行顶栏的标题居中，左右 padding 会挤掉标题宽度
     val effectiveTitlePadding = if (insideWindow) 0.dp else titlePadding
@@ -153,7 +150,6 @@ val LocalPageTopPadding = staticCompositionLocalOf { PageTopPadding }
 /** 当前页面是否画在整页浮窗里 */
 val LocalInsideFloatingWindow = staticCompositionLocalOf { false }
 
-/** 页面内容列 */
 @Composable
 fun PageScrollColumn(
     blurBackdrop: LayerBackdrop?,
@@ -196,7 +192,6 @@ fun Modifier.pageScroll(
 /** 滚动容器的回弹与滚到底触感 */
 fun Modifier.bouncyScroll(): Modifier = overScrollVertical().scrollEndHaptic()
 
-/** 页面内容统一内边距 */
 @Composable
 fun pageContentPadding(
     paddingValues: PaddingValues,
@@ -221,7 +216,7 @@ internal fun Modifier.clearFocusOnPress(focusManager: FocusManager): Modifier =
         }
     }
 
-/** 右下角保存按钮：不可保存时用禁用配色 */
+/** 右下角保存按钮，不可保存时用禁用配色 */
 @Composable
 fun SaveFab(canSave: Boolean, onClick: () -> Unit) {
     FloatingActionButton(
@@ -246,7 +241,7 @@ fun SaveFab(canSave: Boolean, onClick: () -> Unit) {
     }
 }
 
-/** 右下角附加操作按钮（如添加规则）：不可用时用禁用配色 */
+/** 右下角附加操作按钮（如添加规则），不可用时用禁用配色 */
 @Composable
 fun AddFab(enabled: Boolean, description: String, onClick: () -> Unit) {
     FloatingActionButton(
