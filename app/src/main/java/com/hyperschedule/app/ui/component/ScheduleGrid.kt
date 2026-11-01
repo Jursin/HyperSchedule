@@ -37,7 +37,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 private val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
 
-/** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗，未设置开学日期时只有星期名 */
+/** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗 */
 @Composable
 internal fun WeekdayRow(
     startDate: LocalDate?,

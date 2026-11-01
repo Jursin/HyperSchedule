@@ -139,14 +139,16 @@ fun SchedulePage(
 
     fun pageOfWeek(week: Int): Int = EdgePages + week - 1
 
-    val todayPage = currentWeek?.let { pageOfWeek(it) }
+    // 没设开学日期时把第 1 页当成本周
+    val nowWeek = currentWeek ?: 1
+    val todayPage = pageOfWeek(nowWeek)
     val pageCount = EdgePages * 2 + MAX_TOTAL_WEEKS
     val lastPage = pageCount - 1
     // 页数固定，学期设置只影响内容
     val pagerState =
         remember {
             PagerState(
-                currentPage = (todayPage ?: pageOfWeek(1)).coerceIn(0, lastPage),
+                currentPage = todayPage.coerceIn(0, lastPage),
                 pageCount = { pageCount },
             )
         }
@@ -199,7 +201,7 @@ fun SchedulePage(
         if (!pageIsCurrent) pendingReset = true
         // 导航结束或刚切回时复位
         if (pendingReset && (pageIsCurrent || !tabNavigating)) {
-            pagerState.scrollToPage((todayPage ?: pageOfWeek(1)).coerceIn(0, lastPage))
+            pagerState.scrollToPage(todayPage.coerceIn(0, lastPage))
             pendingReset = false
         }
     }
@@ -208,7 +210,7 @@ fun SchedulePage(
 
     // 不在本周时显示「今」
     val showBackToNow = remember(todayPage) {
-        derivedStateOf { !pendingReset && todayPage != null && todayPage != viewingPage }
+        derivedStateOf { !pendingReset && todayPage != viewingPage }
     }
 
     // 切课表后作废旧历史
@@ -253,7 +255,7 @@ fun SchedulePage(
                 startDate = startDate,
                 pageWeek = pageWeek,
                 totalWeeks = totalWeeks,
-                currentWeek = currentWeek,
+                currentWeek = nowWeek,
                 today = today,
                 gridLines = style.gridLines,
                 blurBackdrop = blurBackdrop,
@@ -323,7 +325,7 @@ fun SchedulePage(
                     style = style,
                     startDate = startDate,
                     totalWeeks = totalWeeks,
-                    currentWeek = currentWeek,
+                    currentWeek = nowWeek,
                     now = now,
                     holidayPlan = holidayPlan,
                     allCourses = allCourses,
@@ -424,11 +426,7 @@ fun SchedulePage(
 
     ProvideBackToNow(
         visible = showBackToNow,
-        onClick = {
-            todayPage?.let { target ->
-                scope.launch { pagerState.animateScrollToPage(target.coerceIn(0, lastPage)) }
-            }
-        },
+        onClick = { scope.launch { pagerState.animateScrollToPage(todayPage.coerceIn(0, lastPage)) } },
     )
 
     // 落点已有课

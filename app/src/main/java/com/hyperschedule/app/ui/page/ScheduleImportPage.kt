@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.share.ShareCodeImport
 import com.hyperschedule.app.data.importer.share.ShareCodeSource
+import com.hyperschedule.app.data.remote.readCapped
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
 import com.hyperschedule.app.schedule.cjkDigitGap
@@ -131,7 +132,9 @@ fun ScheduleImportPage(
             scope.launch {
                 runCatching {
                     withContext(Dispatchers.IO) {
-                        context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { it.readText() }
+                        context.contentResolver
+                            .openInputStream(uri)
+                            ?.use { it.readCapped().decodeToString() }
                             ?: error("无法读取文件")
                     }
                 }.fold(

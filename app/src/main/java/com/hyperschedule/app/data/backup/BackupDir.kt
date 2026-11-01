@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
+import com.hyperschedule.app.data.remote.readCapped
 import java.io.IOException
 
 data class BackupEntry(
@@ -200,7 +201,7 @@ class SafBackupDir(
     override fun read(name: String): String {
         val id = fileId(name) ?: throw IOException("找不到 $name")
         return resolver.openInputStream(documentUri(id))?.use { input ->
-            input.readBytes().toString(Charsets.UTF_8)
+            input.readCapped().toString(Charsets.UTF_8)
         } ?: throw IOException("无法读取 $name")
     }
 

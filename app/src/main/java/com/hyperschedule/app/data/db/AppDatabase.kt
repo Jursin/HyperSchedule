@@ -56,8 +56,6 @@ abstract class AppDatabase : RoomDatabase() {
             instance ?: synchronized(this) {
                 instance
                     ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)
-                        // 结构仍在早期演进，版本变化时按 schema 自动重建，不做数据迁移
-                        .fallbackToDestructiveMigration(true)
                         .build()
                         .also { instance = it }
             }

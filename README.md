@@ -12,27 +12,26 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 ## ✨ 功能特性
 
 - **课表：**
-  - 今日课表与课程表两个主页面，底部悬浮胶囊导航栏
-  - 今日视图显示当日课程，可左右翻阅切换日期
+  - 包括今日课表与课程表两个主页面
+  - 今日视图显示当日课程，课前/课中显示进度条，可左右翻阅切换日期
   - 周视图显示当周课程总览，可左右翻阅其它周课程
-  - 周视图拖动课程调整节次或跨周调课，支持撤销/恢复
-  - 多张课表并存，随时切换
+  - 周视图拖动课程调整当周节次或跨周调课，支持撤销/恢复
+  - 支持多课表，随时切换
   - 多套作息方案，支持按日期段组合切换
   - 节假日与调休标记，支持在线拉取与手动编辑
 - **导入与导出：**
-  - JSON 文件
-  - ICS 日历文件
-  - 分享口令导入：WakeUp 课程表、星链课表、Nexio 课程表
-  - 教务系统网页导入，学校适配脚本来自 [ShiGuangSchedule/shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)
+  - 支持 JSON 文件、ICS 日历文件
+  - 支持 WakeUp 课程表、星链课表、Nexio 课程表分享口令/分享码导入
+  - 支持教务系统网页导入，学校适配脚本获取自 [shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)
 - **课程提醒：**
-  - 课前提醒与课中提醒（显示距离下课的时间）
+  - 支持课前提醒、课中提醒，显示上课、下课倒计时
   - 上课自动开启静音/勿扰，下课自动恢复
-  - 实时动态通知（Android 16+）
-  - 通知样式提升为小米超级岛（需 Shizuku 授权且设备支持）
+  - 支持设备显示为实时动态通知（Android 16+）
+  - 支持设备提升为小米超级岛（HyperOS 3+，需 Shizuku 授权）
 - **备份与恢复：**
-  - 备份到自选目录（SAF）或 WebDAV 云端备份
-  - 可设置启动时自动备份、保留份数
-  - 恢复前自动保存当前数据
+  - 支持备份到本地自选目录或 WebDAV 云端备份
+  - 可设置启动时自动备份、备份保留数量
+  - 恢复前自动备份当前数据
 - **外观设置：**
   - 浅色/深色主题模式
   - 应用模糊效果（Android 13+）
@@ -43,15 +42,14 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 - **更新设置：**
   - 从 GitHub/Gitee 检查最新版本
   - 可启用启动时检查更新
-  - 支持设置 GitHub 加速地址
+  - 可设置 GitHub 加速地址
   - 后台下载时通知栏显示进度
 
 ## 📦 构建
 
 ### 环境要求
 - JDK 21
-- Android SDK 37
-- Gradle 由 wrapper 提供
+- Android SDK
 
 ### 构建命令
 - Debug: `./gradlew assembleDebug`
@@ -60,7 +58,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 - 静态检查: `./gradlew lintDebug`
 
 ## 📚 开放源代码许可
-[本项目所使用的第三方开源库及其许可证信息](app/src/main/assets/aboutlibraries.json)
+本项目所使用的[第三方开源库及其许可证信息](app/src/main/assets/aboutlibraries.json)
 
 ## 🔒 数据与隐私
 
@@ -72,8 +70,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 
 - [Miuix](https://github.com/compose-miuix-ui/miuix)：HyperOS 风格 Compose 组件库
 - [Shizuku](https://github.com/RikkaApps/Shizuku)：小米超级岛通知所需的授权通道
-- [AboutLibraries](https://github.com/mikepenz/AboutLibraries)：开源许可清单生成
-- [holiday-calendar](https://github.com/NateScarlet/holiday-cn)：节假日与调休数据
+- [holiday-calendar](https://github.com/cg-zhou/holiday-calendar)：节假日与调休数据
 - [shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)：教务系统导入的适配脚本
 - [shiguangschedule](https://github.com/ShiGuangSchedule/shiguangschedule)：数据管理参考
 - [NexioSchedule](https://github.com/HaoZai000/NexioSchedule)：部分 UI 参考

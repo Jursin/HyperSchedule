@@ -21,7 +21,7 @@ class EduScriptRepository(
     /** 取脚本内容，远端优先，失败按本地缓存、内置脚本依次回退 */
     suspend fun script(resourceFolder: String, scriptPath: String): String? =
         withContext(Dispatchers.IO) {
-            if (resourceFolder.isBlank() || scriptPath.isBlank()) return@withContext null
+            if (!isSafeRelative(resourceFolder) || !isSafeRelative(scriptPath)) return@withContext null
             val target = File(scriptsDir, "$resourceFolder/$scriptPath")
             val url = repoStore.scriptUrl(resourceFolder, scriptPath)
             val remote = url?.let { runCatching { httpGetGiteeRaw(it) }.getOrNull() }
@@ -39,3 +39,10 @@ class EduScriptRepository(
     private fun assetScript(path: String): String? =
         runCatching { context.assets.open(path).use { it.readBytes() } }.getOrNull()?.decodeToString()
 }
+
+/** 索引里的路径由远端下发，只接受不带 .. 的相对路径，避免写出缓存目录 */
+private fun isSafeRelative(path: String): Boolean =
+    path.isNotBlank() &&
+        !path.startsWith("/") &&
+        !path.startsWith("\\") &&
+        path.split('/', '\\').none { it == ".." }

@@ -1,5 +1,6 @@
 package com.hyperschedule.app.data.importer.share
 
+import com.hyperschedule.app.data.remote.readCapped
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -47,7 +48,7 @@ internal object ShareHttp {
                 connection.errorStream?.close()
                 throw ShareHttpException(code)
             }
-            return connection.inputStream.use { it.readBytes().decodeToString() }
+            return connection.inputStream.use { it.readCapped().decodeToString() }
         } finally {
             connection.disconnect()
         }

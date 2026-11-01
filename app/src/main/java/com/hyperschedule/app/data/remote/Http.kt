@@ -1,18 +1,35 @@
 package com.hyperschedule.app.data.remote
 
+import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.URL
 
 internal const val AppUserAgent = "HyperSchedule"
 
+/** 单次读取上限，远端与用户选的文件都可能被塞大体积内容，超过就直接报错而不是把内存吃干 */
+internal const val MaxReadBytes = 16 * 1024 * 1024
+
+/** 按块读到内存，超过 [limit] 抛异常 */
+internal fun InputStream.readCapped(limit: Int = MaxReadBytes): ByteArray {
+    val buffer = ByteArrayOutputStream()
+    val chunk = ByteArray(8 * 1024)
+    while (true) {
+        val read = read(chunk)
+        if (read < 0) return buffer.toByteArray()
+        if (buffer.size() + read > limit) throw IOException("内容超过 ${limit / 1024 / 1024} MB，已停止读取")
+        buffer.write(chunk, 0, read)
+    }
+}
+
 /** 发一次 GET 并返回正文，超时与 UA 全项目统一 */
 internal fun httpGet(url: String, accept: String? = null): String =
-    httpGetResult(url, accept) { it.bufferedReader().use { reader -> reader.readText() } }
+    httpGetResult(url, accept) { it.use { stream -> stream.readCapped().decodeToString() } }
 
 /** 二进制资源（如学校索引）走同一套超时与 UA */
 internal fun httpGetBytes(url: String): ByteArray =
-    httpGetResult(url, accept = null) { it.use { stream -> stream.readBytes() } }
+    httpGetResult(url, accept = null) { it.use { stream -> stream.readCapped() } }
 
 /** gitee raw 偶发返回反盗链签名页，跟随签名链接再取一次 */
 internal fun httpGetGiteeRaw(url: String): ByteArray {

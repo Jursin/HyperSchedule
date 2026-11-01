@@ -228,6 +228,7 @@ fun TodayPage(
                         EmptyCourseHint(
                             isToday = date == dateState.today,
                             isHoliday = dayPlan.holiday,
+                            noStartDate = startDate == null,
                         )
                     }
                 }
@@ -325,9 +326,10 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
 
 /** 空状态文案，垂直位置由调用方的剩余区域居中决定 */
 @Composable
-private fun EmptyCourseHint(isToday: Boolean = false, isHoliday: Boolean = false) {
+private fun EmptyCourseHint(isToday: Boolean, isHoliday: Boolean, noStartDate: Boolean) {
     val text =
         when {
+            noStartDate -> "未设置开学日期"
             isHoliday -> if (isToday) "今天放假，好好休息吧！" else "这天是假期"
             isToday -> "今天没有课程，好好休息吧！"
             else -> "这天没有课程"

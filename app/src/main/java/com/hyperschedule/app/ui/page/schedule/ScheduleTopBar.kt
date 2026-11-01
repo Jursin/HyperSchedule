@@ -83,8 +83,9 @@ internal fun ScheduleTopBar(
             },
             // 星期行与课表列共用同一套网格线
             bottomContent = {
+                // 没设开学日期时按今天所在周显示日期
                 WeekdayRow(
-                    startDate = startDate,
+                    startDate = startDate ?: today,
                     week = pageWeek,
                     currentWeek = currentWeek,
                     today = today,

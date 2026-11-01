@@ -481,6 +481,8 @@ private fun createWebView(context: Context): WebView =
         settings.apply {
             javaScriptEnabled = true
             domStorageEnabled = true
+            allowFileAccess = false
+            allowContentAccess = false
             useWideViewPort = true
             loadWithOverviewMode = true
             layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL

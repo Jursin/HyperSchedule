@@ -14,14 +14,12 @@ val SECTION_COUNT_RANGE = 6..20
 
 enum class SectionPeriod { MORNING, AFTERNOON, EVENING }
 
-/** 默认作息，8 节 */
+/** 默认作息 */
 val DEFAULT_SECTION_TIMES: List<Pair<String, String>> = listOf(
     "08:00" to "09:35",
     "10:05" to "11:40",
-    "12:00" to "13:35",
     "14:00" to "15:35",
     "16:05" to "17:40",
-    "17:45" to "18:30",
     "19:00" to "20:35",
     "20:45" to "22:20",
 )

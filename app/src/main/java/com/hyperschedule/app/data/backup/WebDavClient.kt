@@ -2,6 +2,7 @@ package com.hyperschedule.app.data.backup
 
 import android.util.Base64
 import com.hyperschedule.app.data.remote.AppUserAgent
+import com.hyperschedule.app.data.remote.readCapped
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URL
@@ -171,7 +172,7 @@ class WebDavClient(
                 }
             }
             val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val text = stream?.use { it.readBytes().decodeToString() }.orEmpty()
+            val text = stream?.use { it.readCapped().decodeToString() }.orEmpty()
             return DavResponse(code, text)
         } finally {
             connection.disconnect()

@@ -213,7 +213,9 @@ internal fun interceptPostRequest(
     cookieManager: CookieManager,
 ): WebResourceResponse? {
     val rawUrl = request.url.toString()
-    if (!desktopMode || !rawUrl.startsWith("http")) return null
+    if (!desktopMode) return null
+    // 只重放 http(s) 请求，其余 scheme 交给 WebView 自己处理
+    if (!rawUrl.startsWith("http://", true) && !rawUrl.startsWith("https://", true)) return null
 
     // 请求头名大小写不固定，按不敏感方式取
     val requestId =

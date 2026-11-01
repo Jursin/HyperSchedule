@@ -13,7 +13,6 @@ import com.hyperschedule.app.data.model.CourseTableConfig
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.data.model.SpecialTimeBlock
 import com.hyperschedule.app.data.model.TimeSlot
-import com.hyperschedule.app.data.model.TimeTable
 import com.hyperschedule.app.data.repository.ScheduleOverview
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
@@ -28,11 +27,12 @@ data class CourseTableData(
     val tableId: String,
     val config: CourseTableConfig?,
     val slots: List<TimeSlot>,
-    val specialBlocks: List<SpecialTimeBlock> = emptyList(),
-    val morningAfternoonSplit: String = TimeTable.DEFAULT_MORNING_SPLIT,
-    val afternoonEveningSplit: String = TimeTable.DEFAULT_EVENING_SPLIT,
+    val specialBlocks: List<SpecialTimeBlock>,
+    // 分界可能为空串，由课表布局回落到模型默认值
+    val morningAfternoonSplit: String,
+    val afternoonEveningSplit: String,
 ) {
-    /** 节次时间段，下标即节次序号，导入的作息可能不是 8 节 */
+    /** 节次时间段，下标即节次序号，导入的作息节数不固定 */
     val sectionTimes: List<Pair<String, String>> =
         if (slots.isEmpty()) DEFAULT_SECTION_TIMES else slots.map { it.startTime to it.endTime }
 }
