@@ -66,7 +66,7 @@
             android:exported="true"
             tools:ignore="ExportedReceiver">
             <intent-filter>
-                <action android:name="com.miuix.hyperschedule.action.TOGGLE_DND" />
+                <action android:name="com.hyperschedule.app.action.TOGGLE_DND" />
             </intent-filter>
         </receiver>
 

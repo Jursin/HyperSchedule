@@ -33,15 +33,15 @@ val localProps = Properties().apply {
 }
 
 android {
-    namespace = "com.miuix.hyperschedule"
+    namespace = "com.hyperschedule.app"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.miuix.hyperschedule"
+        applicationId = "com.hyperschedule.app"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0.0"
+        versionName = "0.1.0"
 
     }
 
