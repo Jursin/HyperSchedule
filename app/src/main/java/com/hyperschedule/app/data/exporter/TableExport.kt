@@ -7,8 +7,10 @@ import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.CourseTableJsonParser
 import com.hyperschedule.app.data.importer.PublicScheduleJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
+import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.data.model.TimeSlot
+import com.hyperschedule.app.schedule.parseMinutes
 import java.time.LocalDate
 
 /** 导出用的整张课表快照，[slotsFor] 给出某一天生效的作息（组合作息按日期切换） */
@@ -49,7 +51,7 @@ fun buildTableJson(data: TableExportData): String =
         CourseTableJson(
             courses =
                 data.courses
-                    .sortedWith(compareBy({ it.course.day }, { it.course.startSection ?: 0 }, { it.course.name }))
+                    .sortedBySchedule(data.slots)
                     .map { group ->
                         val course = group.course
                         CourseJson(
@@ -101,3 +103,21 @@ private fun TimeSlot.toJson() =
         endTime = endTime,
         alias = alias?.takeIf { it.isNotBlank() },
     )
+
+/** 与编辑页一致的先后 */
+internal fun List<CourseWithWeeks>.sortedBySchedule(slots: List<TimeSlot>): List<CourseWithWeeks> {
+    val sectionStart = slots.associate { it.number to parseMinutes(it.startTime) }
+    fun Course.startMinutes(): Int =
+        if (isCustomTime) {
+            parseMinutes(customStartTime) ?: Int.MAX_VALUE
+        } else {
+            sectionStart[startSection] ?: (startSection?.times(60) ?: Int.MAX_VALUE)
+        }
+    return sortedWith(
+        compareBy(
+            { it.course.day },
+            { it.course.startMinutes() },
+            { it.weeks.minOfOrNull { week -> week.weekNumber } ?: 0 },
+        )
+    )
+}

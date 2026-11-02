@@ -45,20 +45,22 @@ fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: I
                 if (plan.of(week, day).holiday) continue
                 val date = dates[day - 1]
                 val slots = data.slotsFor(date).associateBy { it.number }
-                coursesByCell[week * 10 + day].orEmpty().forEach { entry ->
-                    val course = entry.course
-                    val span = course.timeSpanOn(date, slots) ?: return@forEach
-                    appendEvent(
-                        uid = "${course.id}-$week-${IcsDayFormatter.format(date)}@hyperschedule",
-                        stamp = stamp,
-                        start = span.first,
-                        end = span.second,
-                        summary = course.name,
-                        location = course.position,
-                        description = describe(week, course),
-                        alarmMinutes = alarmMinutes,
-                    )
-                }
+                coursesByCell[week * 10 + day].orEmpty()
+                    .mapNotNull { entry -> entry.course.timeSpanOn(date, slots)?.let { entry.course to it } }
+                    // 同一天按实际上课时刻排
+                    .sortedBy { it.second.first }
+                    .forEach { (course, span) ->
+                        appendEvent(
+                            uid = "${course.id}-$week-${IcsDayFormatter.format(date)}@hyperschedule",
+                            stamp = stamp,
+                            start = span.first,
+                            end = span.second,
+                            summary = course.name,
+                            location = course.position,
+                            description = describe(week, course),
+                            alarmMinutes = alarmMinutes,
+                        )
+                    }
             }
         }
         append("END:VCALENDAR\r\n")
