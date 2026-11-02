@@ -62,6 +62,25 @@ internal class ReminderData(
     }
 }
 
+/** 当天的课程快照，课中每分钟对账直接用它 */
+internal data class DaySnapshot(
+    val date: LocalDate,
+    val courses: List<DayCourse>,
+    val data: ReminderData,
+)
+
+internal object ReminderCache {
+
+    @Volatile
+    private var snapshot: DaySnapshot? = null
+
+    fun put(date: LocalDate, courses: List<DayCourse>, data: ReminderData) {
+        snapshot = DaySnapshot(date, courses, data)
+    }
+
+    fun get(date: LocalDate): DaySnapshot? = snapshot?.takeIf { it.date == date }
+}
+
 /** 某一天实际上哪些课 */
 internal fun HolidayPlan.coursesOn(
     date: LocalDate,

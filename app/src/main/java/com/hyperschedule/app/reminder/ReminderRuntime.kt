@@ -14,26 +14,32 @@ internal object ReminderRuntime {
         now: LocalDateTime,
         periodic: Boolean = false,
     ) {
-        val ongoing = today.filter { it.isOngoing(now) }.maxByOrNull { it.end ?: it.start }
-        val preClassWindow = inPreClassWindow(today, now, reminder.preMinutes)
-        val island = SuperIsland.canPost()
+        // 冲突课程里只认最后一门
+        val ongoing = today.filter { it.isOngoing(now) }.latest()
+        // 有课在上时课前那条让位
+        val preClass = if (ongoing == null) latestPreClass(today, now, reminder.preMinutes) else null
         val inClass = if (reminder.inClass) ongoing else null
+        val island = SuperIsland.canPost()
 
-        if (inClass != null) {
-            // 岛自己走字，对账不重发
-            if (!periodic || !island) ReminderNotifier.notifyInClass(context, inClass)
-        } else if (preClassWindow) {
-            // 课前窗口只收课中那条
-            ReminderNotifier.cancel(context, ReminderNotifier.IN_CLASS_ID)
-        } else {
-            // 下课或课被删，三条一起收
-            ReminderNotifier.cancelAll(context)
+        when {
+            inClass != null -> {
+                // 岛自己走字，对账不重发
+                if (!periodic || !island) ReminderNotifier.notifyInClass(context, inClass)
+            }
+            preClass != null -> {
+                // 对账只负责换文案，内容没变时通知与岛各自会跳过
+                if (!periodic) ReminderNotifier.notifyPreClass(context, preClass, now)
+            }
+            else -> {
+                // 下课或课被删，三条一起收
+                ReminderNotifier.cancelAll(context)
+            }
         }
         // 授权没了残留的岛
         if (!island) ReminderNotifier.cancel(context, ReminderNotifier.PRE_CLASS_ID)
 
         // 有东西可显示就每分钟对账
-        if (preClassWindow || inClass != null) {
+        if (preClass != null || inClass != null) {
             ReminderScheduler.scheduleLiveTick(context, now)
         } else {
             ReminderScheduler.cancelLiveTick(context)
@@ -54,8 +60,16 @@ internal object ReminderRuntime {
         ReminderScheduler.cancelLiveTick(context)
         ClassDnd.restore(context)
     }
+}
 
-    private fun inPreClassWindow(today: List<DayCourse>, now: LocalDateTime, minutes: Int): Boolean {
-        return minutes > 0 && today.any { now < it.start && !now.isBefore(it.start.minusMinutes(minutes.toLong())) }
-    }
+/** 冲突课程里只认最后一门 */
+internal fun List<DayCourse>.latest(): DayCourse? =
+    sortedWith(compareBy({ it.end ?: it.start }, { it.start })).lastOrNull()
+
+/** 课前窗口里最该提醒的那一门，已经开课的不算，到点提醒的那几门里也只认最后一门 */
+internal fun latestPreClass(today: List<DayCourse>, now: LocalDateTime, minutes: Int): DayCourse? {
+    if (minutes <= 0) return null
+    return today
+        .filter { now < it.start && !now.isBefore(it.start.minusMinutes(minutes.toLong())) }
+        .latest()
 }

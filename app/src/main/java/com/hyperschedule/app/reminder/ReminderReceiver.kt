@@ -35,14 +35,16 @@ class ReminderReceiver : BroadcastReceiver() {
             ReminderScheduler.resyncNow(context)
             return
         }
-        val data = ReminderData.load(context)
+        val now = LocalDateTime.now()
+        val date = parseDateOrNull(day.orEmpty()) ?: now.toLocalDate()
+        // 分钟对账只换通知文案，当天的课没变，用缓存省掉一次全量读库
+        val cached = if (type == ReminderScheduler.TYPE_LIVE_TICK) ReminderCache.get(date) else null
+        val data = cached?.data ?: ReminderData.load(context)
         if (data == null || !data.reminder.enabled) {
             ReminderRuntime.reset(context)
             return
         }
-        val date = parseDateOrNull(day.orEmpty()) ?: LocalDateTime.now().toLocalDate()
-        val now = LocalDateTime.now()
-        val courses = data.coursesOn(date)
+        val courses = cached?.courses ?: data.coursesOn(date).also { ReminderCache.put(date, it, data) }
         when (type) {
             ReminderScheduler.TYPE_PRE_CLASS -> {
                 val course = courses.firstOrNull { it.id == courseId }
@@ -51,7 +53,7 @@ class ReminderReceiver : BroadcastReceiver() {
                     ReminderScheduler.resyncNow(context)
                     return
                 }
-                ReminderNotifier.notifyPreClass(context, course, now)
+                // 显示哪一门统一交给对账决定，冲突课程的课前闹钟不会各自去抢同一条通知
                 ReminderRuntime.sync(context, data.reminder, courses, now)
             }
             ReminderScheduler.TYPE_DAY_ROLLOVER -> ReminderScheduler.resyncNow(context)

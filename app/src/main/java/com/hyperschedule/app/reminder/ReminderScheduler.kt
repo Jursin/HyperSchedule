@@ -4,6 +4,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 import com.hyperschedule.app.theme.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -50,6 +51,10 @@ internal object ReminderScheduler {
     /** 重排请求合并窗口，连点开关、连续保存课程时只跑最后一次 */
     private const val RESYNC_DEBOUNCE_MILLIS = 300L
 
+    /** 已登记闹钟的存放处，进程被杀后也知道该撤哪些 */
+    private const val PREFS_ALARMS = "reminder_alarms"
+    private const val KEY_CODES = "scheduled_codes"
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private val lock = Mutex()
 
@@ -68,7 +73,7 @@ internal object ReminderScheduler {
 
     suspend fun resyncNow(context: Context) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)
-        cancelAll(context, alarmManager)
+        cancelScheduled(context, alarmManager)
         val data = ReminderData.load(context)
         // 提醒关掉（或还没有可用课表）时，先把已发的通知与勿扰状态收干净
         if (data == null || !data.reminder.enabled) {
@@ -78,8 +83,18 @@ internal object ReminderScheduler {
         ReminderNotifier.ensureChannels(context)
         val now = LocalDateTime.now()
         val today = data.coursesOn(now.toLocalDate())
-        scheduleDay(context, alarmManager, data.reminder, 0, today, now)
-        scheduleDay(context, alarmManager, data.reminder, 1, data.coursesOn(now.toLocalDate().plusDays(1)), now)
+        ReminderCache.put(now.toLocalDate(), today, data)
+        val codes = mutableSetOf<Int>()
+        scheduleDay(context, alarmManager, data.reminder, 0, today, now, codes)
+        scheduleDay(
+            context = context,
+            alarmManager = alarmManager,
+            reminder = data.reminder,
+            dayOffset = 1,
+            courses = data.coursesOn(now.toLocalDate().plusDays(1)),
+            now = now,
+            codes = codes,
+        )
         setAlarm(
             context = context,
             alarmManager = alarmManager,
@@ -88,7 +103,8 @@ internal object ReminderScheduler {
             at = now.toLocalDate().plusDays(1).atTime(ROLLOVER_HOUR, ROLLOVER_MINUTE),
             day = now.toLocalDate().plusDays(1),
             course = null,
-        )
+        )?.let { codes += it }
+        saveCodes(context, codes)
         // 应用是被用户打开或闹钟触发的，此刻可能正上着课，顺手对齐一次课中状态
         ReminderRuntime.sync(context, data.reminder, today, now)
     }
@@ -100,6 +116,7 @@ internal object ReminderScheduler {
         dayOffset: Int,
         courses: List<DayCourse>,
         now: LocalDateTime,
+        codes: MutableSet<Int>,
     ) {
         courses.take(MAX_COURSES_PER_DAY).forEachIndexed { index, course ->
             val day = course.start.toLocalDate()
@@ -113,7 +130,7 @@ internal object ReminderScheduler {
                     remindAt,
                     day,
                     course,
-                )
+                )?.let { codes += it }
             }
             if (course.start.isAfter(now)) {
                 setAlarm(
@@ -124,7 +141,7 @@ internal object ReminderScheduler {
                     course.start,
                     day,
                     course,
-                )
+                )?.let { codes += it }
             }
             val end = course.end
             if (end != null && end.isAfter(now)) {
@@ -136,12 +153,12 @@ internal object ReminderScheduler {
                     end,
                     day,
                     course,
-                )
+                )?.let { codes += it }
             }
         }
     }
 
-    /** 请求码按「第几天 × 类型 × 序号」编码，取消时按同一套规则全量扫一遍即可 */
+    /** 请求码按「第几天 × 类型 × 序号」编码，登记下来，下次重排只撤真正排过的那些 */
     private fun requestCode(dayOffset: Int, type: Int, index: Int): Int =
         dayOffset * 100_000 + type * 1_000 + index
 
@@ -163,17 +180,25 @@ internal object ReminderScheduler {
         cancel(context, alarmManager, LIVE_TICK_REQUEST_CODE)
     }
 
-    private fun cancelAll(context: Context, alarmManager: AlarmManager?) {
+    /** 上次重排登记下来的请求码，只为这些建过 PendingIntent */
+    private fun loadCodes(context: Context): Set<Int> =
+        context.getSharedPreferences(PREFS_ALARMS, Context.MODE_PRIVATE)
+            .getStringSet(KEY_CODES, emptySet())
+            .orEmpty()
+            .mapNotNull { it.toIntOrNull() }
+            .toSet()
+
+    private fun saveCodes(context: Context, codes: Set<Int>) {
+        context.getSharedPreferences(PREFS_ALARMS, Context.MODE_PRIVATE)
+            .edit { putStringSet(KEY_CODES, codes.map { it.toString() }.toSet()) }
+    }
+
+    /** 只撤上次登记过的闹钟 */
+    private fun cancelScheduled(context: Context, alarmManager: AlarmManager?) {
         alarmManager ?: return
-        for (dayOffset in 0..1) {
-            for (type in TYPE_PRE_CLASS..TYPE_CLASS_END) {
-                for (index in 0 until MAX_COURSES_PER_DAY) {
-                    cancel(context, alarmManager, requestCode(dayOffset, type, index))
-                }
-            }
-        }
-        cancel(context, alarmManager, ROLLOVER_REQUEST_CODE)
+        loadCodes(context).forEach { cancel(context, alarmManager, it) }
         cancel(context, alarmManager, LIVE_TICK_REQUEST_CODE)
+        saveCodes(context, emptySet())
     }
 
     /** 取消只针对已经存在的闹钟，FLAG_NO_CREATE 既不会顺路新建，也不会抹掉上一次带上的附加信息 */
@@ -191,14 +216,14 @@ internal object ReminderScheduler {
         at: LocalDateTime,
         day: LocalDate,
         course: DayCourse?,
-    ) {
-        alarmManager ?: return
+    ): Int? {
+        alarmManager ?: return null
         val intent =
             reminderIntent(context)
                 .putExtra(EXTRA_TYPE, type)
                 .putExtra(EXTRA_DAY, day.toString())
                 .apply { if (course != null) putExtra(EXTRA_COURSE_ID, course.id) }
-        val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_UPDATE_CURRENT, intent) ?: return
+        val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_UPDATE_CURRENT, intent) ?: return null
         // 没有精确闹钟权限时退回允许休眠的普通闹钟，可能晚几分钟，但不至于完全不响
         runCatching {
             if (ReminderPermissions.canScheduleExactAlarms(context)) {
@@ -207,6 +232,7 @@ internal object ReminderScheduler {
                 alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
             }
         }
+        return requestCode
     }
 
     /** 取消与注册共用同一个 Intent，PendingIntent 只按 action + 目标类匹配，附加信息不参与 */
