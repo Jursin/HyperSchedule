@@ -286,7 +286,7 @@ private fun CourseManageCard(
     }
 }
 
-/** 教师/学分这类次要信息，小图标给出语义锚点 */
+/** 教师/学分这类次要信息，小图标给出语义锚点，超长一律单行省略 */
 @Composable
 private fun MetaRow(icon: ImageVector, text: String) {
     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -300,9 +300,10 @@ private fun MetaRow(icon: ImageVector, text: String) {
         Text(
             text = text,
             style = MiuixTheme.textStyles.footnote1,
-            maxLines = 2,
+            maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            modifier = Modifier.weight(1f),
         )
     }
 }

@@ -16,7 +16,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Notes
+import top.yukonga.miuix.kmp.icon.extended.File
 import top.yukonga.miuix.kmp.icon.extended.Years
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -75,7 +75,7 @@ internal fun courseInfoIcons(
             InfoIconId.POSITION to entry(Location),
             InfoIconId.TEACHER to entry(Person),
             InfoIconId.CREDIT to entry(AwardStar),
-            InfoIconId.REMARK to entry(MiuixIcons.Notes),
+            InfoIconId.REMARK to entry(MiuixIcons.File),
         )
     }
 

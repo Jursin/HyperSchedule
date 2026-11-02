@@ -35,11 +35,6 @@ fun TodayAppearanceSheet(
 
             PreferenceSection(cardColor = sheetCardColor(), title = "课程卡片") {
                 SwitchPreference(
-                    checked = style.showSection,
-                    onCheckedChange = { onStyleChange(style.copy(showSection = it)) },
-                    title = "显示节次",
-                )
-                SwitchPreference(
                     checked = style.showPosition,
                     onCheckedChange = { onStyleChange(style.copy(showPosition = it)) },
                     title = "显示地点",

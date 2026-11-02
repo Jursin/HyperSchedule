@@ -33,9 +33,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -114,10 +118,25 @@ fun EduImportPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val listState = rememberLazyListState()
+    // 点搜索框以外的区域收起键盘
+    val dismissKeyboardOnTap =
+        Modifier.pointerInput(Unit) {
+            awaitPointerEventScope {
+                while (true) {
+                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                    if (event.changes.any { it.changedToDown() }) {
+                        focusManager.clearFocus()
+                        keyboard?.hide()
+                    }
+                }
+            }
+        }
 
     // null 表示还在读取索引
     var schools by remember { mutableStateOf<List<School>?>(null) }
@@ -270,10 +289,10 @@ fun EduImportPage(
                     tabs = SchoolTabs.map { it.first },
                     selectedTabIndex = tab,
                     onTabSelected = { tab = it },
-                    modifier = Modifier.padding(horizontal = 20.dp),
+                    modifier = Modifier.padding(horizontal = 20.dp).then(dismissKeyboardOnTap),
                 )
 
-                Box(modifier = Modifier.fillMaxSize()) {
+                Box(modifier = Modifier.fillMaxSize().then(dismissKeyboardOnTap)) {
                     when {
                         schools == null -> LoadingHint("正在读取学校列表", showProgress = true)
                         rows.isEmpty() ->

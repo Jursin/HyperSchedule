@@ -127,9 +127,6 @@ private val Prefs =
         boolSetting("breakDividers", { it.style.breakDividers }) { s, v ->
             s.copy(style = s.style.copy(breakDividers = v))
         },
-        boolSetting("todayShowSection", { it.todayStyle.showSection }) { s, v ->
-            s.copy(todayStyle = s.todayStyle.copy(showSection = v))
-        },
         boolSetting("todayShowPosition", { it.todayStyle.showPosition }) { s, v ->
             s.copy(todayStyle = s.todayStyle.copy(showPosition = v))
         },
@@ -474,7 +471,6 @@ data class ScheduleStyle(
 }
 
 data class TodayStyle(
-    val showSection: Boolean = true,
     val showPosition: Boolean = true,
     val showTeacher: Boolean = true,
     val showCredit: Boolean = true,

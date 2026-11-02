@@ -346,7 +346,7 @@ private data class InfoField(val icon: String, val alt: String, val value: Strin
 private fun infoFields(course: Course, style: TodayStyle): List<InfoField> =
     buildList {
         // 自定义时间课的「节次」就是右侧显示的那段时间，不再重复
-        if (style.showSection && !course.isCustomTime) {
+        if (!course.isCustomTime) {
             add(InfoField(InfoIconId.SECTION, "节次", course.sectionLabel()))
         }
         if (style.showPosition && course.position.isNotBlank()) {

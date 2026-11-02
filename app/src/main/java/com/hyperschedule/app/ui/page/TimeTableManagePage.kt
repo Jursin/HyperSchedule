@@ -123,7 +123,7 @@ fun TimeTableManagePage(
 
     pendingDelete?.let { target ->
         ConfirmDialog(
-            title = if (target.isCombo) "删除组合作息" else "删除作息",
+            title = if (target.isCombo) "删除组合作息" else "删除公共作息",
             message = "「${target.name}」删除后无法恢复，确定删除？",
             appBlur = appBlur,
             destructive = true,

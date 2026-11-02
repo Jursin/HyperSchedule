@@ -244,17 +244,17 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
     }
 }
 
-/** 地点 + 备注 */
+/** 地点 + 教师 + 备注 */
 private fun infoLine(course: Course): AnnotatedString =
     buildAnnotatedString {
-        if (course.position.isNotBlank()) {
-            infoIcon(InfoIconId.POSITION, "地点")
-            fieldValue(course.position)
-        }
-        val remark = course.remark?.takeIf { it.isNotBlank() }
-        if (remark != null) {
-            if (course.position.isNotBlank()) fieldGap()
-            infoIcon(InfoIconId.REMARK, "备注")
-            fieldValue(remark)
-        }
+        listOf(
+            Triple(InfoIconId.POSITION, "地点", course.position),
+            Triple(InfoIconId.TEACHER, "教师", course.teacher),
+            Triple(InfoIconId.REMARK, "备注", course.remark.orEmpty()),
+        ).filter { it.third.isNotBlank() }
+            .forEachIndexed { index, (icon, label, value) ->
+                if (index > 0) fieldGap()
+                infoIcon(icon, label)
+                fieldValue(value)
+            }
     }
