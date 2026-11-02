@@ -24,18 +24,16 @@ class ReminderNotifierTest {
         assertEquals("10分钟后上课 · A101 · 张老师", plainBodyOf(course, "10分钟后上课"))
         assertEquals("10分钟后上课 · A101", plainBodyOf(course.copy(teacher = ""), "10分钟后上课"))
         assertEquals("10分钟后上课 · 张老师", plainBodyOf(course.copy(position = ""), "10分钟后上课"))
+        assertEquals("10分钟后上课", plainBodyOf(course.copy(position = "", teacher = ""), "10分钟后上课"))
     }
 
     @Test
-    fun bodiesHoldOnlyHeadWithoutDetail() {
-        val bare = course.copy(position = "", teacher = "")
-        assertEquals("10分钟后上课", plainBodyOf(bare, "10分钟后上课"))
-        assertEquals("10分钟后上课", liveBodyOf(bare, "10分钟后上课"))
-    }
-
-    @Test
-    fun liveBodySeparatesDetailAndHead() {
-        assertEquals("A101 · 张老师\n10分钟后上课", liveBodyOf(course, "10分钟后上课"))
+    fun liveBodyKeepsStateOnItsOwnLine() {
+        // 地点与教师在上，状态词另起一行；课中不传状态词，只留地点与教师
+        assertEquals(listOf("A101 · 张老师", "即将上课"), liveBodyLines(course, "即将上课"))
+        assertEquals(listOf("即将上课"), liveBodyLines(course.copy(position = "", teacher = ""), "即将上课"))
+        assertEquals(listOf("A101 · 张老师"), liveBodyLines(course, null))
+        assertEquals(emptyList<String>(), liveBodyLines(course.copy(position = "", teacher = ""), null))
     }
 
     @Test

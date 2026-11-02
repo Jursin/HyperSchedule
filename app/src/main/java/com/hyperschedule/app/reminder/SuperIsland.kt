@@ -10,6 +10,7 @@ import android.os.Bundle
 import com.hyperschedule.app.MainActivity
 import com.hyperschedule.app.R
 import java.time.LocalDateTime
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
@@ -31,6 +32,9 @@ internal object SuperIsland {
     /** 系统按 sequence 判新旧，单调递增即可 */
     private val sequence = AtomicLong(System.currentTimeMillis() / 1000)
 
+    /** 上次发过的岛内容，岛自己会走字，同样的内容不必重发 */
+    private val lastPosted = ConcurrentHashMap<Int, String>()
+
     /** 系统属性只能靠隐藏 API 读，读不到就当作不支持 */
     @SuppressLint("PrivateApi")
     fun isSupported(): Boolean =
@@ -44,10 +48,12 @@ internal object SuperIsland {
     fun canPost(): Boolean = isSupported() && ShizukuAccess.hasPermission
 
     fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime): Boolean {
-        val expires = (course.end ?: course.start).toEpochMillis()
+        // 课前这条只管到上课，上课之后交给课中的那条
+        val expires = course.start.toEpochMillis()
         return post(
             context = context,
             id = ReminderNotifier.PRE_CLASS_ID,
+            signature = "${course.id}|${course.start}",
             params =
                 params(
                     component = component(context),
@@ -73,6 +79,7 @@ internal object SuperIsland {
         return post(
             context = context,
             id = ReminderNotifier.IN_CLASS_ID,
+            signature = "${course.id}|$end",
             params =
                 params(
                     component = component(context),
@@ -251,12 +258,14 @@ internal object SuperIsland {
     private fun post(
         context: Context,
         id: Int,
+        signature: String,
         params: String,
         title: String,
         text: String,
         ongoing: Boolean,
         expiresAtMillis: Long,
     ): Boolean {
+        if (lastPosted[id] == signature) return true
         ensureChannel(context)
         val appIcon = Icon.createWithResource(context, R.mipmap.ic_launcher)
         val builder =
@@ -288,9 +297,18 @@ internal object SuperIsland {
         val notification = builder.build()
         // 这份参数是系统读岛内容的唯一来源，只能 build 之后直接塞进 extras
         notification.extras.putString("miui.focus.param", params)
-        return ShizukuBypass.withBypass(context) {
-            runCatching { notificationManager(context)?.notify(id, notification) }
-        }
+        var posted = false
+        val bypassed =
+            ShizukuBypass.withBypass(context) {
+                posted = runCatching { notificationManager(context)?.notify(id, notification) }.isSuccess
+            }
+        if (posted) lastPosted[id] = signature
+        return bypassed
+    }
+
+    /** 通知被收掉后允许重发同样的内容 */
+    fun forget(id: Int) {
+        lastPosted -= id
     }
 
     private fun ensureChannel(context: Context) {
