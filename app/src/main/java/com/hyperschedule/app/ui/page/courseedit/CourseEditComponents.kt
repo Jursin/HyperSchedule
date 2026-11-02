@@ -72,21 +72,6 @@ internal fun GroupCard(
             cornerRadius = CardCornerRadius,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                InfoRow(icon = Location, label = "地点") {
-                    InlineField(
-                        value = group.position,
-                        onValueChange = { onChange(group.copy(position = it)) },
-                        hint = "选填",
-                    )
-                }
-                InfoRow(icon = Person, label = "教师") {
-                    InlineField(
-                        value = group.teacher,
-                        onValueChange = { onChange(group.copy(teacher = it)) },
-                        hint = "选填",
-                    )
-                }
-                ThinDivider()
                 InfoRow(icon = MiuixIcons.Years, label = "上课周次", onClick = onPickWeeks) {
                     if (group.weeks.isEmpty()) {
                         ValueText("必填", placeholder = true)
@@ -100,6 +85,21 @@ internal fun GroupCard(
                 InfoRow(icon = Clock, label = "上课时间", onClick = onPickTime) {
                     val text = timeText(group)
                     if (text.isEmpty()) ValueText("必填", placeholder = true) else ValueText(text)
+                }
+                ThinDivider()
+                InfoRow(icon = Location, label = "地点") {
+                    InlineField(
+                        value = group.position,
+                        onValueChange = { onChange(group.copy(position = it)) },
+                        hint = "选填",
+                    )
+                }
+                InfoRow(icon = Person, label = "教师") {
+                    InlineField(
+                        value = group.teacher,
+                        onValueChange = { onChange(group.copy(teacher = it)) },
+                        hint = "选填",
+                    )
                 }
                 ThinDivider()
                 Row(

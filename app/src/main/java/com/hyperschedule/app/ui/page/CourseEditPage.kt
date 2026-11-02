@@ -52,15 +52,13 @@ import com.hyperschedule.app.ui.page.courseedit.GroupCard
 import com.hyperschedule.app.ui.page.courseedit.GroupDraft
 import com.hyperschedule.app.ui.page.courseedit.InfoRow
 import com.hyperschedule.app.ui.page.courseedit.InlineField
-import com.hyperschedule.app.ui.page.courseedit.Slot
 import com.hyperschedule.app.ui.page.courseedit.ThinDivider
 import com.hyperschedule.app.ui.page.courseedit.buildSeed
-import com.hyperschedule.app.ui.page.courseedit.overlaps
+import com.hyperschedule.app.ui.page.courseedit.findConflict
 import com.hyperschedule.app.ui.page.courseedit.sanitizeCredit
 import com.hyperschedule.app.ui.page.courseedit.sortedBySchedule
 import com.hyperschedule.app.ui.page.courseedit.toArgbInt
 import com.hyperschedule.app.ui.page.courseedit.toCourse
-import com.hyperschedule.app.ui.page.courseedit.toSlot
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.util.UUID
 import kotlinx.coroutines.launch
@@ -93,14 +91,15 @@ fun CourseEditPage(
     val sectionTimes = table?.sectionTimes.orEmpty()
     val isDark = isDarkTheme()
 
-    // 进入时读一次库，之后全部改内存
+    // 进入时读一次库，之后全部改内存，初始快照与卡片用同一份顺序
     val seed = remember { buildSeed(initialName, prefillDay, prefillStart, prefillEnd, allCourses, tableId, totalWeeks) }
+    val seedSorted = remember(seed) { seed.sortedBySchedule(sectionTimes) }
 
     var name by remember { mutableStateOf(seed.name) }
     var colorInt by remember { mutableStateOf(seed.colorInt) }
     var colorArgb by remember { mutableStateOf(seed.colorArgb) }
     var credit by remember { mutableStateOf(seed.credit) }
-    val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seed.groups.sortedBySchedule(sectionTimes)) } }
+    val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seedSorted.groups) } }
     // 库里已有、当前草稿仍保留的时段 id，保存时用它算出要删除的行
     var savedIds by remember { mutableStateOf(seed.groups.map { it.id }.toSet()) }
 
@@ -114,7 +113,7 @@ fun CourseEditPage(
 
     fun currentState() = EditState(name, colorInt, colorArgb, credit, groups.toList())
 
-    var baseline by remember { mutableStateOf(seed) }
+    var baseline by remember { mutableStateOf(seedSorted) }
     // 只在草稿实际变化时重算，避免输入框每次重组都全量比较
     val dirty by remember { derivedStateOf { currentState() != baseline } }
 
@@ -131,7 +130,7 @@ fun CourseEditPage(
         groups.clear()
         groups.addAll(loaded.groups.sortedBySchedule(sectionTimes))
         savedIds = loaded.groups.map { it.id }.toSet()
-        baseline = loaded
+        baseline = loaded.sortedBySchedule(sectionTimes)
         seeded = true
     }
 
@@ -161,8 +160,8 @@ fun CourseEditPage(
                 isCustomTime = last?.isCustomTime ?: false,
                 customStartTime = last?.customStartTime,
                 customEndTime = last?.customEndTime,
-                position = "",
-                teacher = "",
+                position = last?.position.orEmpty(),
+                teacher = last?.teacher.orEmpty(),
                 weeks = (1..totalWeeks).toSet(),
                 remark = "",
             )
@@ -172,12 +171,14 @@ fun CourseEditPage(
 
     val onSave: () -> Unit = {
         val trimmedName = name.trim()
+        val conflict = findConflict(groups.toList(), allCourses, tableId, savedIds, sectionTimes)
         when {
             trimmedName.isEmpty() -> context.toast("请填写课程名称")
             groups.any { it.weeks.isEmpty() } -> context.toast("请选择上课周次")
             groups.any { it.isCustomTime && (it.customStartTime.isNullOrBlank() || it.customEndTime.isNullOrBlank()) } ->
                 context.toast("请选择上课时间")
             credit.isNotBlank() && credit.toFloatOrNull() == null -> context.toast("学分格式不正确")
+            conflict != null -> context.toast(conflict)
             else -> {
                 if (tableId == null) {
                     context.toast("课表未加载")
@@ -205,17 +206,6 @@ fun CourseEditPage(
                 }
             }
         }
-    }
-
-    /** 与第 [index] 组时段冲突的其它时段已占用的周次 */
-    fun occupiedWeeksOf(index: Int): Set<Int> {
-        val me = groups.getOrNull(index)?.toSlot() ?: return emptySet()
-        val others = mutableListOf<Slot>()
-        groups.forEachIndexed { i, group -> if (i != index) others += group.toSlot() }
-        allCourses
-            .filter { it.course.courseTableId == tableId && it.course.id !in savedIds }
-            .forEach { others += it.course.toSlot(it.weeks.map { w -> w.weekNumber }.toSet()) }
-        return others.filter { it.overlaps(me, sectionTimes) }.flatMapTo(mutableSetOf()) { it.weeks }
     }
 
     Scaffold(
@@ -359,7 +349,6 @@ fun CourseEditPage(
         WeeksDialog(
             initial = groups[weeksIndex].weeks,
             totalWeeks = totalWeeks,
-            occupied = occupiedWeeksOf(weeksIndex),
             appBlur = appBlur,
             onDismiss = { weeksDialogIndex = -1 },
             onConfirm = { weeks ->

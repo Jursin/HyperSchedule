@@ -165,18 +165,16 @@ internal fun TimeDialog(
 internal fun WeeksDialog(
     initial: Set<Int>,
     totalWeeks: Int,
-    occupied: Set<Int>,
     appBlur: Boolean,
     onDismiss: () -> Unit,
     onConfirm: (Set<Int>) -> Unit,
 ) {
     val selected = remember { mutableStateSetOf<Int>().apply { addAll(initial) } }
     val allWeeks = remember(totalWeeks) { (1..totalWeeks).toList() }
-    val selectableWeeks = remember(allWeeks, occupied) { allWeeks.filter { it !in occupied } }
-    val oddWeeks = remember(selectableWeeks) { selectableWeeks.filter { it % 2 == 1 } }
-    val evenWeeks = remember(selectableWeeks) { selectableWeeks.filter { it % 2 == 0 } }
+    val oddWeeks = remember(allWeeks) { allWeeks.filter { it % 2 == 1 } }
+    val evenWeeks = remember(allWeeks) { allWeeks.filter { it % 2 == 0 } }
 
-    val allSelected = selectableWeeks.isNotEmpty() && selectableWeeks.all { it in selected }
+    val allSelected = allWeeks.isNotEmpty() && allWeeks.all { it in selected }
     val allOddSelected = oddWeeks.isNotEmpty() && oddWeeks.all { it in selected }
     val allEvenSelected = evenWeeks.isNotEmpty() && evenWeeks.all { it in selected }
     val someOddSelected = oddWeeks.any { it in selected }
@@ -205,7 +203,7 @@ internal fun WeeksDialog(
                 label = "全部",
                 onClick = {
                     selected.clear()
-                    if (!allSelected) selected.addAll(selectableWeeks)
+                    if (!allSelected) selected.addAll(allWeeks)
                 },
             )
             CheckLabel(
@@ -240,7 +238,6 @@ internal fun WeeksDialog(
         WeekRangeSelectGrid(
             totalWeeks = totalWeeks,
             selectedWeeks = selected.toSet(),
-            occupiedWeeks = occupied,
             enabled = true,
             onToggleWeek = { week ->
                 if (week in selected) selected.remove(week) else selected.add(week)

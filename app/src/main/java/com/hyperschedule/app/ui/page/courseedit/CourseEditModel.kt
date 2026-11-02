@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.parseTime
 import java.util.UUID
@@ -46,6 +47,10 @@ private val GroupDraft.firstWeek: Int
 /** 按星期、开始时间、起始周次排列，与课表里的先后一致 */
 internal fun List<GroupDraft>.sortedBySchedule(sectionTimes: List<Pair<String, String>>): List<GroupDraft> =
     sortedWith(compareBy({ it.day }, { it.startMinutes(sectionTimes) }, { it.firstWeek }))
+
+/** 快照按时段顺序规整 */
+internal fun EditState.sortedBySchedule(sectionTimes: List<Pair<String, String>>): EditState =
+    copy(groups = groups.sortedBySchedule(sectionTimes))
 
 /** 从库里读出的初始草稿，[initialName] 为空时按预填的星期与节次造一张空卡 */
 internal fun buildSeed(
@@ -159,6 +164,36 @@ internal fun Slot.overlaps(other: Slot, sectionTimes: List<Pair<String, String>>
     val a = timeRange(sectionTimes) ?: return false
     val b = other.timeRange(sectionTimes) ?: return false
     return a.first < b.second && b.first < a.second
+}
+
+/** 草稿内互相比，再与表内其它课程比，返回第一处冲突的说明，没有冲突返回 null */
+internal fun findConflict(
+    groups: List<GroupDraft>,
+    courses: List<CourseWithWeeks>,
+    tableId: String?,
+    savedIds: Set<String>,
+    sectionTimes: List<Pair<String, String>>,
+): String? {
+    val others =
+        courses
+            .filter { it.course.courseTableId == tableId && it.course.id !in savedIds }
+            .map { it.course.name to it.course.toSlot(it.weeks.map { week -> week.weekNumber }.toSet()) }
+    groups.forEachIndexed { index, group ->
+        val slot = group.toSlot()
+        for (otherIndex in index + 1 until groups.size) {
+            val other = groups[otherIndex].toSlot()
+            if (!slot.overlaps(other, sectionTimes)) continue
+            val week = (slot.weeks intersect other.weeks).minOrNull() ?: continue
+            return "第${week}周${dayLabel(group.day)}与另一个时段重叠"
+        }
+        others
+            .firstOrNull { (_, other) -> slot.overlaps(other, sectionTimes) && slot.weeks.any { it in other.weeks } }
+            ?.let { (name, other) ->
+                val week = slot.weeks.filter { it in other.weeks }.min()
+                return "第${week}周${dayLabel(group.day)}与「$name」冲突"
+            }
+    }
+    return null
 }
 
 internal fun GroupDraft.toCourse(

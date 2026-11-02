@@ -18,7 +18,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -26,7 +25,6 @@ import com.hyperschedule.app.theme.SelectCellCorner
 import com.hyperschedule.app.theme.SelectCellFontSize
 import com.hyperschedule.app.theme.SelectCellHeight
 import com.hyperschedule.app.theme.SelectCellSpacing
-import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.selectCellIdleColor
 import kotlin.math.max
 import kotlin.math.min
@@ -34,12 +32,11 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 周次选择网格，单击切换该周，按住滑动把起止之间的周次并入或移出已选（已占用的周自动跳过），只是按住不动仍算单击 */
+/** 周次选择网格，单击切换该周，按住滑动把起止之间的周次并入或移出已选，只是按住不动仍算单击 */
 @Composable
 fun WeekRangeSelectGrid(
     totalWeeks: Int,
     selectedWeeks: Set<Int>,
-    occupiedWeeks: Set<Int>,
     enabled: Boolean,
     onToggleWeek: (week: Int) -> Unit,
     onReplaceWeeks: (weeks: Set<Int>) -> Unit,
@@ -50,20 +47,10 @@ fun WeekRangeSelectGrid(
     val density = LocalDensity.current
     val rows = (totalWeeks + columns - 1) / columns
 
-    val primaryColor = MiuixTheme.colorScheme.primary
-    val onSurfaceSummaryColor = MiuixTheme.colorScheme.onSurfaceVariantSummary
-    val idleColor = selectCellIdleColor()
-    // 已占用格，深色下比未选明显，浅色下只靠文字变弱区分
-    val occupiedColor =
-        if (isDarkTheme()) MiuixTheme.colorScheme.onSurface.copy(alpha = 0.18f) else idleColor
-    val mutedTextColor =
-        if (isDarkTheme()) MiuixTheme.colorScheme.onSurfaceContainerVariant else MiuixTheme.colorScheme.outline
-
     var gridWidth by remember { mutableIntStateOf(0) }
 
     // 手势协程只按这几个 key 重启，选中集用 rememberUpdatedState 取最新值，避免滑选拿到旧快照
     val selectedWeeksState = rememberUpdatedState(selectedWeeks)
-    val occupiedWeeksState = rememberUpdatedState(occupiedWeeks)
     val onToggleWeekState = rememberUpdatedState(onToggleWeek)
     val onReplaceWeeksState = rememberUpdatedState(onReplaceWeeks)
 
@@ -79,12 +66,6 @@ fun WeekRangeSelectGrid(
         return week.takeIf { it in 1..totalWeeks }
     }
 
-    fun rangeSelection(anchor: Int, target: Int): Set<Int> {
-        val lo = min(anchor, target)
-        val hi = max(anchor, target)
-        return (lo..hi).filter { it !in occupiedWeeksState.value }.toSet()
-    }
-
     Column(
         modifier =
             modifier
@@ -95,10 +76,9 @@ fun WeekRangeSelectGrid(
                     haptics = haptics,
                     hitTest = { weekAt(it) },
                     selection = { selectedWeeksState.value },
-                    canStart = { it !in occupiedWeeksState.value },
                     onTap = { onToggleWeekState.value(it) },
                     onRange = { anchor, target, add, base ->
-                        val range = rangeSelection(anchor, target)
+                        val range = (min(anchor, target)..max(anchor, target)).toSet()
                         onReplaceWeeksState.value(if (add) base + range else base - range)
                     },
                 ),
@@ -116,13 +96,7 @@ fun WeekRangeSelectGrid(
                         WeekRangeCell(
                             weekNum = weekNum,
                             isSelected = weekNum in selectedWeeks,
-                            isOccupied = weekNum in occupiedWeeks,
                             enabled = enabled,
-                            idleColor = idleColor,
-                            occupiedColor = occupiedColor,
-                            mutedTextColor = mutedTextColor,
-                            primaryColor = primaryColor,
-                            onSurfaceSummaryColor = onSurfaceSummaryColor,
                         )
                     } else {
                         Spacer(modifier = Modifier.weight(1f))
@@ -137,27 +111,13 @@ fun WeekRangeSelectGrid(
 private fun RowScope.WeekRangeCell(
     weekNum: Int,
     isSelected: Boolean,
-    isOccupied: Boolean,
     enabled: Boolean,
-    idleColor: Color,
-    occupiedColor: Color,
-    mutedTextColor: Color,
-    primaryColor: Color,
-    onSurfaceSummaryColor: Color,
 ) {
-    val bgColor =
-        when {
-            !enabled -> idleColor
-            isSelected -> primaryColor
-            isOccupied -> occupiedColor
-            else -> idleColor
-        }
     val textColor =
         when {
-            !enabled -> mutedTextColor
+            !enabled -> MiuixTheme.colorScheme.outline
             isSelected -> MiuixTheme.colorScheme.onPrimary
-            isOccupied -> mutedTextColor
-            else -> onSurfaceSummaryColor
+            else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
         }
     Box(
         modifier =
@@ -165,7 +125,7 @@ private fun RowScope.WeekRangeCell(
                 .weight(1f)
                 .height(SelectCellHeight)
                 .squircleClip(SelectCellCorner)
-                .background(bgColor),
+                .background(if (isSelected) MiuixTheme.colorScheme.primary else selectCellIdleColor()),
         contentAlignment = Alignment.Center,
     ) {
         Text(text = "$weekNum", fontSize = SelectCellFontSize, color = textColor)
