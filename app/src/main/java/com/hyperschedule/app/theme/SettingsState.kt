@@ -334,7 +334,7 @@ data class SettingsState(
     val floatingNav: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
-    val updateSource: UpdateSource = UpdateSource.Gitee,
+    val updateSource: UpdateSource = UpdateSource.GitHub,
     val acceptPrerelease: Boolean = false,
     val lastUpdateCheck: String = "",
     val githubProxyUrl: String = "",

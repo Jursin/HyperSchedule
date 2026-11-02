@@ -40,7 +40,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
     - 基于系统壁纸的动态取色（Android 12+）
     - 自定义调色板
 - **更新设置：**
-  - 从 GitHub/Gitee 检查最新版本
+  - 从 GitHub 检查最新版本
   - 可启用启动时检查更新
   - 可设置 GitHub 加速地址
   - 后台下载时通知栏显示进度

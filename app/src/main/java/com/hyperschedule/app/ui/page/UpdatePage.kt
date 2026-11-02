@@ -68,17 +68,14 @@ fun UpdatePage(store: SettingsStore, controller: UpdateController, onBack: () ->
                 title = "自动检查更新",
                 summary = "打开应用时自动检查新版本",
             )
-            // 加速地址只对 GitHub 源有意义，选 Gitee 时收起
-            if (state.updateSource == UpdateSource.GitHub) {
-                ArrowPreference(
-                    title = "加速地址",
-                    summary = state.githubProxyUrl.ifBlank { "设置 GitHub 加速地址" },
-                    onClick = {
-                        proxyInput = state.githubProxyUrl
-                        showProxyDialog = true
-                    },
-                )
-            }
+            ArrowPreference(
+                title = "加速地址",
+                summary = state.githubProxyUrl.ifBlank { "设置 GitHub 加速地址" },
+                onClick = {
+                    proxyInput = state.githubProxyUrl
+                    showProxyDialog = true
+                },
+            )
         }
     }
     if (showProxyDialog) {
