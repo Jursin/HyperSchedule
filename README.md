@@ -52,10 +52,11 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 - Android SDK
 
 ### 构建命令
-- Debug: `./gradlew assembleDebug`
-- Release: `./gradlew assembleRelease`
-- 单元测试: `./gradlew testDebugUnitTest`
-- 静态检查: `./gradlew lintDebug`
+- Debug：`./gradlew assembleDebug`
+- Release：`./gradlew assembleRelease`
+- 单元测试：`./gradlew testDebugUnitTest`
+- 静态检查：`./gradlew lintDebug`
+- 生成开源库信息：`./gradlew :app:exportLibraryDefinitions`
 
 ## 📚 开放源代码许可
 本项目所使用的[第三方开源库及其许可证信息](app/src/main/assets/aboutlibraries.json)

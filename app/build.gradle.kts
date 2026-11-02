@@ -22,11 +22,6 @@ aboutLibraries {
     }
 }
 
-// 构建前自动刷新库信息，避免依赖变了 json 还是旧的
-tasks.matching { it.name == "preBuild" }.configureEach {
-    dependsOn("exportLibraryDefinitions")
-}
-
 val localProps = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use { load(it) }
