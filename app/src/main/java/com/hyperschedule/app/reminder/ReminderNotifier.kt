@@ -11,6 +11,7 @@ import android.os.Build
 import com.hyperschedule.app.MainActivity
 import com.hyperschedule.app.R
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.schedule.formatMinutes
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.math.ceil
@@ -128,7 +129,7 @@ internal object ReminderNotifier {
         val signature = "${course.id}|$targetMillis|$detail|$live|$progress"
         if (lastPosted[id] == signature) return
         val inClass = category == Notification.CATEGORY_PROGRESS
-        // 课前把状态词单独放一行，课中不重复「正在上课」，右边倒计时已经说明在上了
+        // 课前把状态词单独放一行，课中不重复状态词，右边倒计时已经说明在上了
         val lines = liveBodyLines(course, if (inClass) null else "即将上课")
         val builder =
             Notification.Builder(context, CHANNEL_LIVE)
@@ -192,6 +193,10 @@ internal fun preClassHead(course: DayCourse): String {
 }
 
 internal fun inClassHead(endMillis: Long): String = "${remainOf(endMillis)}分钟后下课".cjkDigitGap()
+
+/** 岛上收起状态右侧的「几点下课」 */
+internal fun inClassTail(end: LocalDateTime): String =
+    "${formatMinutes(end.hour * 60 + end.minute)}下课".cjkDigitGap()
 
 private fun remainOf(endMillis: Long): Int =
     ceil((endMillis - System.currentTimeMillis()) / 60_000.0).toInt().coerceAtLeast(0)

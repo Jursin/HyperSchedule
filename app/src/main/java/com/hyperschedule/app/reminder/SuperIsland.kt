@@ -75,7 +75,8 @@ internal object SuperIsland {
     }
 
     fun notifyInClass(context: Context, course: DayCourse): Boolean {
-        val end = course.end?.toEpochMillis() ?: return false
+        val endAt = course.end ?: return false
+        val end = endAt.toEpochMillis()
         return post(
             context = context,
             id = ReminderNotifier.IN_CLASS_ID,
@@ -88,7 +89,7 @@ internal object SuperIsland {
                     hintContent = "距离下课",
                     timerTarget = end,
                     nowMillis = System.currentTimeMillis(),
-                    collapsedRight = "正在上课",
+                    collapsedRight = inClassTail(endAt),
                     islandTimeout = islandSeconds(end),
                 ),
             title = course.name,

@@ -48,6 +48,9 @@ internal object ReminderScheduler {
     private const val ROLLOVER_HOUR = 0
     private const val ROLLOVER_MINUTE = 5
 
+    /** 对账间隔：allow-while-idle 闹钟同一应用约一分钟只放一次，留出余量免得被系统一路推迟 */
+    private const val LIVE_TICK_INTERVAL_SECONDS = 65L
+
     /** 重排请求合并窗口，连点开关、连续保存课程时只跑最后一次 */
     private const val RESYNC_DEBOUNCE_MILLIS = 300L
 
@@ -162,14 +165,14 @@ internal object ReminderScheduler {
     private fun requestCode(dayOffset: Int, type: Int, index: Int): Int =
         dayOffset * 100_000 + type * 1_000 + index
 
-    /** 排下一次实时动态对账，落在下一分钟整点，收起时由 [cancelLiveTick] 撤掉 */
+    /** 排下一次实时动态对账，从上一次落点往后推，收起时由 [cancelLiveTick] 撤掉 */
     fun scheduleLiveTick(context: Context, now: LocalDateTime) {
         setAlarm(
             context = context,
             alarmManager = context.getSystemService(AlarmManager::class.java),
             type = TYPE_LIVE_TICK,
             requestCode = LIVE_TICK_REQUEST_CODE,
-            at = now.withSecond(0).withNano(0).plusMinutes(1),
+            at = now.plusSeconds(LIVE_TICK_INTERVAL_SECONDS),
             day = now.toLocalDate(),
             course = null,
         )
