@@ -113,6 +113,11 @@ class EduWebBridge(
                 fail(promiseId, it)
                 return
             }
+        // 公共作息为空的组合没有可写内容，按成功处理但不落库，也别锁住基础时间导入
+        if (combo.publicSchedules.isEmpty()) {
+            resolve(promiseId, "true")
+            return
+        }
         val base = presetSlots
         val merged =
             if (base.isNullOrEmpty()) {

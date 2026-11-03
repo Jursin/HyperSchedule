@@ -9,7 +9,7 @@ import android.widget.Toast
 import androidx.core.content.edit
 import com.hyperschedule.app.theme.SettingsStore
 
-/** 上课自动勿扰，进入时记下用户原来的档位，退出时只还原自己动过的那一项 */
+/** 上课自动勿扰，进入时记下用户原来的档位，退出时只还原仍由本应用写着的那些项 */
 internal object ClassDnd {
 
     private const val PREF = "reminder_runtime"
@@ -19,6 +19,8 @@ internal object ClassDnd {
     private const val KEY_TOUCHED_RINGER = "dnd_touched_ringer"
     private const val KEY_FILTER = "dnd_original_filter"
     private const val KEY_RINGER = "dnd_original_ringer"
+    private const val KEY_APPLIED_FILTER = "dnd_applied_filter"
+    private const val KEY_APPLIED_RINGER = "dnd_applied_ringer"
 
     /** 与 [com.hyperschedule.app.theme.ReminderSettings.DND_MODE_LABELS] 的下标一一对应 */
     private const val MODE_SILENT = 1
@@ -74,12 +76,21 @@ internal object ClassDnd {
                 }
             }.isSuccess
         if (done) {
-            store.edit { putBoolean(if (filter == null) KEY_TOUCHED_RINGER else KEY_TOUCHED_FILTER, true) }
+            store.edit {
+                // 记下自己写进去的值，退出时靠它判断用户中途有没有改过
+                if (filter == null) {
+                    putBoolean(KEY_TOUCHED_RINGER, true)
+                    putInt(KEY_APPLIED_RINGER, AudioManager.RINGER_MODE_SILENT)
+                } else {
+                    putBoolean(KEY_TOUCHED_FILTER, true)
+                    putInt(KEY_APPLIED_FILTER, filter)
+                }
+            }
         }
         return done
     }
 
-    /** 退出勿扰接管，没接管过时什么都不做，不碰用户自己设的档位 */
+    /** 退出勿扰接管，系统值已被用户改过时保留现状，不为还原而覆盖用户的操作 */
     fun restore(context: Context) {
         val prefs = prefs(context)
         if (!prefs.getBoolean(KEY_APPLIED, false)) return
@@ -87,10 +98,18 @@ internal object ClassDnd {
         val audio = context.getSystemService(AudioManager::class.java)
         runCatching {
             if (prefs.getBoolean(KEY_TOUCHED_FILTER, false)) {
-                prefs.getInt(KEY_FILTER, -1).takeIf { it >= 0 }?.let { manager?.setInterruptionFilter(it) }
+                val original = prefs.getInt(KEY_FILTER, -1)
+                val applied = prefs.getInt(KEY_APPLIED_FILTER, -1)
+                if (manager != null && original >= 0 && manager.currentInterruptionFilter == applied) {
+                    manager.setInterruptionFilter(original)
+                }
             }
             if (prefs.getBoolean(KEY_TOUCHED_RINGER, false)) {
-                prefs.getInt(KEY_RINGER, -1).takeIf { it >= 0 }?.let { audio?.ringerMode = it }
+                val original = prefs.getInt(KEY_RINGER, -1)
+                val applied = prefs.getInt(KEY_APPLIED_RINGER, -1)
+                if (audio != null && original >= 0 && audio.ringerMode == applied) {
+                    audio.ringerMode = original
+                }
             }
         }
         clear(context)

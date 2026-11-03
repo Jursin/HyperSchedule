@@ -89,6 +89,44 @@ class ReminderSchedulerTest {
     }
 
     @Test
+    fun preClassAlarmIsPushedToPreviousBreak() {
+        val codes =
+            scheduleDay(
+                listOf(
+                    course(day.atTime(13, 0), day.atTime(13, 55)),
+                    course(day.atTime(14, 0), day.atTime(15, 40)),
+                ),
+                noon,
+            )
+
+        // 14:00 这节的课前点本该在 13:50，那时上一节还没下课，压到 13:55 打铃那一刻
+        assertEquals(setOf(1000, 2000, 3000, 1001, 2001, 3001), codes)
+        assertEquals(
+            listOf(at(12, 50), at(13, 0), at(13, 55), at(13, 55), at(14, 0), at(15, 40)),
+            scheduled.map { it.triggerAtMs }.sorted(),
+        )
+    }
+
+    @Test
+    fun backToBackCoursesSkipPreClassAlarm() {
+        val codes =
+            scheduleDay(
+                listOf(
+                    course(day.atTime(13, 0), day.atTime(14, 0)),
+                    course(day.atTime(14, 0), day.atTime(15, 40)),
+                ),
+                noon,
+            )
+
+        // 连堂课没有课间，课前提醒让位给上课闹钟，只留下课那一刻
+        assertEquals(setOf(1000, 2000, 3000, 2001, 3001), codes)
+        assertEquals(
+            listOf(at(12, 50), at(13, 0), at(14, 0), at(14, 0), at(15, 40)),
+            scheduled.map { it.triggerAtMs },
+        )
+    }
+
+    @Test
     fun liveTickSchedulesAndCancelsTheSameAlarm() {
         ReminderScheduler.scheduleLiveTick(context, noon)
         assertEquals(listOf(noon.plusSeconds(65).toEpochMillis()), scheduled.map { it.triggerAtMs })

@@ -122,16 +122,17 @@ internal object ReminderScheduler {
         now: LocalDateTime,
         codes: MutableSet<Int>,
     ) {
+        // 上一节的下课时刻，课前提醒不能比它更早，否则会响在上一节课里
+        var previousEnd: LocalDateTime? = null
         courses.take(MAX_COURSES_PER_DAY).forEachIndexed { index, course ->
             val day = course.start.toLocalDate()
-            val remindAt = course.start.minusMinutes(reminder.preMinutes.toLong())
-            if (remindAt.isAfter(now)) {
+            preClassTime(course, previousEnd, reminder.preMinutes)?.takeIf { it.isAfter(now) }?.let { at ->
                 setAlarm(
                     context,
                     alarmManager,
                     TYPE_PRE_CLASS,
                     requestCode(dayOffset, TYPE_PRE_CLASS, index),
-                    remindAt,
+                    at,
                     day,
                     course,
                 )?.let { codes += it }
@@ -159,7 +160,19 @@ internal object ReminderScheduler {
                     course,
                 )?.let { codes += it }
             }
+            if (end != null) {
+                val lastEnd = previousEnd
+                previousEnd = if (lastEnd == null || end.isAfter(lastEnd)) end else lastEnd
+            }
         }
+    }
+
+    /** 课前提醒的时刻，提前量落在上一节课里就压到上一节下课那一刻，连堂课没有课间就不提醒 */
+    private fun preClassTime(course: DayCourse, previousEnd: LocalDateTime?, minutes: Int): LocalDateTime? {
+        if (minutes <= 0) return null
+        val target = course.start.minusMinutes(minutes.toLong())
+        if (previousEnd == null || !target.isBefore(previousEnd)) return target
+        return previousEnd.takeIf { it.isBefore(course.start) }
     }
 
     /** 请求码按「第几天 × 类型 × 序号」编码，登记下来，下次重排只撤真正排过的那些 */
