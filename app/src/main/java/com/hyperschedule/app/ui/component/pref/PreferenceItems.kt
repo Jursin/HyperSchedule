@@ -1,13 +1,11 @@
 package com.hyperschedule.app.ui.component.pref
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -18,6 +16,7 @@ import top.yukonga.miuix.kmp.basic.BasicComponentColors
 import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
 import top.yukonga.miuix.kmp.basic.DropdownColors
 import top.yukonga.miuix.kmp.basic.DropdownDefaults
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.SwitchColors
 import top.yukonga.miuix.kmp.basic.SwitchDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -29,8 +28,7 @@ import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference as MiuixOverla
 import top.yukonga.miuix.kmp.preference.SwitchPreference as MiuixSwitchPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference as MiuixWindowDropdownPreference
 
-/** 设置条目的包装 */
-
+/** 设置条目，参数与上游同名组件一致，只把默认 insideMargin 换成 [CardItemPadding] */
 @Composable
 fun ArrowPreference(
     title: String,
@@ -77,11 +75,11 @@ fun MultilineArrowPreference(
         insideMargin = insideMargin,
         onClick = onClick,
         endActions = {
-            Image(
+            Icon(
                 modifier = Modifier.size(width = 10.dp, height = 16.dp).align(Alignment.CenterVertically),
                 imageVector = MiuixIcons.Basic.ArrowRight,
                 contentDescription = null,
-                colorFilter = ColorFilter.tint(MiuixTheme.colorScheme.onSurfaceVariantActions),
+                tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
         },
     ) {

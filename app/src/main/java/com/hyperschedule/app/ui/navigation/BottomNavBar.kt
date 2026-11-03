@@ -3,7 +3,6 @@ package com.hyperschedule.app.ui.navigation
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -35,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.dropShadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.shadow.Shadow
@@ -61,6 +59,7 @@ import com.hyperschedule.app.ui.effect.NavIndicatorAnimation
 import com.hyperschedule.app.ui.effect.navBarBlur
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -203,11 +202,11 @@ internal fun BottomNavBar(
             tabs.forEachIndexed { index, tab ->
                 NavBarTab(index = index, onClick = { onSelect(index) }) {
                     val itemColor = if (index == pressedIndex) colors.iconPressed else colors.icon
-                    Image(
+                    Icon(
                         modifier = Modifier.size(NavBarMetrics.iconSize),
                         imageVector = tab.icon,
                         contentDescription = null,
-                        colorFilter = ColorFilter.tint(itemColor),
+                        tint = itemColor,
                     )
                     Text(
                         text = tab.label,

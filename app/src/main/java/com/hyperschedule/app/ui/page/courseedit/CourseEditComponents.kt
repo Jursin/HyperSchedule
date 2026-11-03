@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -43,6 +42,7 @@ import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatWeeks
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -279,13 +279,10 @@ internal fun RemarkField(
 
 @Composable
 internal fun ThinDivider() {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = CardInsidePadding)
-                .height(0.5.dp)
-                .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.07f)),
+    HorizontalDivider(
+        modifier = Modifier.padding(horizontal = CardInsidePadding),
+        thickness = 0.5.dp,
+        color = MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.07f),
     )
 }
 

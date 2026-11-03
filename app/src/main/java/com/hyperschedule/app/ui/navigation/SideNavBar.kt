@@ -3,7 +3,6 @@ package com.hyperschedule.app.ui.navigation
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -33,7 +32,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
@@ -43,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.theme.isDarkTheme
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Sidebar
@@ -164,11 +163,11 @@ private fun SideNavRow(
                 .padding(start = NavIconInset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Image(
+        Icon(
             modifier = Modifier.size(NavIconSize),
             imageVector = icon,
             contentDescription = null,
-            colorFilter = ColorFilter.tint(content),
+            tint = content,
         )
         if (label != null) {
             Text(
