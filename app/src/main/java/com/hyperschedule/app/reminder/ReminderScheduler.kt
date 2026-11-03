@@ -112,7 +112,8 @@ internal object ReminderScheduler {
         ReminderRuntime.sync(context, data.reminder, today, now)
     }
 
-    private fun scheduleDay(
+    /** 拆出来给测试断言闹钟时刻，正式路径走 [resyncNow] */
+    internal fun scheduleDay(
         context: Context,
         alarmManager: AlarmManager?,
         reminder: ReminderSettings,

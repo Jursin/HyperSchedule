@@ -1,24 +1,27 @@
 package com.hyperschedule.app.data.backup
 
+import android.util.Xml
+import com.hyperschedule.app.data.remote.AppHttp
 import com.hyperschedule.app.data.remote.AppUserAgent
 import com.hyperschedule.app.data.remote.readCapped
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.StringReader
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-private const val READ_TIMEOUT_MS = 60_000
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.xmlpull.v1.XmlPullParser
 
 /** 一次 S3 请求的结果 */
 private class S3Response(val code: Int, val text: String) {
     val isSuccessful: Boolean get() = code in 200..299
 }
 
-private val CONTENTS = Regex("<Contents>(.*?)</Contents>", RegexOption.DOT_MATCHES_ALL)
-private val OBJECT_KEY = Regex("<Key>([^<]*)</Key>")
-private val OBJECT_SIZE = Regex("<Size>(\\d+)</Size>")
-private val NEXT_TOKEN = Regex("<NextContinuationToken>([^<]+)</NextContinuationToken>")
-private val ERROR_CODE = Regex("<Code>([^<]+)</Code>")
+/** 区域不对时 S3 会回 301，跟着跳转只会被当成别的错误，所以单独关掉重定向并放宽读超时 */
+private val S3Http: OkHttpClient =
+    AppHttp.newBuilder().readTimeout(60, TimeUnit.SECONDS).followRedirects(false).build()
 
 /** 凭据、签名或权限不对时服务器回的错误码 */
 private val AUTH_ERRORS = setOf("InvalidAccessKeyId", "SignatureDoesNotMatch", "AccessDenied", "InvalidSecurity")
@@ -82,8 +85,9 @@ class S3Client(
                 token?.let { query["continuation-token"] = it }
                 val response = request("GET", "", query)
                 if (!response.isSuccessful) throw BackupException(errorMessage(response))
-                files += parseList(response.text)
-                token = NEXT_TOKEN.find(response.text)?.groupValues?.get(1)?.takeIf { it.isNotBlank() }
+                val (listing, nextToken) = parsePage(response.text)
+                files += listing
+                token = nextToken
             } while (token != null && ++page < MAX_PAGES)
             files.sortedByDescending { it.time }
         }
@@ -120,7 +124,7 @@ class S3Client(
     private fun objectPath(name: String): String = "/$prefix$name"
 
     private fun errorMessage(response: S3Response): String {
-        val code = ERROR_CODE.find(response.text)?.groupValues?.get(1).orEmpty()
+        val code = runCatching { parseErrorCode(response.text) }.getOrNull().orEmpty()
         return when {
             // 对象没了要单独说，否则用户会以为桶被删了
             code == "NoSuchKey" -> "云端已经没有这份备份了"
@@ -136,15 +140,54 @@ class S3Client(
         }
     }
 
-    /** 只认备份路径下的备份文件，别的对象一律忽略 */
-    private fun parseList(xml: String): List<BackupFile> = buildList {
-        for (block in CONTENTS.findAll(xml)) {
-            val key = OBJECT_KEY.find(block.groupValues[1])?.groupValues?.get(1) ?: continue
-            val name = key.removePrefix(prefix)
-            if (name.isEmpty() || '/' in name) continue
-            val size = OBJECT_SIZE.find(block.groupValues[1])?.groupValues?.get(1)?.toLongOrNull() ?: 0L
-            backupFileOf(name, size)?.let { add(it) }
+    /** 只认备份路径下的备份文件，别的对象一律忽略；顺带取翻页标记 */
+    private fun parsePage(xml: String): Pair<List<BackupFile>, String?> {
+        val files = mutableListOf<BackupFile>()
+        var token: String? = null
+        runCatching {
+            val parser = Xml.newPullParser()
+            parser.setInput(StringReader(xml))
+            var key: String? = null
+            var size = 0L
+            var inside = false
+            while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+                when (parser.eventType) {
+                    XmlPullParser.START_TAG ->
+                        when (parser.localTag()) {
+                            "Contents" -> {
+                                inside = true
+                                key = null
+                                size = 0L
+                            }
+                            "Key" -> if (inside) key = parser.nextText()
+                            "Size" -> if (inside) size = parser.nextText().trim().toLongOrNull() ?: 0L
+                            "NextContinuationToken" ->
+                                token = parser.nextText().takeIf { it.isNotBlank() }
+                        }
+                    XmlPullParser.END_TAG ->
+                        if (inside && parser.localTag() == "Contents") {
+                            inside = false
+                            val name = key?.removePrefix(prefix).orEmpty()
+                            if (name.isNotEmpty() && '/' !in name) backupFileOf(name, size)?.let(files::add)
+                        }
+                }
+                parser.next()
+            }
         }
+        return files to token
+    }
+
+    /** 错误响应里的 `<Code>`，正文不是 XML 时返回 null */
+    private fun parseErrorCode(xml: String): String? {
+        val parser = Xml.newPullParser()
+        parser.setInput(StringReader(xml))
+        while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == XmlPullParser.START_TAG && parser.localTag() == "Code") {
+                return parser.nextText()
+            }
+            parser.next()
+        }
+        return null
     }
 
     private fun request(
@@ -168,26 +211,14 @@ class S3Client(
                 payloadHash = payload?.let(S3Signature::sha256Hex) ?: S3Signature.EMPTY_PAYLOAD_HASH,
                 contentType = contentType,
             )
-        val connection = URL(signed.url).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = CONNECT_TIMEOUT_MS
-            connection.readTimeout = READ_TIMEOUT_MS
-            // 区域不对时 S3 会回 301，跟着跳转只会被当成别的错误
-            connection.instanceFollowRedirects = false
-            connection.useCaches = false
-            connection.requestMethod = method
-            signed.headers.forEach { (name, value) -> connection.setRequestProperty(name, value) }
-            connection.setRequestProperty("User-Agent", AppUserAgent)
-            if (payload != null) {
-                connection.doOutput = true
-                connection.setFixedLengthStreamingMode(payload.size)
-                connection.outputStream.use { it.write(payload) }
-            }
-            val code = connection.responseCode
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            return S3Response(code, stream?.use { it.readCapped().decodeToString() }.orEmpty())
-        } finally {
-            connection.disconnect()
+        val builder =
+            Request.Builder()
+                .url(signed.url)
+                .header("User-Agent", AppUserAgent)
+                .method(method, payload?.toRequestBody(contentType?.toMediaTypeOrNull()))
+        signed.headers.forEach { (name, value) -> builder.header(name, value) }
+        S3Http.newCall(builder.build()).execute().use { response ->
+            return S3Response(response.code, response.body.readCapped().decodeToString())
         }
     }
 
@@ -198,3 +229,6 @@ class S3Client(
         const val MAX_PAGES = 10
     }
 }
+
+/** 带命名空间的标签取本地名，前缀可有可无 */
+private fun XmlPullParser.localTag(): String = name.orEmpty().substringAfter(':')

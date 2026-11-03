@@ -1,8 +1,6 @@
 package com.hyperschedule.app.ui.page
 
 import android.Manifest
-import android.content.Context
-import android.content.ContextWrapper
 import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
@@ -22,7 +20,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
-import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.hyperschedule.app.reminder.PrivilegedService
 import com.hyperschedule.app.reminder.ReminderPermissions
 import com.hyperschedule.app.reminder.ShizukuAccess
@@ -59,7 +57,7 @@ fun CourseReminderPage(
     var shizukuGranted by remember { mutableStateOf(ShizukuAccess.hasPermission) }
     val islandSupported = remember { SuperIsland.isSupported() }
     // 用户去系统设置授权后回来要立刻反映，否则状态一直是旧的
-    val lifecycleOwner = remember(context) { context.findLifecycleOwner() }
+    val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, context) {
         val observer =
             LifecycleEventObserver { _, event ->
@@ -68,8 +66,8 @@ fun CourseReminderPage(
                     shizukuGranted = ShizukuAccess.hasPermission
                 }
             }
-        lifecycleOwner?.lifecycle?.addObserver(observer)
-        onDispose { lifecycleOwner?.lifecycle?.removeObserver(observer) }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val notificationPermission =
@@ -257,11 +255,3 @@ private fun GrantedLabel(
         maxLines = 1,
     )
 }
-
-/** 从任意 Context 向外找到持有生命周期的宿主（Activity），用来监听回到前台 */
-private tailrec fun Context.findLifecycleOwner(): LifecycleOwner? =
-    when (this) {
-        is LifecycleOwner -> this
-        is ContextWrapper -> baseContext.findLifecycleOwner()
-        else -> null
-    }

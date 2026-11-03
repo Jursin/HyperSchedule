@@ -5,11 +5,14 @@ import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import androidx.annotation.Keep
-import java.net.HttpURLConnection
+import com.hyperschedule.app.data.remote.AppHttp
+import com.hyperschedule.app.data.remote.AppHttpNoRedirect
 import java.net.URI
-import java.net.URL
 import java.util.zip.GZIPInputStream
 import java.util.zip.InflaterInputStream
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 // 电脑模式下部分教务站点的 WAF 只认桌面浏览器，脚本把 body 登记到原生后由 shouldInterceptRequest 重放
 
@@ -256,36 +259,36 @@ private fun replay(
     request: WebResourceRequest,
     cookieManager: CookieManager,
 ): WebResourceResponse? {
-    val connection = URL(url).openConnection() as HttpURLConnection
     // 主框架的 3xx 由 WebView 通过 JS 跳转处理，不能在这里跟着走
-    connection.instanceFollowRedirects = !request.isForMainFrame
-    connection.connectTimeout = 15_000
-    connection.readTimeout = 30_000
-    connection.requestMethod =
-        if (method in SupportedMethods) {
-            method
-        } else {
-            connection.setRequestProperty("X-HTTP-Method-Override", method)
-            "POST"
+    val client = if (request.isForMainFrame) AppHttpNoRedirect else AppHttp
+    val override = method !in SupportedMethods
+    val requestBody =
+        when {
+            body != null ->
+                body.first.toRequestBody(
+                    body.second.ifBlank { "application/x-www-form-urlencoded" }.toMediaTypeOrNull()
+                )
+            override -> ByteArray(0).toRequestBody(null)
+            else -> null
         }
-
+    val builder =
+        Request.Builder()
+            .url(url)
+            .method(if (override) "POST" else method, requestBody)
+            .header("Accept-Encoding", "identity")
+    if (override) builder.header("X-HTTP-Method-Override", method)
     request.requestHeaders.forEach { (name, value) ->
-        if (name.lowercase() !in DroppedHeaders) connection.setRequestProperty(name, value)
+        if (name.lowercase() !in DroppedHeaders) builder.header(name, value)
     }
-    cookieManager.getCookie(url)?.takeIf { it.isNotBlank() }?.let { connection.setRequestProperty("Cookie", it) }
-    connection.setRequestProperty("Accept-Encoding", "identity")
+    if (body != null) builder.header("Content-Type", body.second.ifBlank { "application/x-www-form-urlencoded" })
+    cookieManager.getCookie(url)?.takeIf { it.isNotBlank() }?.let { builder.header("Cookie", it) }
 
-    if (body != null) {
-        connection.doOutput = true
-        connection.setRequestProperty("Content-Type", body.second.ifBlank { "application/x-www-form-urlencoded" })
-        connection.outputStream.use { it.write(body.first.toByteArray()) }
-    }
-
-    val status = connection.responseCode
-    val location = connection.getHeaderField("Location")
+    val response = client.newCall(builder.build()).execute()
+    val status = response.code
+    val location = response.header("Location")
     // WebView 自己处理不了 3xx 响应，主框架改用 JS 跳转
     if (status in 300..399) {
-        connection.disconnect()
+        response.close()
         if (!request.isForMainFrame || location.isNullOrBlank()) return null
         val target = runCatching { URI(url).resolve(location).toString() }.getOrDefault(location)
         val escaped = target.replace("\\", "\\\\").replace("'", "\\'")
@@ -300,37 +303,33 @@ private fun replay(
         )
     }
 
-    connection.headerFields
-        .filterKeys { it != null && it.equals("Set-Cookie", true) }
-        .values
-        .flatten()
-        .forEach { cookieManager.setCookie(url, it) }
+    response.headers.values("Set-Cookie").forEach { cookieManager.setCookie(url, it) }
     cookieManager.flush()
 
-    val contentType = connection.contentType ?: "text/html"
+    val contentType = response.header("Content-Type") ?: "text/html"
     val mimeType = contentType.substringBefore(';').trim().ifBlank { "text/html" }
     val charset =
         Regex("charset=([^;]+)", RegexOption.IGNORE_CASE).find(contentType)
             ?.groupValues?.get(1)?.trim()?.ifBlank { null } ?: "UTF-8"
 
-    val headers =
-        buildMap {
-            connection.headerFields.forEach { (name, values) ->
-                if (name != null && !name.equals("Content-Encoding", true) && !name.equals("Content-Length", true)) {
-                    put(name, values.joinToString(", "))
-                }
-            }
+    val headers = mutableMapOf<String, String>()
+    response.headers.forEach { (name, value) ->
+        if (!name.equals("Content-Encoding", true) && !name.equals("Content-Length", true)) {
+            headers[name] = headers[name]?.let { "$it, $value" } ?: value
         }
+    }
 
-    val raw = if (status >= 400) connection.errorStream ?: connection.inputStream else connection.inputStream
+    val encoding = response.header("Content-Encoding").orEmpty()
+    // 响应体交给 WebView 读，这里不能 close
+    val raw = response.body.byteStream()
     val stream =
         when {
-            connection.getHeaderField("Content-Encoding").orEmpty().contains("gzip", true) -> GZIPInputStream(raw)
-            connection.getHeaderField("Content-Encoding").orEmpty().contains("deflate", true) -> InflaterInputStream(raw)
+            encoding.contains("gzip", true) -> GZIPInputStream(raw)
+            encoding.contains("deflate", true) -> InflaterInputStream(raw)
             else -> raw
         }
 
-    return WebResourceResponse(mimeType, charset, status, connection.responseMessage ?: "OK", headers, stream)
+    return WebResourceResponse(mimeType, charset, status, response.message.ifBlank { "OK" }, headers, stream)
 }
 
 private val SupportedMethods = setOf("GET", "POST", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE")

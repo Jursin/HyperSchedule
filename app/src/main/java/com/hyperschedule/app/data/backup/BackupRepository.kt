@@ -47,9 +47,6 @@ data class RestoreResult(
     val droppedRows: Int,
 )
 
-/** 两个远端客户端共用的连接超时 */
-internal const val CONNECT_TIMEOUT_MS = 10_000
-
 /** 网络异常转成能直接显示的提示 */
 internal fun networkMessage(error: Throwable): String =
     if (error is IOException) "连接失败：${error.message ?: "网络不可用"}" else (error.message ?: "连接失败")

@@ -11,19 +11,19 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
+import com.hyperschedule.app.data.remote.AppHttp
 import com.hyperschedule.app.data.remote.AppUserAgent
 import com.hyperschedule.app.reminder.PrivilegedService
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStream
-import java.net.HttpURLConnection
-import java.net.URL
 import java.security.MessageDigest
 import kotlin.concurrent.thread
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import okhttp3.Request
 
 internal object UpdateApk {
     private const val NAME = "hyperschedule.apk"
@@ -76,23 +76,19 @@ internal object UpdateApk {
     ): File {
         val file = target(context)
         val partFile = part(context)
-        val connection =
-            (withContext(Dispatchers.IO) {
-                URL(asset.url).openConnection()
-            } as HttpURLConnection).apply {
-                connectTimeout = 15_000
-                readTimeout = 30_000
-                instanceFollowRedirects = true
-                setRequestProperty("User-Agent", AppUserAgent)
-            }
+        val request =
+            Request.Builder()
+                .url(asset.url)
+                .header("User-Agent", AppUserAgent)
+                .build()
+        val response = withContext(Dispatchers.IO) { AppHttp.newCall(request).execute() }
         try {
-            val code = connection.responseCode
-            check(code in 200..299) { "HTTP $code" }
-            val total = connection.contentLengthLong
+            check(response.isSuccessful) { "HTTP ${response.code}" }
+            val total = response.body.contentLength()
             val digest = MessageDigest.getInstance("SHA-256")
             var downloaded = 0L
             var lastPercent = -1
-            connection.inputStream.use { input ->
+            response.body.byteStream().use { input ->
                 FileOutputStream(partFile).use { output ->
                     val buffer = ByteArray(64 * 1024)
                     while (true) {
@@ -122,7 +118,7 @@ internal object UpdateApk {
             onProgress(1f)
             return file
         } finally {
-            connection.disconnect()
+            response.close()
             partFile.delete()
         }
     }

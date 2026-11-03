@@ -1,31 +1,26 @@
 package com.hyperschedule.app.data.backup
 
 import android.util.Base64
+import android.util.Xml
+import com.hyperschedule.app.data.remote.AppHttpNoRedirect
 import com.hyperschedule.app.data.remote.AppUserAgent
 import com.hyperschedule.app.data.remote.readCapped
-import java.net.HttpURLConnection
+import java.io.StringReader
 import java.net.URL
 import java.net.URLDecoder
 import java.net.URLEncoder
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-
-private const val READ_TIMEOUT_MS = 30_000
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.xmlpull.v1.XmlPullParser
 
 private const val MAX_REDIRECTS = 2
-
-/** HttpURLConnection 认识的方法，其余得绕开它的白名单 */
-private val BUILT_IN_METHODS = setOf("GET", "POST", "HEAD", "OPTIONS", "PUT", "DELETE", "TRACE")
 
 private const val PROPFIND_BODY =
     """<?xml version="1.0" encoding="utf-8"?>""" +
         """<d:propfind xmlns:d="DAV:"><d:prop><d:getcontentlength/></d:prop></d:propfind>"""
-
-/** XML 里的一个 `<response>` 块，命名空间前缀可有可无 */
-private val RESPONSE_BLOCK =
-    Regex("<(?:\\w+:)?response\\b[^>]*>.*?</(?:\\w+:)?response>", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
-private val HREF = Regex("<(?:\\w+:)?href>([^<]+)</(?:\\w+:)?href>", RegexOption.IGNORE_CASE)
-private val CONTENT_LENGTH = Regex("<(?:\\w+:)?getcontentlength>\\s*(\\d+)\\s*<", RegexOption.IGNORE_CASE)
 
 /** 一次 WebDAV 请求的结果，[challenge] 是 401 时服务器声明的认证方式 */
 private class DavResponse(val code: Int, val text: String, val challenge: String? = null) {
@@ -100,7 +95,7 @@ class WebDavClient(
             // 路径还没建就等于没有备份
             if (response.code == 404) return@withContext emptyList()
             if (!response.isSuccessful) throw BackupException("读取云端备份列表失败（HTTP ${response.code}）")
-            parseList(response.text)
+            parseBackupList(response.text)
         }
 
     /** 上传一份备份，路径不在了就顺手补建 */
@@ -152,7 +147,7 @@ class WebDavClient(
         }
     }
 
-    /** 扩展方法不在 HttpURLConnection 的白名单里，只能绕开它的检查 */
+    /** 各动作统一走这里，重定向自己处理，好让非标准方法原样重发 */
     private fun request(
         method: String,
         url: String,
@@ -161,119 +156,80 @@ class WebDavClient(
         contentType: String? = null,
         redirects: Int = MAX_REDIRECTS,
     ): DavResponse {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        try {
-            connection.connectTimeout = CONNECT_TIMEOUT_MS
-            connection.readTimeout = READ_TIMEOUT_MS
-            connection.instanceFollowRedirects = false
-            connection.useCaches = false
-            connection.applyMethod(method)
-            // 重定向到别的域名时不能把凭据带过去
-            if (connection.url.host.equals(host, ignoreCase = true)) {
-                connection.setRequestProperty("Authorization", auth)
+        val payload =
+            when {
+                body != null -> body.toByteArray(Charsets.UTF_8)
+                method == "PROPFIND" -> PROPFIND_BODY.toByteArray(Charsets.UTF_8)
+                method == "MKCOL" -> ByteArray(0)
+                else -> null
             }
-            connection.setRequestProperty("User-Agent", AppUserAgent)
-            depth?.let { connection.setRequestProperty("Depth", it) }
-            // PROPFIND 带请求体，MKCOL 声明长度 0，缺了部分服务器回 400 或 411
-            val payload =
-                when {
-                    body != null -> body.toByteArray(Charsets.UTF_8)
-                    method == "PROPFIND" -> PROPFIND_BODY.toByteArray(Charsets.UTF_8)
-                    method == "MKCOL" -> ByteArray(0)
-                    else -> null
-                }
-            if (payload != null) {
-                if (payload.isNotEmpty()) {
-                    connection.setRequestProperty("Content-Type", contentType ?: "application/xml; charset=utf-8")
-                }
-                connection.doOutput = true
-                connection.setFixedLengthStreamingMode(payload.size)
-                connection.outputStream.use { it.write(payload) }
-            }
-            val code = connection.responseCode
+        val builder = Request.Builder().url(url).header("User-Agent", AppUserAgent)
+        // 重定向到别的域名时不能把凭据带过去
+        if (runCatching { URL(url).host }.getOrNull().equals(host, ignoreCase = true)) {
+            builder.header("Authorization", auth)
+        }
+        depth?.let { builder.header("Depth", it) }
+        val type = contentType ?: if (method == "PROPFIND") "application/xml; charset=utf-8" else null
+        builder.method(method, payload?.toRequestBody(type?.toMediaTypeOrNull()))
+        AppHttpNoRedirect.newCall(builder.build()).execute().use { response ->
+            val code = response.code
             if (code in 301..308 && redirects > 0) {
-                val location = connection.getHeaderField("Location")
+                val location = response.header("Location")
                 if (!location.isNullOrBlank()) {
                     val next = if (location.startsWith("http")) location else URL(URL(url), location).toString()
                     return request(method, next, depth, body, contentType, redirects - 1)
                 }
             }
-            val stream = if (code in 200..299) connection.inputStream else connection.errorStream
-            val text = stream?.use { it.readCapped().decodeToString() }.orEmpty()
-            val challenge = if (code == 401) connection.getHeaderField("WWW-Authenticate") else null
+            val text = response.body.readCapped().decodeToString()
+            val challenge = if (code == 401) response.header("WWW-Authenticate") else null
             return DavResponse(code, text, challenge)
-        } finally {
-            connection.disconnect()
         }
     }
-
-    /** 设置完回读确认生效，避免悄悄发成 GET */
-    private fun HttpURLConnection.applyMethod(method: String) {
-        if (method in BUILT_IN_METHODS) {
-            requestMethod = method
-            return
-        }
-        runCatching { requestMethod = method }
-        if (requestMethod == method) return
-        // Android 的 https 连接是包装类，真正发请求的是内部的委托对象，方法字段也在它身上
-        val targets = methodTargets()
-        targets.forEach { target -> setMethodField(target, method) }
-        val delegated = targets.last().requestMethod == method
-        if (requestMethod != method || !delegated) throw BackupException("当前系统不支持 $method 请求")
-    }
-
-    /** 连接自身与内部的委托对象，从外到内 */
-    private fun HttpURLConnection.methodTargets(): List<HttpURLConnection> {
-        val targets = mutableListOf(this)
-        var current: Any = this
-        repeat(2) {
-            val delegate =
-                runCatching {
-                        current.javaClass.declaredFields
-                            .firstOrNull { it.name == "delegate" && HttpURLConnection::class.java.isAssignableFrom(it.type) }
-                            ?.also { it.isAccessible = true }
-                            ?.get(current)
-                    }
-                    .getOrNull()
-            if (delegate is HttpURLConnection) {
-                targets += delegate
-                current = delegate
-            } else {
-                return targets
-            }
-        }
-        return targets
-    }
-
-    private fun setMethodField(connection: HttpURLConnection, method: String) {
-        val field =
-            generateSequence<Class<*>>(connection.javaClass) { it.superclass }.firstNotNullOfOrNull { type ->
-                runCatching { type.getDeclaredField("method") }.getOrNull()
-            } ?: return
-        runCatching {
-            field.isAccessible = true
-            field.set(connection, method)
-        }
-    }
-
-    private fun parseList(xml: String): List<BackupFile> = buildList {
-        for (block in RESPONSE_BLOCK.findAll(xml)) {
-            val href = HREF.find(block.value)?.groupValues?.get(1) ?: continue
-            // href 可能写成绝对地址，取最后一段就是文件名
-            val raw = href.substringAfterLast('/', "")
-            // 目录自身以 / 结尾，这里取不到文件名，正好跳过
-            if (raw.isEmpty()) continue
-            val name = decodeSegment(raw)
-            val size = CONTENT_LENGTH.find(block.value)?.groupValues?.get(1)?.toLongOrNull() ?: 0L
-            backupFileOf(name, size)?.let { add(it) }
-        }
-    }.sortedByDescending { it.time }
 }
 
+/** 逐个 `<response>` 取 href 与长度，目录自身没有文件名自然跳过 */
+internal fun parseBackupList(xml: String): List<BackupFile> {
+    val files = mutableListOf<BackupFile>()
+    runCatching {
+        val parser = Xml.newPullParser()
+        parser.setInput(StringReader(xml))
+        var href: String? = null
+        var size = 0L
+        var inside = false
+        while (parser.eventType != XmlPullParser.END_DOCUMENT) {
+            when (parser.eventType) {
+                XmlPullParser.START_TAG ->
+                    when (parser.localTag()) {
+                        "response" -> {
+                            inside = true
+                            href = null
+                            size = 0L
+                        }
+                        "href" -> if (inside) href = parser.nextText()
+                        "getcontentlength" ->
+                            if (inside) size = parser.nextText().trim().toLongOrNull() ?: 0L
+                    }
+                XmlPullParser.END_TAG ->
+                    if (inside && parser.localTag() == "response") {
+                        inside = false
+                        // href 可能写成绝对地址，取最后一段就是文件名
+                        val name = href?.substringAfterLast('/', "")?.let(::decodeSegment).orEmpty()
+                        if (name.isNotEmpty()) backupFileOf(name, size)?.let(files::add)
+                    }
+            }
+            parser.next()
+        }
+    }
+    return files.sortedByDescending { it.time }
+}
+
+/** 带命名空间的标签取本地名，前缀可有可无 */
+private fun XmlPullParser.localTag(): String = name.orEmpty().substringAfter(':')
+
 /** 路径段编码，中文与空格都要转义，+ 在路径里不是空格也不能留 */
-private fun encodeSegment(segment: String): String =
+internal fun encodeSegment(segment: String): String =
     URLEncoder.encode(segment, "UTF-8").replace("+", "%20")
 
 /** 路径段解码，+ 在路径里是字面加号 */
-private fun decodeSegment(raw: String): String =
+internal fun decodeSegment(raw: String): String =
     runCatching { URLDecoder.decode(raw.replace("+", "%2B"), "UTF-8") }.getOrDefault(raw)

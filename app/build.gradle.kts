@@ -75,6 +75,20 @@ android {
         aidl = true
     }
 
+    testOptions {
+        unitTests {
+            // Robolectric 要读通知渠道、字符串等资源
+            isIncludeAndroidResources = true
+            // android-all 由 Robolectric 运行时自行下载，直连 Maven Central 常被中断，走镜像
+            all {
+                it.systemProperty("robolectric.dependency.repo.id", "aliyun-public")
+                it.systemProperty("robolectric.dependency.repo.url", "https://maven.aliyun.com/repository/public")
+                // Robolectric 要加载 native runtime，JDK 24 起不加这个会打印受限方法警告
+                it.jvmArgs("--enable-native-access=ALL-UNNAMED")
+            }
+        }
+    }
+
     // 只保留中文与英文资源，其余语言不参与编译
     androidResources {
         localeFilters += listOf("zh", "en")
@@ -125,18 +139,21 @@ dependencies {
     implementation(libs.androidx.webkit)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.miuix.ui)
     implementation(libs.miuix.icons)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.blur)
-    implementation(libs.miuix.shader)
     implementation(libs.miuix.nav)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.aboutlibraries.core)
     implementation(libs.aboutlibraries.compose.core)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    implementation(libs.okhttp)
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     testImplementation(libs.junit)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 }

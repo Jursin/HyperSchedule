@@ -1,16 +1,16 @@
 package com.hyperschedule.app.data.importer.share
 
+import com.hyperschedule.app.data.remote.AppHttp
 import com.hyperschedule.app.data.remote.readCapped
-import java.net.HttpURLConnection
-import java.net.URL
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 /** 非 2xx 时抛出，调用方按状态码区分「口令不存在」之类的情况 */
 internal class ShareHttpException(val code: Int) : IllegalStateException("服务器返回 HTTP $code")
 
 /** 分享码导入用的最小 HTTP 封装 */
 internal object ShareHttp {
-    private const val TIMEOUT_MILLIS = 20_000
-
     fun get(
         url: String,
         headers: Map<String, String> = emptyMap(),
@@ -28,29 +28,12 @@ internal object ShareHttp {
         body: String?,
         headers: Map<String, String>,
     ): String {
-        val connection = URL(url).openConnection() as HttpURLConnection
-        try {
-            connection.requestMethod = method
-            connection.connectTimeout = TIMEOUT_MILLIS
-            connection.readTimeout = TIMEOUT_MILLIS
-            headers.forEach { (key, value) -> connection.setRequestProperty(key, value) }
-            if (body != null) {
-                connection.doOutput = true
-                connection.setRequestProperty(
-                    "Content-Type",
-                    "application/x-www-form-urlencoded; charset=UTF-8",
-                )
-                connection.outputStream.use { it.write(body.toByteArray()) }
-            }
-            val code = connection.responseCode
-            if (code !in 200..299) {
-                // 只把状态码带出去
-                connection.errorStream?.close()
-                throw ShareHttpException(code)
-            }
-            return connection.inputStream.use { it.readCapped().decodeToString() }
-        } finally {
-            connection.disconnect()
+        val payload = body?.toRequestBody("application/x-www-form-urlencoded; charset=UTF-8".toMediaTypeOrNull())
+        val builder = Request.Builder().url(url).method(method, payload)
+        headers.forEach { (key, value) -> builder.header(key, value) }
+        AppHttp.newCall(builder.build()).execute().use { response ->
+            if (!response.isSuccessful) throw ShareHttpException(response.code)
+            return response.body.readCapped().decodeToString()
         }
     }
 }

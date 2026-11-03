@@ -66,7 +66,7 @@ internal object S3Signature {
         val stringToSign = "$ALGORITHM\n$amzDate\n$scope\n${sha256Hex(canonicalRequest.toByteArray(Charsets.UTF_8))}"
         val signature = hmacSha256(signingKey(secretAccessKey, dateStamp, region), stringToSign).toHex()
 
-        // host 交给 HttpURLConnection 自己带，这里不回写
+        // host 交给 HTTP 客户端自己带，这里不回写
         val resultHeaders = headers.filterKeys { it != "host" }.toMutableMap()
         resultHeaders["Authorization"] =
             "$ALGORITHM Credential=$accessKeyId/$scope, SignedHeaders=$signedHeaders, Signature=$signature"

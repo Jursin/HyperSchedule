@@ -125,8 +125,8 @@ internal object ReminderNotifier {
         val live = ReminderPermissions.canPostPromotedNotifications(context)
         val progress = if (withProgress) progressPercent(course.start.toEpochMillis(), expiresAtMillis) else 0
         val detail = detailOf(course)
-        // 课程 id 也要进签名
-        val signature = "${course.id}|$targetMillis|$detail|$live|$progress"
+        // 课名与课程 id 都在标题里，改了要重发
+        val signature = "${course.id}|${course.name}|$targetMillis|$detail|$live|$progress"
         if (lastPosted[id] == signature) return
         val inClass = category == Notification.CATEGORY_PROGRESS
         // 课前把状态词单独放一行，课中不重复状态词，右边倒计时已经说明在上了

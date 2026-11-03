@@ -23,7 +23,7 @@ import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 
 @Composable
 fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
