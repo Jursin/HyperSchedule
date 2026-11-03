@@ -1,26 +1,39 @@
 package com.hyperschedule.app.ui.component
 
-import androidx.compose.foundation.text.InlineTextContent
-import androidx.compose.foundation.text.appendInlineContent
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.Placeholder
-import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.schedule.cjkDigitGap
-import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.File
 import top.yukonga.miuix.kmp.icon.extended.Years
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import java.time.LocalTime
 
-/** 课程信息行的图标占位 id */
+/** 课程信息行的字段图标 id */
 internal object InfoIconId {
     const val WEEKS = "infoWeeks"
     const val SECTION = "infoSection"
@@ -33,51 +46,78 @@ internal object InfoIconId {
 /** 图标盒，墨迹约占 0.78 盒宽 */
 private val IconBoxSize = 15.sp
 
-/** 图标后跟不换行空格（NBSP），图标与其文字粘成一块，位置不够时整块换行 */
-internal fun AnnotatedString.Builder.infoIcon(id: String, alt: String) {
-    appendInlineContent(id, alt)
-    append('\u00A0')
+/** 字段之间的间距 */
+private val FieldGap = 6.dp
+
+/** 复制点击高亮的圆角 */
+private val CopyHighlightShape = RoundedCornerShape(4.dp)
+
+/** 图标与字段值之间的间距 */
+private val IconTextGap = 3.dp
+
+/** 信息行的一枚字段 */
+internal data class InfoField(val icon: String, val alt: String, val value: String)
+
+/** 字段图标，未知 id 退回文件图标 */
+private fun infoIconVector(id: String): ImageVector = when (id) {
+    InfoIconId.WEEKS -> MiuixIcons.Years
+    InfoIconId.SECTION -> Clock
+    InfoIconId.POSITION -> Location
+    InfoIconId.TEACHER -> Person
+    InfoIconId.CREDIT -> AwardStar
+    else -> MiuixIcons.File
 }
 
-/** 两个字段之间的间距，用可断行的空格，换行点落在这里，行尾不会留下分隔符 */
-internal fun AnnotatedString.Builder.fieldGap() = append("  ")
-
-/** 字段值整块不换行，空格转不换行空格，字符间再加 word joiner，放不下时图标与文本一起换行 */
-internal fun AnnotatedString.Builder.fieldValue(text: String) {
-    if (text.isEmpty()) return
-    val sb = StringBuilder(text.length * 2)
-    var i = 0
-    while (i < text.length) {
-        if (i > 0) sb.append('\u2060')
-        val codePoint = text.codePointAt(i)
-        sb.appendCodePoint(if (codePoint == ' '.code) 0xA0 else codePoint)
-        i += Character.charCount(codePoint)
-    }
-    append(sb)
+/** 复制文本并弹提示；primaryClip 属性只读，只能调 setter 方法 */
+@Suppress("KotlinPropertyAccess", "UsePropertyAccessSyntax")
+private fun Context.copyToClipboard(alt: String, value: String) {
+    getSystemService(ClipboardManager::class.java)?.setPrimaryClip(ClipData.newPlainText(alt, value))
+    toast("已复制$alt")
 }
 
-/** 课程信息行的内联图标，颜色默认取次要文字色 */
+/** 点击复制该段文字，按压高亮与信息行字段一致 */
 @Composable
-internal fun courseInfoIcons(
+internal fun Modifier.copyOnClick(alt: String, value: String): Modifier {
+    val context = LocalContext.current
+    return clip(CopyHighlightShape)
+        .clickable(onClickLabel = "复制$alt") { context.copyToClipboard(alt, value) }
+}
+
+/** 课程信息行，字段各自可点，点完复制该字段的值 */
+@Composable
+internal fun CourseInfoFields(
+    fields: List<InfoField>,
+    modifier: Modifier = Modifier,
     tint: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-): Map<String, InlineTextContent> =
-    remember(tint) {
-        fun entry(vector: ImageVector) =
-            InlineTextContent(
-                placeholder =
-                    Placeholder(IconBoxSize, IconBoxSize, PlaceholderVerticalAlign.TextCenter),
+) {
+    val iconSize = with(LocalDensity.current) { IconBoxSize.toDp() }
+    FlowRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(FieldGap),
+    ) {
+        fields.forEach { field ->
+            Row(
+                modifier = Modifier.copyOnClick(field.alt, field.value),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Icon(imageVector = vector, contentDescription = null, tint = tint)
+                Icon(
+                    imageVector = infoIconVector(field.icon),
+                    contentDescription = null,
+                    tint = tint,
+                    modifier = Modifier.size(iconSize),
+                )
+                Spacer(modifier = Modifier.width(IconTextGap))
+                Text(
+                    text = field.value,
+                    style = MiuixTheme.textStyles.body2,
+                    color = tint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
-        mapOf(
-            InfoIconId.WEEKS to entry(MiuixIcons.Years),
-            InfoIconId.SECTION to entry(Clock),
-            InfoIconId.POSITION to entry(Location),
-            InfoIconId.TEACHER to entry(Person),
-            InfoIconId.CREDIT to entry(AwardStar),
-            InfoIconId.REMARK to entry(MiuixIcons.File),
-        )
+        }
     }
+}
 
 /** 标准课显示「第X-Y节」，自定义时间课显示起止时间 */
 internal fun Course.sectionLabel(): String {

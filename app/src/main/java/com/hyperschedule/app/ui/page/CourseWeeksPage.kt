@@ -17,8 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -35,16 +33,15 @@ import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.CourseTableData
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
+import com.hyperschedule.app.ui.component.CourseInfoFields
 import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.HolidayMarkBadge
+import com.hyperschedule.app.ui.component.InfoField
 import com.hyperschedule.app.ui.component.InfoIconId
 import com.hyperschedule.app.ui.component.SectionTitle
-import com.hyperschedule.app.ui.component.courseInfoIcons
+import com.hyperschedule.app.ui.component.copyOnClick
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.endTimeOf
-import com.hyperschedule.app.ui.component.fieldGap
-import com.hyperschedule.app.ui.component.fieldValue
-import com.hyperschedule.app.ui.component.infoIcon
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
@@ -194,8 +191,14 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
     val start = startTimeOf(course, slotMap)
     val end = endTimeOf(course, slotMap)
     val timeRange = if (start != null && end != null) "$start - $end" else ""
-    val dayName = dayLabel(course.day)
-    val info = infoLine(course)
+    val info = infoFields(course)
+    val header =
+        listOfNotNull(
+            date?.let { "${it.monthValue}/${it.dayOfMonth}" },
+            dayLabel(course.day),
+            // 自定义时间课的起止时间只在右侧显示
+            if (course.isCustomTime) null else course.sectionLabel(),
+        ).joinToString(" ")
 
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
@@ -204,20 +207,17 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text =
-                        listOfNotNull(
-                            date?.let { "${it.monthValue}/${it.dayOfMonth}" },
-                            dayName,
-                            // 自定义时间课的起止时间只在右侧显示
-                            if (course.isCustomTime) null else course.sectionLabel(),
-                        ).joinToString(" "),
+                    text = header,
                     style = MiuixTheme.textStyles.headline1,
                     fontWeight = FontWeight.Medium,
                     color = MiuixTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     // 太长时省略，避免挤走角标
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier =
+                        Modifier
+                            .weight(1f, fill = false)
+                            .copyOnClick("日期节次", header),
                 )
                 if (mark != null) {
                     HolidayMarkBadge(
@@ -228,33 +228,26 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
                     )
                 }
             }
-            if (info.text.isNotEmpty()) {
+            if (info.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = info,
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    inlineContent = courseInfoIcons(),
-                )
+                CourseInfoFields(fields = info)
             }
         }
         if (timeRange.isNotEmpty()) {
-            Text(text = timeRange, style = MiuixTheme.textStyles.body1, color = MiuixTheme.colorScheme.primary)
+            Text(
+                text = timeRange,
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.primary,
+                modifier = Modifier.copyOnClick("上课时间", timeRange),
+            )
         }
     }
 }
 
 /** 地点 + 教师 + 备注 */
-private fun infoLine(course: Course): AnnotatedString =
-    buildAnnotatedString {
-        listOf(
-            Triple(InfoIconId.POSITION, "地点", course.position),
-            Triple(InfoIconId.TEACHER, "教师", course.teacher),
-            Triple(InfoIconId.REMARK, "备注", course.remark.orEmpty()),
-        ).filter { it.third.isNotBlank() }
-            .forEachIndexed { index, (icon, label, value) ->
-                if (index > 0) fieldGap()
-                infoIcon(icon, label)
-                fieldValue(value)
-            }
+private fun infoFields(course: Course): List<InfoField> =
+    buildList {
+        if (course.position.isNotBlank()) add(InfoField(InfoIconId.POSITION, "地点", course.position))
+        if (course.teacher.isNotBlank()) add(InfoField(InfoIconId.TEACHER, "教师", course.teacher))
+        course.remark?.takeIf { it.isNotBlank() }?.let { add(InfoField(InfoIconId.REMARK, "备注", it)) }
     }

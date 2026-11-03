@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -20,8 +21,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -61,6 +71,7 @@ import com.hyperschedule.app.ui.page.courseedit.toArgbInt
 import com.hyperschedule.app.ui.page.courseedit.toCourse
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.ColorPalette
@@ -103,7 +114,10 @@ fun CourseEditPage(
     // 库里已有、当前草稿仍保留的时段 id，保存时用它算出要删除的行
     var savedIds by remember { mutableStateOf(seed.groups.map { it.id }.toSet()) }
 
-    /** 改完星期、节次或周次后卡片跟着挪位置 */
+    // 卡片在根坐标里的位置，用来判断这一下是否点在卡片外
+    val cardRects = remember { CardRects() }
+
+    /** 改完星期、节次或周次后卡片跟着挪位置，只在点到卡片外面时执行 */
     fun sortGroups() {
         val sorted = groups.sortedBySchedule(sectionTimes)
         if (sorted == groups.toList()) return
@@ -138,7 +152,17 @@ fun CourseEditPage(
     val listState = rememberLazyListState()
     LaunchedEffect(focusId, seeded) {
         val index = groups.indexOfFirst { it.id == focusId }
-        if (index >= 0) listState.scrollToItem(index + 2)
+        if (index >= 0) listState.scrollToItem(index + GroupItemOffset)
+    }
+
+    // 新加的时段在末尾，加一次滚一次；计数不复位，写在 LaunchedEffect 的 key 里自己复位会让动画被取消
+    var scrollRequest by remember { mutableIntStateOf(0) }
+    LaunchedEffect(scrollRequest) {
+        if (scrollRequest == 0) return@LaunchedEffect
+        val index = groups.lastIndex + GroupItemOffset
+        // 新卡片要先参与组合，列表知道总项数之后才滚得动
+        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > index }
+        listState.animateScrollToItem(index)
     }
 
     var colorDialog by remember { mutableStateOf(false) }
@@ -166,7 +190,8 @@ fun CourseEditPage(
                 remark = "",
             )
         )
-        sortGroups()
+        // 新卡片先加在最后，添加时不做重排
+        scrollRequest++
     }
 
     val onSave: () -> Unit = {
@@ -219,7 +244,21 @@ fun CourseEditPage(
             )
         },
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
+                    .onGloballyPositioned { cardRects.origin = it.positionInRoot() }
+                    .pointerInput(sectionTimes) {
+                        // 只观察不消费，滚动和输入框都不受影响
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                val down = event.changes.firstOrNull { it.changedToDown() } ?: continue
+                                if (!cardRects.contains(down.position)) sortGroups()
+                            }
+                        }
+                    },
+        ) {
             LazyColumn(
                 state = listState,
                 modifier = Modifier.fillMaxSize().pageScroll(blurBackdrop, scrollBehavior),
@@ -264,15 +303,19 @@ fun CourseEditPage(
                 }
 
                 itemsIndexed(groups, key = { _, group -> group.id }) { index, group ->
-                    GroupCard(
-                        group = group,
-                        canDelete = groups.size > 1,
-                        onChange = { groups[index] = it },
-                        onPickDay = { dayDialogIndex = index },
-                        onPickTime = { timeDialogIndex = index },
-                        onPickWeeks = { weeksDialogIndex = index },
-                        onDelete = { if (groups.size > 1) groups.removeAt(index) },
-                    )
+                    Box(modifier = Modifier.onGloballyPositioned { cardRects.cards[group.id] = it.boundsInRoot() }) {
+                        // 卡片被回收或删掉后不再参与「点在卡外」的判断
+                        DisposableEffect(group.id) { onDispose { cardRects.cards.remove(group.id) } }
+                        GroupCard(
+                            group = group,
+                            canDelete = groups.size > 1,
+                            onChange = { groups[index] = it },
+                            onPickDay = { dayDialogIndex = index },
+                            onPickTime = { timeDialogIndex = index },
+                            onPickWeeks = { weeksDialogIndex = index },
+                            onDelete = { if (groups.size > 1) groups.removeAt(index) },
+                        )
+                    }
                 }
             }
 
@@ -316,7 +359,6 @@ fun CourseEditPage(
             onConfirm = { day ->
                 groups[dayIndex] = groups[dayIndex].copy(day = day)
                 dayDialogIndex = -1
-                sortGroups()
             },
         )
     }
@@ -339,7 +381,6 @@ fun CourseEditPage(
                         customEndTime = endTime,
                     )
                 timeDialogIndex = -1
-                sortGroups()
             },
         )
     }
@@ -354,8 +395,21 @@ fun CourseEditPage(
             onConfirm = { weeks ->
                 groups[weeksIndex] = groups[weeksIndex].copy(weeks = weeks)
                 weeksDialogIndex = -1
-                sortGroups()
             },
         )
+    }
+}
+
+/** 列表前两张卡是课程名称与颜色，时段卡从这一项之后开始 */
+private const val GroupItemOffset = 2
+
+/** 记录时段卡片在根坐标里的位置，判断这一下是否点在卡片外 */
+private class CardRects {
+    val cards = mutableMapOf<String, Rect>()
+    var origin: Offset = Offset.Zero
+
+    fun contains(position: Offset): Boolean {
+        val point = position + origin
+        return cards.values.any { it.contains(point) }
     }
 }

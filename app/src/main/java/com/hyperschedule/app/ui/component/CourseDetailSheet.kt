@@ -25,10 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.schedule.cjkDigitGap
@@ -142,7 +139,10 @@ private fun CourseDetailCard(item: CourseDetailItem, mark: String?, onEdit: () -
                         style = MiuixTheme.textStyles.headline1,
                         fontWeight = FontWeight.Medium,
                         color = MiuixTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier =
+                            Modifier
+                                .weight(1f, fill = false)
+                                .copyOnClick("课程名称", course.name),
                     )
                     if (mark != null) {
                         Spacer(modifier = Modifier.width(6.dp))
@@ -155,26 +155,29 @@ private fun CourseDetailCard(item: CourseDetailItem, mark: String?, onEdit: () -
                     }
                 }
                 Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = summaryText(course, item.weeks),
-                    style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    inlineContent = courseInfoIcons(),
+                CourseInfoFields(
+                    fields =
+                        listOf(
+                            InfoField(InfoIconId.WEEKS, "周次", formatWeeks(item.weeks)),
+                            InfoField(InfoIconId.SECTION, "节次", course.sectionLabel()),
+                        ),
                 )
+                val placeTeacherCredit =
+                    buildList {
+                        if (course.position.isNotBlank()) {
+                            add(InfoField(InfoIconId.POSITION, "地点", course.position))
+                        }
+                        if (course.teacher.isNotBlank()) {
+                            add(InfoField(InfoIconId.TEACHER, "教师", course.teacher))
+                        }
+                        course.credit?.let { credit ->
+                            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(credit)}学分".cjkDigitGap()))
+                        }
+                    }
+                if (placeTeacherCredit.isNotEmpty()) CourseInfoFields(fields = placeTeacherCredit)
                 course.remark?.takeIf { it.isNotBlank() }?.let { remark ->
                     Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text =
-                            buildAnnotatedString {
-                                infoIcon(InfoIconId.REMARK, "备注")
-                                append(remark)
-                            },
-                        style = MiuixTheme.textStyles.body2,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        inlineContent = courseInfoIcons(),
-                    )
+                    CourseInfoFields(fields = listOf(InfoField(InfoIconId.REMARK, "备注", remark)))
                 }
             }
             Spacer(modifier = Modifier.width(12.dp))
@@ -207,34 +210,3 @@ private fun EditPill(onClick: () -> Unit) {
         )
     }
 }
-
-/** 周次 + 节次一行，地点 + 教师 + 学分一行，备注单独一行 */
-private fun summaryText(course: Course, weeks: List<Int>): AnnotatedString =
-    buildAnnotatedString {
-        infoIcon(InfoIconId.WEEKS, "周次")
-        fieldValue(formatWeeks(weeks))
-        fieldGap()
-        infoIcon(InfoIconId.SECTION, "节次")
-        fieldValue(course.sectionLabel())
-        if (course.position.isNotBlank() || course.teacher.isNotBlank()) {
-            append('\n')
-            if (course.position.isNotBlank()) {
-                infoIcon(InfoIconId.POSITION, "地点")
-                fieldValue(course.position)
-            }
-            if (course.teacher.isNotBlank()) {
-                if (course.position.isNotBlank()) fieldGap()
-                infoIcon(InfoIconId.TEACHER, "教师")
-                fieldValue(course.teacher)
-            }
-        }
-        course.credit?.let { credit ->
-            if (course.position.isNotBlank() || course.teacher.isNotBlank()) {
-                fieldGap()
-            } else {
-                append('\n')
-            }
-            infoIcon(InfoIconId.CREDIT, "学分")
-            fieldValue("${formatCredit(credit)}学分".cjkDigitGap())
-        }
-    }

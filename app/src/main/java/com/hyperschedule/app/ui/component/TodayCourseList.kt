@@ -17,8 +17,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -183,7 +181,7 @@ private fun TodayCourseRow(
             { it }
         }
     val scheme = MiuixTheme.colorScheme
-    val info = remember(course, style) { infoLine(course, style) }
+    val info = remember(course, style) { infoFields(course, style) }
     // 上课中显示课程进度，临上课时显示倒计时，两者占卡片内同一个位置
     val progress =
         when {
@@ -213,7 +211,10 @@ private fun TodayCourseRow(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         // 课名太长时省略而不是把角标挤出去
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier =
+                            Modifier
+                                .weight(1f, fill = false)
+                                .copyOnClick("课程名称", course.name),
                     )
                     // 调休角标
                     if (mark != null) {
@@ -228,16 +229,16 @@ private fun TodayCourseRow(
                 // 字段全被关掉时不占这一行的高度
                 if (info.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = info,
-                        style = MiuixTheme.textStyles.body2,
-                        color = dim(scheme.onSurfaceVariantSummary),
-                        inlineContent = courseInfoIcons(dim(scheme.onSurfaceVariantSummary)),
-                    )
+                    CourseInfoFields(fields = info, tint = dim(scheme.onSurfaceVariantSummary))
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                Text(text = timeRange, style = MiuixTheme.textStyles.body1, color = dim(scheme.primary))
+                Text(
+                    text = timeRange,
+                    style = MiuixTheme.textStyles.body1,
+                    color = dim(scheme.primary),
+                    modifier = Modifier.copyOnClick("上课时间", timeRange),
+                )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = status,
@@ -340,9 +341,6 @@ private fun coursePeriod(course: Course, slotMap: Map<Int, TimeSlot>): Int {
 }
 
 /** 信息行里的一个字段，图标 id、无障碍文案、显示值 */
-private data class InfoField(val icon: String, val alt: String, val value: String)
-
-/** 信息行，按外观开关筛出要显示的字段，各自带图标 */
 private fun infoFields(course: Course, style: TodayStyle): List<InfoField> =
     buildList {
         // 自定义时间课的「节次」就是右侧显示的那段时间，不再重复
@@ -360,14 +358,5 @@ private fun infoFields(course: Course, style: TodayStyle): List<InfoField> =
         }
         course.remark?.takeIf { style.showRemark && it.isNotBlank() }?.let { remark ->
             add(InfoField(InfoIconId.REMARK, "备注", remark))
-        }
-    }
-
-private fun infoLine(course: Course, style: TodayStyle): AnnotatedString =
-    buildAnnotatedString {
-        infoFields(course, style).forEachIndexed { index, field ->
-            if (index > 0) fieldGap()
-            infoIcon(field.icon, field.alt)
-            fieldValue(field.value)
         }
     }
