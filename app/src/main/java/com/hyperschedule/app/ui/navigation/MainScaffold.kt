@@ -233,6 +233,7 @@ fun MainScaffold(
     appBlur: Boolean,
     predictiveBackEnabled: Boolean,
     initialPage: Int = 0,
+    settingsPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     themePage: @Composable (onBack: () -> Unit) -> Unit = {},
     updatePage: @Composable (onBack: () -> Unit) -> Unit = {},
     aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
@@ -433,6 +434,7 @@ fun MainScaffold(
                                     SideNavBar(
                                         selectedPage = mainPagerState.targetPage.value,
                                         onSelect = { mainPagerState.animateToPage(it) },
+                                        onOpenSettings = { navigate(Page.Settings) },
                                     )
                                 }
                                 Box(
@@ -470,7 +472,6 @@ fun MainScaffold(
                                         modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
                                         blurBackdrop = navBarBackdrop,
                                     )
-                                    // 宽度是本项目的选择（3 个 tab），只贴底 24dp
                                     if (!wide) {
                                         Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
                                             BottomNavBar(
@@ -478,6 +479,7 @@ fun MainScaffold(
                                                 targetPage = mainPagerState.targetPage,
                                                 blurBackdrop = navBarBackdrop,
                                                 onSelect = { mainPagerState.animateToPage(it) },
+                                                onOpenSettings = { navigate(Page.Settings) },
                                                 modifier = Modifier.fillMaxWidth(0.63f),
                                             )
                                         }
@@ -497,6 +499,11 @@ fun MainScaffold(
                             appBlur = appBlur,
                             onBack = onBack,
                         )
+                    }
+                }
+                entry<Page.Settings> {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        settingsPage(navigate, onBack)
                     }
                 }
                 entry<Page.Appearance> {

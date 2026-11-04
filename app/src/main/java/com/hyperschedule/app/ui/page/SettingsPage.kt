@@ -45,6 +45,7 @@ fun SettingsPage(
     onOpenBackup: () -> Unit = {},
     onOpenHoliday: () -> Unit = {},
     onOpenReminder: () -> Unit = {},
+    onBack: () -> Unit,
 ) {
     val state = store.state
     val scope = rememberCoroutineScope()
@@ -80,6 +81,7 @@ fun SettingsPage(
     PreferenceScreen(
         title = "设置",
         appBlur = state.blur,
+        onBack = onBack,
     ) {
         PreferenceSection("基本设置") {
             ArrowPreference(

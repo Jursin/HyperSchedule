@@ -1,10 +1,6 @@
 package com.hyperschedule.app.ui.component
 
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.TodayStyle
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
@@ -56,8 +52,7 @@ fun TodayAppearanceSheet(
                 )
             }
 
-            // 抽屉底下压着悬浮导航栏，留出位置让最后一项能完整露出来
-            Spacer(modifier = Modifier.height(SheetBottomInset))
+            SheetBottomSpacer()
         }
     }
 }

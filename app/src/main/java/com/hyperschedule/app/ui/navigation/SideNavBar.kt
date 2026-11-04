@@ -41,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.theme.isDarkTheme
+import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -57,8 +58,9 @@ private val NavItemGap = 4.dp
 private val NavIconSize = 24.dp
 private val NavPanelPadding = 8.dp
 
-/** 圆角取条目高的一半，做成胶囊形 */
-private val NavShape = RoundedCornerShape(NavItemHeight / 2)
+/** 条目圆角取高的一半，做成胶囊形，分隔线让到这一档，只压住胶囊的直线段 */
+private val NavCornerRadius = NavItemHeight / 2
+private val NavShape = RoundedCornerShape(NavCornerRadius)
 
 /** 图标中心钉在折叠宽度的中线上，展开时不跟着平移 */
 private val NavIconInset = (NavCollapsedWidth - NavPanelPadding * 2 - NavIconSize) / 2
@@ -73,6 +75,7 @@ private val NavExpandMotion =
 internal fun SideNavBar(
     selectedPage: Int,
     onSelect: (Int) -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val progress by
@@ -120,6 +123,22 @@ internal fun SideNavBar(
                 onClick = { onSelect(index) },
             )
         }
+        // 两端各让出一个圆角，和上方胶囊高亮矩形的直线段对齐，收起时同样按这个量内缩
+        HorizontalDivider(
+            modifier = Modifier.padding(horizontal = NavCornerRadius),
+            thickness = 0.5.dp,
+            color = MiuixTheme.colorScheme.outline,
+        )
+        // 设置是子页面入口，不占选中态，只有按下的那一下亮
+        SideNavRow(
+            icon = settingsTab.icon,
+            palette = palette,
+            label = settingsTab.label,
+            labelAlpha = labelAlpha,
+            role = Role.Button,
+            onClickLabel = settingsTab.label,
+            onClick = onOpenSettings,
+        )
     }
 }
 

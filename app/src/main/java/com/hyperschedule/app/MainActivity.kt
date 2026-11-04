@@ -121,6 +121,25 @@ class MainActivity : ComponentActivity() {
                     appBlur = settings.blur,
                     predictiveBackEnabled = settings.predictiveBack,
                     initialPage = settings.launchPage,
+                    settingsPage = { navigate, onBack ->
+                        SettingsPage(
+                            store = settingsStore,
+                            repository = repository,
+                            table = table,
+                            onAppearanceClick = { navigate(Page.Appearance) },
+                            onUpdateClick = { navigate(Page.Update) },
+                            onAboutClick = { navigate(Page.About) },
+                            onManageCourses = { navigate(Page.CourseManage) },
+                            onManageTables = { navigate(Page.CourseTableManage) },
+                            onManageTimeTables = { navigate(Page.TimeTableManage) },
+                            onOpenImport = { navigate(Page.ScheduleImport) },
+                            onOpenExport = { navigate(Page.ScheduleExport) },
+                            onOpenBackup = { navigate(Page.Backup) },
+                            onOpenHoliday = { navigate(Page.Holiday) },
+                            onOpenReminder = { navigate(Page.Reminder) },
+                            onBack = onBack,
+                        )
+                    },
                     themePage = { onBack -> ThemePage(settingsStore, onBack) },
                     updatePage = { onBack -> UpdatePage(settingsStore, updateController, onBack) },
                     aboutPage = { onBack, onLicenseClick -> AboutPage(onBack, onLicenseClick, appBlur = settings.blur) },
@@ -331,22 +350,6 @@ class MainActivity : ComponentActivity() {
                                     coroutineScope.launch { repository.saveCourseEdits(deletedIds, rows) }
                                 },
                             )
-                        2 -> SettingsPage(
-                            store = settingsStore,
-                            repository = repository,
-                            table = table,
-                            onAppearanceClick = { navigate(Page.Appearance) },
-                            onUpdateClick = { navigate(Page.Update) },
-                            onAboutClick = { navigate(Page.About) },
-                            onManageCourses = { navigate(Page.CourseManage) },
-                            onManageTables = { navigate(Page.CourseTableManage) },
-                            onManageTimeTables = { navigate(Page.TimeTableManage) },
-                            onOpenImport = { navigate(Page.ScheduleImport) },
-                            onOpenExport = { navigate(Page.ScheduleExport) },
-                            onOpenBackup = { navigate(Page.Backup) },
-                            onOpenHoliday = { navigate(Page.Holiday) },
-                            onOpenReminder = { navigate(Page.Reminder) },
-                        )
                     }
                 }
                 UpdateDialogs(updateController, settings.blur)

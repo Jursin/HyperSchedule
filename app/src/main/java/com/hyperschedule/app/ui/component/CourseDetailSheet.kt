@@ -31,7 +31,6 @@ import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SectionSpacing
-import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
 import top.yukonga.miuix.kmp.basic.Card
@@ -108,7 +107,7 @@ fun CourseDetailSheet(
                 CourseDetailCard(item, mark = mark, onEdit = { onEdit(item.course) })
             }
             // 卡片下方留白，最后一张也能完整滚出来
-            item { Spacer(modifier = Modifier.height(SheetBottomInset)) }
+            item { SheetBottomSpacer() }
         }
     }
 }

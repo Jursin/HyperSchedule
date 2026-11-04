@@ -60,6 +60,7 @@ import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.EduRepoSheet
 import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.School as SchoolIcon
+import com.hyperschedule.app.ui.component.SheetBottomSpacer
 import com.hyperschedule.app.ui.component.SheetScaffold
 import com.hyperschedule.app.ui.component.SheetScrollColumn
 import com.hyperschedule.app.ui.component.bouncyScroll
@@ -465,7 +466,7 @@ private fun AdapterSheet(
         } else {
             SheetScrollColumn(maxHeight = SheetMaxHeight) {
                 adapters.forEach { adapter -> AdapterCard(adapter) { onOpen(adapter) } }
-                Spacer(modifier = Modifier.height(8.dp))
+                SheetBottomSpacer()
             }
         }
     }

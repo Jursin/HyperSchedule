@@ -1,8 +1,6 @@
 package com.hyperschedule.app.ui.component
 
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -14,7 +12,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import com.hyperschedule.app.data.importer.edu.EduRepo
 import com.hyperschedule.app.data.importer.edu.EduRepoConfig
-import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
@@ -79,7 +76,7 @@ fun EduRepoSheet(
                 }
             }
 
-            Spacer(modifier = Modifier.height(SheetBottomInset))
+            SheetBottomSpacer()
         }
     }
 }

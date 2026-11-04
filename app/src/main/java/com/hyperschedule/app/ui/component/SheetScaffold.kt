@@ -53,6 +53,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.PanelCorner
+import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.SheetLargeMaxWidth
 import com.hyperschedule.app.theme.ShortSheetMaxHeight
 import com.hyperschedule.app.theme.panelOutlineColor
@@ -80,11 +81,11 @@ private val HandleAreaHeight = 21.dp
 
 private val HeaderMinHeight = 46.dp
 private val HeaderHorizontalPadding = 20.dp
-/** 标题图标，对齐 title3 的字面高度 */
 private val TitleIconSize = 22.dp
 
 private val HeaderToContentSpacing = 18.dp
 private val HeaderToContentSpacingNoSubtitle = 10.dp
+private val SheetContentInset = 16.dp
 
 /** 抽屉内可滚动的内容列，高度上限、下拉回弹、统一内边距 */
 @Composable
@@ -99,10 +100,18 @@ fun SheetScrollColumn(
                 .heightIn(max = maxHeight)
                 .bouncyScroll()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 4.dp),
+                .padding(horizontal = SheetContentInset),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         content = content,
     )
+}
+
+/** 抽屉底部留白 */
+@Composable
+fun SheetBottomSpacer() {
+    val height =
+        if (useLargeScreenWindow()) (SheetContentInset - SectionSpacing).coerceAtLeast(0.dp) else SheetBottomInset
+    Spacer(modifier = Modifier.height(height))
 }
 
 /** 底部抽屉外壳 */

@@ -3,9 +3,7 @@ package com.hyperschedule.app.ui.component
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberUpdatedState
@@ -16,7 +14,6 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.CardItemPadding
 import com.hyperschedule.app.theme.ScheduleStyle
-import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import com.hyperschedule.app.ui.component.pref.WindowDropdownPreference
@@ -136,8 +133,7 @@ fun ScheduleAppearanceSheet(
                 )
             }
 
-            // 抽屉底下压着悬浮导航栏，留出位置让最后一项能完整露出来
-            Spacer(modifier = Modifier.height(SheetBottomInset))
+            SheetBottomSpacer()
         }
     }
 }

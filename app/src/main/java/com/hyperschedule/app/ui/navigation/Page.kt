@@ -7,6 +7,8 @@ import top.yukonga.miuix.kmp.nav.core.NavKey
 sealed class Page : NavKey {
     @Serializable data object Home : Page()
 
+    @Serializable data object Settings : Page()
+
     @Serializable data object Appearance : Page()
 
     @Serializable data object Update : Page()
