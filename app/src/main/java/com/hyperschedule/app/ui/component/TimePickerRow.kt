@@ -15,18 +15,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.NumberPicker
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 val HourRange = 0..23
 val MinuteRange = 0..59
-
-/** 滚轮统一规格，可见行数、行高，字号统一用 title2，避免各对话框高矮不一 */
-internal object WheelSpec {
-    const val VISIBLE_ITEM_COUNT = 3
-    val ItemHeight = 60.dp
-}
 
 private val MinuteSteps = (0..55 step 5).toList()
 
@@ -40,16 +33,13 @@ fun NumberWheelRow(
     modifier: Modifier = Modifier,
     wrapAround: Boolean = false,
 ) {
-    NumberPicker(
+    WheelPicker(
         value = value,
-        onValueChange = onValueChange,
         range = range,
-        visibleItemCount = WheelSpec.VISIBLE_ITEM_COUNT,
-        itemHeight = WheelSpec.ItemHeight,
-        wrapAround = wrapAround,
         label = label,
-        textStyle = MiuixTheme.textStyles.title2,
-        modifier = modifier.fillMaxWidth(),
+        onValueChange = onValueChange,
+        modifier = modifier,
+        wrapAround = wrapAround,
     )
 }
 

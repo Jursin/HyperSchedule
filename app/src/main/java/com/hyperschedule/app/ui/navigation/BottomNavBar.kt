@@ -453,6 +453,10 @@ private val PressSpec = spring<Float>(dampingRatio = 0.9f, stiffness = 438f)
 /** 底栏尺寸 */
 internal object NavBarMetrics {
     val containerHeight: Dp = 54.dp // 实测 152px
+    /** 栏体与页面底边之间悬空的距离 */
+    val floatingBottomMargin: Dp = 24.dp
+    /** 整条底栏从页面底边往上实际占掉的高度 */
+    val occupiedHeight: Dp = containerHeight + floatingBottomMargin
     val containerRadius: Dp = containerHeight / 2
     val containerPadding: Dp = 8.dp // 实测 22px
     val splitGap: Dp = 8.dp // 胶囊与设置圆之间的间距

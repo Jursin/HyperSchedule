@@ -477,7 +477,12 @@ fun MainScaffold(
                                         blurBackdrop = navBarBackdrop,
                                     )
                                     if (!wide) {
-                                        Box(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp)) {
+                                        Box(
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomCenter)
+                                                    .padding(bottom = NavBarMetrics.floatingBottomMargin),
+                                        ) {
                                             BottomNavBar(
                                                 initialPage = firstPage,
                                                 targetPage = mainPagerState.targetPage,

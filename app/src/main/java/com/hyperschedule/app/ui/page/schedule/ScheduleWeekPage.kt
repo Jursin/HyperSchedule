@@ -18,14 +18,19 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.schedule.HolidayPlan
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.currentSectionAt
 import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.ScheduleStyle
+import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.theme.WideLayoutMinWidth
 import com.hyperschedule.app.ui.component.BreakDividerRow
 import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.DayGridColumn
@@ -41,9 +46,12 @@ import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.resolveWeekCourses
 import com.hyperschedule.app.ui.component.stretchOverscroll
 import com.hyperschedule.app.ui.effect.captureForBlur
+import com.hyperschedule.app.ui.navigation.NavBarMetrics
 import java.time.LocalDate
 import java.time.LocalDateTime
+import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** 课表的一页（一周） */
@@ -96,6 +104,15 @@ internal fun ScheduleWeekPage(
                     .filter { it in 1..totalWeeks }
                     .distinct()
                     .associateWith { resolveWeekCourses(allCourses, it, showNonCurrentWeek) }
+            }
+        }
+
+    // 网格下方统计行
+    val weekCourseCount =
+        remember(dayPlans, coursesByWeek, week) {
+            dayPlans.withIndex().sumOf { (index, plan) ->
+                val day = plan.dayOr(index + 1)
+                coursesByWeek[plan.weekOr(week)].orEmpty().count { it.active && it.course.day == day }
             }
         }
 
@@ -203,7 +220,24 @@ internal fun ScheduleWeekPage(
                 }
             }
         }
-        Spacer(modifier = Modifier.height(PageBottomInset))
+        // 学期外的空白周不显示统计
+        if (inSemester) {
+            Spacer(modifier = Modifier.height(SectionSpacing))
+            Text(
+                text = "本周共${weekCourseCount}节课".cjkDigitGap(),
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        val bottomInset =
+            if (inSemester && LocalWindowInfo.current.containerDpSize.width < WideLayoutMinWidth) {
+                NavBarMetrics.occupiedHeight + SectionSpacing
+            } else {
+                PageBottomInset
+            }
+        Spacer(modifier = Modifier.height(bottomInset))
     }
 }
 
