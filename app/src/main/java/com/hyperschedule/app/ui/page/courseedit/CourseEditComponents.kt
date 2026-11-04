@@ -31,11 +31,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.CardInsidePadding
 import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.theme.courseColorAt
+import com.hyperschedule.app.theme.rememberCoursePalette
 import com.hyperschedule.app.ui.component.Clock
-import com.hyperschedule.app.ui.component.CoursePalette
 import com.hyperschedule.app.ui.component.Location
 import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.WideActionButton
@@ -294,6 +296,7 @@ internal fun ColorCard(
     onPick: (index: Int, argb: Int?) -> Unit,
     onPickCustom: () -> Unit,
 ) {
+    val palette = rememberCoursePalette(isDark)
     Card(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = CardCornerRadius,
@@ -315,7 +318,7 @@ internal fun ColorCard(
                 color = MiuixTheme.colorScheme.onSurface,
             )
         }
-        val totalItems = CoursePalette.size + 1
+        val totalItems = Course.COLOR_COUNT + 1
         val rowsCount = (totalItems + PaletteColumns - 1) / PaletteColumns
         BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
             // 宽屏卡片变宽后格子会被拉大，靠格子内边距把色块尺寸压在上限内，格子仍均匀铺满
@@ -333,16 +336,16 @@ internal fun ColorCard(
                     ) {
                         for (col in 0 until PaletteColumns) {
                             val index = row * PaletteColumns + col
-                            if (index < CoursePalette.size) {
+                            if (index < Course.COLOR_COUNT) {
                                 ColorCell(
-                                    color = CoursePalette[index],
+                                    color = courseColorAt(index, palette),
                                     selected = colorArgb == null && colorInt == index,
                                     isDark = isDark,
                                     inset = inset,
                                     onClick = { onPick(index, null) },
                                     modifier = Modifier.weight(1f),
                                 )
-                            } else if (index == CoursePalette.size) {
+                            } else if (index == Course.COLOR_COUNT) {
                                 ColorCell(
                                     color = if (colorArgb != null) Color(colorArgb) else null,
                                     selected = colorArgb != null,
@@ -374,13 +377,16 @@ private val CellInset = 2.5.dp
 /** 色块尺寸上限，超出部分转成格子内边距，宽屏下不至于越拉越大 */
 private val PaletteMaxCell = 46.dp
 
-/** 颜色格选中描边宽度，色块向内让出的距离与圆角收缩量都用它，保证贴合 */
+/** 颜色格选中描边宽度 */
 private val BorderWidth = 2.dp
 
-/** 颜色格外轮廓圆角，色块圆角取外轮廓圆角减描边宽，两者同心 */
+/** 选中描边与色块之间的间隙 */
+private val RingGap = 2.dp
+
+/** 颜色格外轮廓圆角，色块圆角取外轮廓圆角减去描边宽与间隙，两者同心 */
 private val CellCornerRadius = 10.dp
 
-/** 颜色格，选中时外圈主题色描边，内部填淡化的课程色 */
+/** 颜色格，内部填基础色，选中时外圈主题色描边 */
 @Composable
 internal fun ColorCell(
     color: Color?,
@@ -391,6 +397,7 @@ internal fun ColorCell(
     inset: Dp = CellInset,
 ) {
     val borderAlpha = if (selected) 1f else 0f
+    val ringSpace = BorderWidth + RingGap
     Box(
         modifier =
             modifier
@@ -412,11 +419,11 @@ internal fun ColorCell(
                         color = MiuixTheme.colorScheme.primary.copy(alpha = borderAlpha),
                         cornerRadius = CellCornerRadius,
                     )
-                    .padding(BorderWidth)
-                    .squircleClip(CellCornerRadius - BorderWidth)
+                    .padding(ringSpace)
+                    .squircleClip(CellCornerRadius - ringSpace)
                     .background(
                         when {
-                            color != null -> color.copy(alpha = if (isDark) 0.40f else 0.16f)
+                            color != null -> color
                             isDark -> MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
                             else -> MiuixTheme.colorScheme.surface
                         }

@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.HolidayDay
@@ -166,7 +167,15 @@ internal fun ScheduleWeekPage(
                                 .onGloballyPositioned { coords -> onGridPositioned(coords.boundsInRoot()) },
                     ) {
                         // 特殊节次铺在课程卡后面
-                        SpecialBlockBands(layout = layout, modifier = Modifier.matchParentSize())
+                        SpecialBlockBands(
+                            layout = layout,
+                            margin = style.cardMargin.dp,
+                            modifier = Modifier.matchParentSize(),
+                        )
+                        // 午休/晚休分界线也压在最底层，课程卡盖在上面
+                        layout.dividers.forEach { divider ->
+                            BreakDividerRow(divider = divider, margin = style.cardMargin.dp)
+                        }
                         Row {
                             for (day in 1..DAY_NAMES.size) {
                                 val plan = dayPlans[day - 1]
@@ -214,8 +223,6 @@ internal fun ScheduleWeekPage(
                                 )
                             }
                         }
-                        // 午休/晚休分界线
-                        layout.dividers.forEach { divider -> BreakDividerRow(divider = divider) }
                     }
                 }
             }

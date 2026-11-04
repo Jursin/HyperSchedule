@@ -8,9 +8,6 @@ import com.hyperschedule.app.data.model.TimeTable
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
 
-/** 网格几何，一节的默认高度，实际高度由外观设置传入 */
-internal val DefaultSectionHeight = 92.dp
-
 internal val DividerHeight = 24.dp
 
 /** 特殊节次横带的最小高度，太短的时段也要放得下两行时间 */
@@ -36,13 +33,16 @@ internal data class BreakDivider(
     val label: String,
 )
 
-/** 课表网格的纵向几何，节次顶、分界线、特殊节次横带共用一套坐标，特殊节次插在它压到的第一个节次之前并把后面整体下推，节次高度不变 */
+/** 分界线落在第 [afterSection] 节之后，[label] 是这条缝的名字 */
+private data class BreakMark(val afterSection: Int, val label: String)
+
+/** 课表网格的纵向几何，节次顶、分界线、特殊节次横带共用一套坐标，特殊节次插在它压到的第一个节次之前并把后面整体下推；每节高度按它的时长换算，长短节不再等高 */
 @Immutable
 internal class ScheduleLayout private constructor(
     /** 下标即节次序号（1 起），[topOf] 越界时贴到首/末节 */
     private val sectionTops: List<Dp>,
-    /** 一节的高度，节次列、课程卡、拖动落点都读它 */
-    val sectionHeight: Dp,
+    /** 下标 0 对应第 1 节，节次的时长越长越高 */
+    private val sectionHeights: List<Dp>,
     val height: Dp,
     val dividers: List<BreakDivider>,
     val bands: List<SpecialBand>,
@@ -56,18 +56,23 @@ internal class ScheduleLayout private constructor(
         return sectionTops[section.coerceIn(1, sectionCount)]
     }
 
+    /** 一节占的高度，节次列、「+」格、拖动落点都读它 */
+    fun sectionHeightOf(section: Int): Dp {
+        if (sectionHeights.isEmpty()) return 0.dp
+        return sectionHeights[section.coerceIn(1, sectionCount) - 1]
+    }
+
     /** 跨 [first]..[last] 节的卡片高度，含中间的横带与分界线 */
     fun heightOf(first: Int, last: Int): Dp {
-        if (sectionCount == 0) return 0.dp
-        val end = topOf((last.coerceAtLeast(first)).coerceIn(1, sectionCount))
-        val start = topOf(first)
-        return (end + sectionHeight - start).coerceAtLeast(sectionHeight)
+        val safeLast = last.coerceAtLeast(first)
+        return (topOf(safeLast) + sectionHeightOf(safeLast) - topOf(first))
+            .coerceAtLeast(sectionHeightOf(first))
     }
 
     /** 纵坐标落在第几节，落在分界线/横带上时归到下面那一节 */
     fun sectionAt(y: Dp): Int {
         for (section in 1..sectionCount) {
-            if (y < topOf(section) + sectionHeight) return section
+            if (y < topOf(section) + sectionHeightOf(section)) return section
         }
         return sectionCount
     }
@@ -82,7 +87,7 @@ internal class ScheduleLayout private constructor(
         val Empty =
             ScheduleLayout(
                 sectionTops = listOf(0.dp),
-                sectionHeight = DefaultSectionHeight,
+                sectionHeights = emptyList(),
                 height = 0.dp,
                 dividers = emptyList(),
                 bands = emptyList(),
@@ -122,25 +127,32 @@ internal class ScheduleLayout private constructor(
             specialBlocks: List<SpecialTimeBlock>,
             morningSplit: String,
             eveningSplit: String,
-            sectionHeight: Dp = DefaultSectionHeight,
+            hourHeight: Dp,
             showBreakDividers: Boolean = true,
         ): ScheduleLayout {
             val count = sectionTimes.size
             if (count == 0) return Empty
 
-            val sectionDp = sectionHeight.value
-            val periods = classifyPeriods(sectionTimes, morningSplit, eveningSplit)
-            val morningCount = periods.count { it == SectionPeriod.MORNING }
-            val afternoonEnd = periods.count { it == SectionPeriod.MORNING || it == SectionPeriod.AFTERNOON }
-            // 两侧都要有节次才画得下这条缝
-            val dividerAfter =
-                if (showBreakDividers) {
-                    buildSet {
-                        if (morningCount in 1 until count) add(morningCount)
-                        if (afternoonEnd in (morningCount + 1) until count) add(afternoonEnd)
+            val breaks = if (showBreakDividers) breakMarks(sectionTimes, morningSplit, eveningSplit) else emptyList()
+            val dividerAfter = breaks.mapTo(mutableSetOf()) { it.afterSection }
+
+            // 0. 取一段能算出分钟的作息作兜底，再按每节自己的时长换算高度
+            val referenceMinutes =
+                sectionTimes.firstNotNullOfOrNull { (start, end) ->
+                    val from = parseMinutes(start)
+                    val to = parseMinutes(end)
+                    if (from != null && to != null) (to - from).takeIf { it > 0 } else null
+                } ?: FallbackSectionMinutes
+            val minuteDp = hourHeight.value / 60f
+            val sectionDp =
+                FloatArray(count + 1).also { heights ->
+                    for (section in 1..count) {
+                        val (start, end) = sectionTimes[section - 1]
+                        val from = parseMinutes(start)
+                        val to = parseMinutes(end)
+                        val minutes = if (from != null && to != null && to > from) to - from else referenceMinutes
+                        heights[section] = minutes * minuteDp
                     }
-                } else {
-                    emptySet()
                 }
 
             // 1. 不含横带时各节次的顶，分界缝按 24dp 撑开
@@ -148,7 +160,7 @@ internal class ScheduleLayout private constructor(
             var cursor = 0f
             for (section in 1..count) {
                 baseTops[section] = cursor
-                cursor += sectionDp
+                cursor += sectionDp[section]
                 if (section in dividerAfter) cursor += DividerHeight.value
             }
 
@@ -157,16 +169,9 @@ internal class ScheduleLayout private constructor(
             val unique = baseAnchors.distinctBy { it.minute }
 
             // 3. 横带，顶落在哪一节的卡片区间内，就插到那一节前面
-            val referenceMinutes =
-                sectionTimes.firstNotNullOfOrNull { (start, end) ->
-                    val from = parseMinutes(start)
-                    val to = parseMinutes(end)
-                    if (from != null && to != null) (to - from).takeIf { it > 0 } else null
-                } ?: FallbackSectionMinutes
-
             fun anchorSectionOf(rawTop: Float): Int {
                 for (section in 1..count) {
-                    if (rawTop < baseTops[section] + sectionDp) return section
+                    if (rawTop < baseTops[section] + sectionDp[section]) return section
                 }
                 return count + 1
             }
@@ -179,8 +184,7 @@ internal class ScheduleLayout private constructor(
                         val to = parseMinutes(block.endTime) ?: return@mapIndexedNotNull null
                         if (to <= from) return@mapIndexedNotNull null
                         val rawTop = yFor(unique, from)
-                        val bandHeight =
-                            ((to - from) * (sectionDp / referenceMinutes)).coerceAtLeast(MinBandHeight.value)
+                        val bandHeight = ((to - from) * minuteDp).coerceAtLeast(MinBandHeight.value)
                         RawBand(index, anchorSectionOf(rawTop), rawTop, bandHeight)
                     }
                     .sortedBy { it.rawTop }
@@ -197,7 +201,7 @@ internal class ScheduleLayout private constructor(
                     }
                 }
                 sectionTops[section] = y
-                y += sectionDp
+                y += sectionDp[section]
                 if (section in dividerAfter) y += DividerHeight.value
             }
             // 末尾不留悬空的分界缝，否则贴底的横带会凭空上移一截
@@ -212,14 +216,10 @@ internal class ScheduleLayout private constructor(
             }
 
             val dividers =
-                dividerAfter
-                    .map { section ->
-                        BreakDivider(
-                            top = (sectionTops[section] + sectionDp).dp,
-                            label = if (section == afternoonEnd) "晚休" else "午休",
-                        )
-                    }
-                    .sortedBy { it.top }
+                breaks.map { mark ->
+                    val section = mark.afterSection
+                    BreakDivider(top = (sectionTops[section] + sectionDp[section]).dp, label = mark.label)
+                }
 
             val bands =
                 rawBands.map { band ->
@@ -239,12 +239,28 @@ internal class ScheduleLayout private constructor(
 
             return ScheduleLayout(
                 sectionTops = (0..count).map { sectionTops[it].dp },
-                sectionHeight = sectionHeight,
+                sectionHeights = (1..count).map { sectionDp[it].dp },
                 height = maxOf(baseTotal, tailY).dp,
                 dividers = dividers,
                 bands = bands,
                 anchors = finalAnchors.map { Anchor(it.minute, it.y) },
             )
+        }
+
+        /** 午休/晚休落在哪两节之间，两侧都得有节次 */
+        private fun breakMarks(
+            sectionTimes: List<Pair<String, String>>,
+            morningSplit: String,
+            eveningSplit: String,
+        ): List<BreakMark> {
+            val count = sectionTimes.size
+            val periods = classifyPeriods(sectionTimes, morningSplit, eveningSplit)
+            val morningCount = periods.count { it == SectionPeriod.MORNING }
+            val afternoonEnd = periods.count { it == SectionPeriod.MORNING || it == SectionPeriod.AFTERNOON }
+            return buildList {
+                if (morningCount in 1 until count) add(BreakMark(morningCount, "午休"))
+                if (afternoonEnd in (morningCount + 1) until count) add(BreakMark(afternoonEnd, "晚休"))
+            }
         }
 
         /** 节次按开始时间落到上午/下午/晚上，未设置时间的节次跟随上一节 */
@@ -273,7 +289,7 @@ internal class ScheduleLayout private constructor(
         private fun buildAnchors(
             sectionTimes: List<Pair<String, String>>,
             baseTops: FloatArray,
-            sectionDp: Float,
+            sectionDp: FloatArray,
         ): List<Anchor> {
             val anchors = mutableListOf<Anchor>()
             sectionTimes.forEachIndexed { index, (start, end) ->
@@ -282,7 +298,7 @@ internal class ScheduleLayout private constructor(
                 val top = baseTops.getOrNull(index + 1)
                 if (from != null && to != null && top != null) {
                     anchors += Anchor(from, top)
-                    anchors += Anchor(to, top + sectionDp)
+                    anchors += Anchor(to, top + sectionDp.getOrElse(index + 1) { 0f })
                 }
             }
             return anchors.sortedBy { it.minute }

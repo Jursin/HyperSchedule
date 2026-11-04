@@ -36,39 +36,21 @@ import com.hyperschedule.app.theme.BadgeFontSize
 import com.hyperschedule.app.theme.CourseTintAlpha
 import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.theme.rememberCourseColor
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 卡内字号的基准系数 */
 private const val CardTextScale = 0.84f
 
-internal val CardInset = 1.dp
+/** 卡片行高与文字之间还留的余量，避免顶到边框 */
+private const val CardTextSlack = 2f
 
 /** 非本周（该格本周不上）的灰，底色与文字的透明度，深色主题另给一组 */
 private const val InactiveCardAlpha = 0.105f
 private const val InactiveCardAlphaDark = 0.04f
 private const val InactiveTextAlpha = 0.45f
 private const val InactiveTextAlphaDark = 0.22f
-
-/** 课程调色板，按课名首次出现顺序取用，同名同色 */
-internal val CoursePalette =
-    listOf(
-        0xFF4CAF50, // 绿
-        0xFF2196F3, // 蓝
-        0xFFFF9800, // 橙
-        0xFFF44336, // 红
-        0xFFE6B422, // 金
-        0xFFE91E63, // 粉
-        0xFF00BCD4, // 青
-        0xFF3F51B5, // 靛
-        0xFFAB47BC, // 紫
-        0xFF009688, // 蓝绿
-        0xFF673AB7, // 深紫
-        0xFFE2793F, // 赭橙
-        0xFF607D8B, // 蓝灰
-    ).map { Color(it) }
-        // 改色板时同步 Course.COLOR_COUNT
-        .also { check(it.size == Course.COLOR_COUNT) }
 
 /** 课表网格里的课程卡片，样式全部来自外观设置 */
 @Composable
@@ -98,7 +80,8 @@ fun ScheduleCourseCard(
     val showPosition = style.showPosition && course.position.isNotBlank()
     val showTeacher = style.showTeacher && course.teacher.isNotBlank()
     // 卡片高度能放下几行就显示几行，超出省略
-    val availableHeight = heightOverride.value - 16f
+    val availableHeight =
+        heightOverride.value - 2f * (style.cardMargin + style.cardPadding) - CardTextSlack
     val reservedForInfo =
         ((if (showPosition) 1 else 0) + (if (showTeacher) 1 else 0)) * infoLineHeight.value
     val nameMaxLines = ((availableHeight - reservedForInfo) / lineHeight.value).toInt().coerceAtLeast(1)
@@ -141,7 +124,7 @@ fun ScheduleCourseCard(
             modifier
                 .fillMaxWidth()
                 .height(heightOverride)
-                .padding(CardInset)
+                .padding(style.cardMargin.dp)
                 .clip(shape)
                 .background(colors.background)
                 .then(
@@ -165,7 +148,7 @@ fun ScheduleCourseCard(
                 ),
     ) {
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 6.dp),
+            modifier = Modifier.fillMaxSize().padding(style.cardPadding.dp),
             horizontalAlignment = if (style.contentCenter) Alignment.CenterHorizontally else Alignment.Start,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -273,18 +256,4 @@ private fun rememberCourseCardColors(course: Course, isCurrentWeek: Boolean): Co
             }
         CourseCardColors(cardColor, text, border)
     }
-}
-
-/** 课程色，自定义色优先，否则按 [Course.colorInt] 取色板，越界取模 */
-@Composable
-internal fun rememberCourseColor(course: Course): Color {
-    val argb = course.colorArgb
-    val index = course.colorInt
-    return remember(argb, index) { courseColorOf(index, argb) }
-}
-
-internal fun courseColorOf(colorInt: Int, colorArgb: Int?): Color {
-    colorArgb?.let { return Color(it) }
-    val size = CoursePalette.size
-    return CoursePalette[((colorInt % size) + size) % size]
 }

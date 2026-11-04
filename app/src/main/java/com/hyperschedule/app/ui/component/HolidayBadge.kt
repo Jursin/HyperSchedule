@@ -12,9 +12,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.theme.BadgeFontSize
 import com.hyperschedule.app.theme.isDarkTheme
-import com.hyperschedule.app.schedule.HolidayDay
+import com.hyperschedule.app.theme.rememberCourseColor
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 

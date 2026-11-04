@@ -34,9 +34,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 极短的课也要点得中 */
 private val MinCardHeight = 22.dp
 
-/** 时间轴的疏密 */
-private val MinuteHeight = 2.dp
-
 /** 整点刻度占的高度 */
 private val HourLabelSlot = 16.dp
 
@@ -63,7 +60,9 @@ internal fun TimelineWeekGrid(
     onCourseClick: (Course, TimelineDay) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val axis = remember(sectionTimes) { buildTimelineAxis(sectionTimes) }
+    val axis = remember(sectionTimes, style.timelineHourHeight) {
+        buildTimelineAxis(sectionTimes, style.timelineHourHeight)
+    }
     val lineColor = gridLineColor()
     val tickColor = MiuixTheme.colorScheme.onSurfaceVariantActions
     val tickStyle = MiuixTheme.textStyles.footnote2.copy(fontSize = TimeLabelFontSize)
@@ -96,9 +95,11 @@ internal fun TimelineWeekGrid(
         }
         Box(modifier = Modifier.weight(1f).height(axis.height)) {
             // 横线按整点，竖线按天
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                drawHourLines(axis, lineColor)
-                drawDayLines(days.size, lineColor)
+            if (style.gridLines) {
+                Canvas(modifier = Modifier.fillMaxSize()) {
+                    drawHourLines(axis, lineColor)
+                    drawDayLines(days.size, lineColor)
+                }
             }
             Row(modifier = Modifier.fillMaxSize()) {
                 days.forEach { day ->
@@ -203,16 +204,17 @@ private fun minuteRangeOf(course: Course, sectionTimes: List<Pair<String, String
     return (start to end).takeIf { end > start }
 }
 
-/** 时间轴的纵向刻度 */
+/** 时间轴的纵向刻度，[minuteHeight] 由外观设置里「一小时的高度」换算 */
 internal class TimelineAxis(
     val startMinute: Int,
     val endMinute: Int,
+    private val minuteHeight: Dp,
 ) {
-    val height: Dp get() = MinuteHeight * (endMinute - startMinute).toFloat()
+    val height: Dp get() = minuteHeight * (endMinute - startMinute).toFloat()
 
-    fun topOf(minute: Int): Dp = MinuteHeight * (minute - startMinute).toFloat()
+    fun topOf(minute: Int): Dp = minuteHeight * (minute - startMinute).toFloat()
 
-    fun heightOf(minutes: Int): Dp = MinuteHeight * minutes.toFloat()
+    fun heightOf(minutes: Int): Dp = minuteHeight * minutes.toFloat()
 
     /** 刻度槽的顶边 */
     fun slotTopOf(minute: Int): Dp {
@@ -233,8 +235,8 @@ internal class TimelineAxis(
     }
 }
 
-/** 纵向范围只由作息决定 */
-internal fun buildTimelineAxis(sectionTimes: List<Pair<String, String>>): TimelineAxis {
+/** 纵向范围只由作息决定，[hourHeight] 是外观设置里「一小时的高度」 */
+internal fun buildTimelineAxis(sectionTimes: List<Pair<String, String>>, hourHeight: Int): TimelineAxis {
     val ranges =
         sectionTimes.mapNotNull { (start, end) ->
             val from = parseMinutes(start) ?: return@mapNotNull null
@@ -247,7 +249,7 @@ internal fun buildTimelineAxis(sectionTimes: List<Pair<String, String>>): Timeli
     val start = from / 60 * 60
     // 末端补到下一个整点，末节的收尾线才有对应的刻度文字
     val end = ((to + 59) / 60 * 60).coerceAtMost(24 * 60)
-    return TimelineAxis(start, end)
+    return TimelineAxis(start, end, (hourHeight / 60f).dp)
 }
 
 /** 整点横线 */

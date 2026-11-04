@@ -53,15 +53,13 @@ fun ScheduleAppearanceSheet(
                     onCheckedChange = { applyStyle(style.copy(timeline = it)) },
                     title = "时间轴视图",
                 )
-            }
-
-            if (!style.timeline) {
-                PreferenceSection(cardColor = sheetCardColor(), title = "网格") {
-                    SwitchPreference(
-                        checked = style.gridLines,
-                        onCheckedChange = { applyStyle(style.copy(gridLines = it)) },
-                        title = "显示网格线",
-                    )
+                SwitchPreference(
+                    checked = style.gridLines,
+                    onCheckedChange = { applyStyle(style.copy(gridLines = it)) },
+                    title = "显示网格线",
+                )
+                // 时间轴按整点铺开，没有节次之间的分界缝
+                if (!style.timeline) {
                     SwitchPreference(
                         checked = style.breakDividers,
                         onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
@@ -71,20 +69,12 @@ fun ScheduleAppearanceSheet(
             }
 
             PreferenceSection(cardColor = sheetCardColor(), title = "卡片") {
-                if (!style.timeline) {
-                    StyleSlider(
-                        title = "课程卡片高度",
-                        value = style.cardHeight.toFloat(),
-                        valueText = "${style.cardHeight}dp",
-                        valueRange = ScheduleStyle.MIN_CARD_HEIGHT.toFloat()..ScheduleStyle.MAX_CARD_HEIGHT.toFloat(),
-                        steps = ScheduleStyle.MAX_CARD_HEIGHT - ScheduleStyle.MIN_CARD_HEIGHT - 1,
-                        keyPoint = ScheduleStyle.Default.cardHeight.toFloat(),
-                        onValueChange = { value ->
-                            onStyleChange(style.copy(cardHeight = value.roundToInt()))
-                        },
-                        onValueChangeFinished = onStyleCommit,
-                    )
-                }
+                // 卡片高度按每节课的真实时长换算，滑块统一按一小时占多高来调
+                HourHeightSlider(
+                    style = style,
+                    onStyleChange = onStyleChange,
+                    onValueChangeFinished = onStyleCommit,
+                )
                 StyleSlider(
                     title = "课程卡片圆角",
                     value = style.cardCorner.toFloat(),
@@ -94,6 +84,31 @@ fun ScheduleAppearanceSheet(
                     keyPoint = ScheduleStyle.Default.cardCorner.toFloat(),
                     onValueChange = { value ->
                         onStyleChange(style.copy(cardCorner = value.roundToInt()))
+                    },
+                    onValueChangeFinished = onStyleCommit,
+                )
+                StyleSlider(
+                    title = "课程卡片内边距",
+                    value = style.cardPadding.toFloat(),
+                    valueText = "${style.cardPadding}dp",
+                    valueRange =
+                        ScheduleStyle.MIN_CARD_PADDING.toFloat()..ScheduleStyle.MAX_CARD_PADDING.toFloat(),
+                    steps = ScheduleStyle.MAX_CARD_PADDING - ScheduleStyle.MIN_CARD_PADDING - 1,
+                    keyPoint = ScheduleStyle.Default.cardPadding.toFloat(),
+                    onValueChange = { value ->
+                        onStyleChange(style.copy(cardPadding = value.roundToInt()))
+                    },
+                    onValueChangeFinished = onStyleCommit,
+                )
+                StyleSlider(
+                    title = "课程卡片外边距",
+                    value = style.cardMargin.toFloat(),
+                    valueText = "${style.cardMargin}dp",
+                    valueRange = ScheduleStyle.MIN_CARD_MARGIN.toFloat()..ScheduleStyle.MAX_CARD_MARGIN.toFloat(),
+                    steps = ScheduleStyle.MAX_CARD_MARGIN - ScheduleStyle.MIN_CARD_MARGIN - 1,
+                    keyPoint = ScheduleStyle.Default.cardMargin.toFloat(),
+                    onValueChange = { value ->
+                        onStyleChange(style.copy(cardMargin = value.roundToInt()))
                     },
                     onValueChangeFinished = onStyleCommit,
                 )
@@ -148,6 +163,33 @@ fun ScheduleAppearanceSheet(
             SheetBottomSpacer()
         }
     }
+}
+
+/** 课程卡片高度滑块 */
+@Composable
+private fun HourHeightSlider(
+    style: ScheduleStyle,
+    onStyleChange: (ScheduleStyle) -> Unit,
+    onValueChangeFinished: () -> Unit,
+) {
+    val range = if (style.timeline) ScheduleStyle.TimelineHourHeightRange else ScheduleStyle.HourHeightRange
+    val value = if (style.timeline) style.timelineHourHeight else style.hourHeight
+    val default = if (style.timeline) ScheduleStyle.Default.timelineHourHeight else ScheduleStyle.Default.hourHeight
+    StyleSlider(
+        title = "课程卡片高度",
+        value = value.toFloat(),
+        valueText = "${value}dp/时",
+        valueRange = range.first.toFloat()..range.last.toFloat(),
+        steps = (range.last - range.first) / ScheduleStyle.HOUR_HEIGHT_STEP - 1,
+        keyPoint = default.toFloat(),
+        onValueChange = { raw ->
+            val snapped = ScheduleStyle.snapHourHeight(raw.roundToInt(), range)
+            onStyleChange(
+                if (style.timeline) style.copy(timelineHourHeight = snapped) else style.copy(hourHeight = snapped),
+            )
+        },
+        onValueChangeFinished = onValueChangeFinished,
+    )
 }
 
 /** 吸附到关键点的距离，占整条轨道的比例 */

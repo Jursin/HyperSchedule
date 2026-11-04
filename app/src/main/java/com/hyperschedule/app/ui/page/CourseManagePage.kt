@@ -39,6 +39,7 @@ import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.CourseTintAlpha
 import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.theme.rememberCourseColor
 import com.hyperschedule.app.ui.component.AwardStar
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
@@ -46,7 +47,6 @@ import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
-import com.hyperschedule.app.ui.component.rememberCourseColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.text.Collator
 import java.util.Locale

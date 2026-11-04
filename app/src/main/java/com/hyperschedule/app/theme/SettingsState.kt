@@ -102,8 +102,27 @@ private val Prefs =
         stringSetting("currentTableId", { it.currentTableId }) { s, v -> s.copy(currentTableId = v) },
         boolSetting("gridLines", { it.style.gridLines }) { s, v -> s.copy(style = s.style.copy(gridLines = v)) },
         boolSetting("timeline", { it.style.timeline }) { s, v -> s.copy(style = s.style.copy(timeline = v)) },
-        intSetting("cardHeight", { it.style.cardHeight }) { s, v -> s.copy(style = s.style.copy(cardHeight = v)) },
+        intSetting(
+            key = "hourHeight",
+            get = { it.style.hourHeight },
+            coerce = { ScheduleStyle.snapHourHeight(it, ScheduleStyle.HourHeightRange) },
+        ) { s, v -> s.copy(style = s.style.copy(hourHeight = v)) },
+        intSetting(
+            key = "timelineHourHeight",
+            get = { it.style.timelineHourHeight },
+            coerce = { ScheduleStyle.snapHourHeight(it, ScheduleStyle.TimelineHourHeightRange) },
+        ) { s, v -> s.copy(style = s.style.copy(timelineHourHeight = v)) },
         intSetting("cardCorner", { it.style.cardCorner }) { s, v -> s.copy(style = s.style.copy(cardCorner = v)) },
+        intSetting(
+            key = "cardPadding",
+            get = { it.style.cardPadding },
+            coerce = { it.coerceIn(ScheduleStyle.MIN_CARD_PADDING, ScheduleStyle.MAX_CARD_PADDING) },
+        ) { s, v -> s.copy(style = s.style.copy(cardPadding = v)) },
+        intSetting(
+            key = "cardMargin",
+            get = { it.style.cardMargin },
+            coerce = { it.coerceIn(ScheduleStyle.MIN_CARD_MARGIN, ScheduleStyle.MAX_CARD_MARGIN) },
+        ) { s, v -> s.copy(style = s.style.copy(cardMargin = v)) },
         boolSetting("cardBorder", { it.style.cardBorder }) { s, v -> s.copy(style = s.style.copy(cardBorder = v)) },
         boolSetting("contentCenter", { it.style.contentCenter }) { s, v ->
             s.copy(style = s.style.copy(contentCenter = v))
@@ -443,8 +462,13 @@ data class ReminderSettings(
 data class ScheduleStyle(
     val gridLines: Boolean = true,
     val timeline: Boolean = false,
-    val cardHeight: Int = 92,
+    /** 网格视图一小时对应的高度 */
+    val hourHeight: Int = 60,
+    /** 时间轴视图一小时对应的高度 */
+    val timelineHourHeight: Int = 120,
     val cardCorner: Int = 10,
+    val cardPadding: Int = 5,
+    val cardMargin: Int = 1,
     val cardBorder: Boolean = true,
     val contentCenter: Boolean = true,
     val textScale: Float = 1f,
@@ -456,9 +480,20 @@ data class ScheduleStyle(
     companion object {
         /** 各滑块的关键点（默认值） */
         val Default = ScheduleStyle()
-        const val MIN_CARD_HEIGHT = 62
-        const val MAX_CARD_HEIGHT = 100
+        /** 每小时高度，2dp 一档，两个视图各自的取值范围 */
+        const val HOUR_HEIGHT_STEP = 2
+        val HourHeightRange = 40..80
+        val TimelineHourHeightRange = 100..140
+
         const val MAX_CARD_CORNER = 16
+
+        /** 卡内边距 */
+        const val MIN_CARD_PADDING = 2
+        const val MAX_CARD_PADDING = 10
+
+        /** 卡外边距 */
+        const val MIN_CARD_MARGIN = 0
+        const val MAX_CARD_MARGIN = 4
         const val MIN_TEXT_SCALE = 0.8f
         const val MAX_TEXT_SCALE = 1.2f
         const val TEXT_SCALE_STEP = 0.05f
@@ -468,6 +503,12 @@ data class ScheduleStyle(
             val stepCount = 1f / TEXT_SCALE_STEP
             return ((value * stepCount).roundToInt() / stepCount)
                 .coerceIn(MIN_TEXT_SCALE, MAX_TEXT_SCALE)
+        }
+
+        /** 每小时高度吸附到档位，避免落在滑块没有的值上 */
+        fun snapHourHeight(value: Int, range: IntRange): Int {
+            val steps = ((value - range.first).toFloat() / HOUR_HEIGHT_STEP).roundToInt()
+            return (range.first + steps * HOUR_HEIGHT_STEP).coerceIn(range.first, range.last)
         }
     }
 }

@@ -43,6 +43,7 @@ import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.PresetColors
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.theme.rememberCourseColorOf
 import com.hyperschedule.app.ui.CourseTableData
 import com.hyperschedule.app.ui.component.AddFab
 import com.hyperschedule.app.ui.component.AwardStar
@@ -50,7 +51,6 @@ import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.Book
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.SaveFab
-import com.hyperschedule.app.ui.component.courseColorOf
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
@@ -170,6 +170,9 @@ fun CourseEditPage(
     var dayDialogIndex by remember { mutableIntStateOf(-1) }
     var timeDialogIndex by remember { mutableIntStateOf(-1) }
     var weeksDialogIndex by remember { mutableIntStateOf(-1) }
+
+    // 打开取色盘时的初值，按浅色档取，存下来的就是色板原色
+    val pickedPaletteColor = rememberCourseColorOf(colorInt ?: 0, colorArgb, isDark = false)
 
     val requestBack = rememberEditBackGuard(dirty, appBlur, onBack)
 
@@ -296,7 +299,7 @@ fun CourseEditPage(
                             colorArgb = argb
                         },
                         onPickCustom = {
-                            customColor = courseColorOf(colorInt ?: 0, colorArgb)
+                            customColor = pickedPaletteColor
                             colorDialog = true
                         },
                     )

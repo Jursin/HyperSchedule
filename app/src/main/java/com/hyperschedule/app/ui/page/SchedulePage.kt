@@ -118,13 +118,13 @@ fun SchedulePage(
     val morningSplit = table?.morningAfternoonSplit.orEmpty()
     val eveningSplit = table?.afternoonEveningSplit.orEmpty()
     val layout =
-        remember(sectionTimes, specialBlocks, morningSplit, eveningSplit, style.cardHeight, style.breakDividers) {
+        remember(sectionTimes, specialBlocks, morningSplit, eveningSplit, style.hourHeight, style.breakDividers) {
             ScheduleLayout.build(
                 sectionTimes = sectionTimes,
                 specialBlocks = specialBlocks,
                 morningSplit = morningSplit,
                 eveningSplit = eveningSplit,
-                sectionHeight = style.cardHeight.dp,
+                hourHeight = style.hourHeight.dp,
                 showBreakDividers = style.breakDividers,
             )
         }
@@ -284,6 +284,7 @@ fun SchedulePage(
             ScrollToNowOnShow(
                 pageScroll = pageScroll,
                 sectionTimes = sectionTimes,
+                timelineHourHeight = style.timelineHourHeight,
                 now = now,
                 topPadding = paddingValues.calculateTopPadding(),
                 pageIsCurrent = pageIsCurrent,
@@ -479,13 +480,16 @@ fun SchedulePage(
 private fun ScrollToNowOnShow(
     pageScroll: ScrollState,
     sectionTimes: List<Pair<String, String>>,
+    timelineHourHeight: Int,
     now: LocalDateTime,
     topPadding: Dp,
     pageIsCurrent: Boolean,
     reselectTick: Int,
 ) {
     val density = LocalDensity.current
-    val axis = remember(sectionTimes) { buildTimelineAxis(sectionTimes) }
+    val axis = remember(sectionTimes, timelineHourHeight) {
+        buildTimelineAxis(sectionTimes, timelineHourHeight)
+    }
     var wasCurrent by remember { mutableStateOf(pageIsCurrent) }
     var handledTick by remember { mutableIntStateOf(reselectTick) }
     LaunchedEffect(pageIsCurrent, reselectTick) {

@@ -3,6 +3,7 @@ package com.hyperschedule.app.theme
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
@@ -77,7 +78,12 @@ fun AppTheme(
     }
     // 再套一层只为覆盖遮罩强度，弹窗和抽屉都读这个值
     MiuixTheme(controller = controller, textStyles = TabularTextStyles) {
-        MiuixTheme(colors = MiuixTheme.colorScheme.copy(windowDimming = WindowScrimColor)) { content() }
+        MiuixTheme(colors = MiuixTheme.colorScheme.copy(windowDimming = WindowScrimColor)) {
+            // 课程色板跟着「自定义颜色」切换，与主题配色保持同一风格
+            CompositionLocalProvider(LocalCustomCourseColors provides settings.customColor) {
+                content()
+            }
+        }
     }
 }
 

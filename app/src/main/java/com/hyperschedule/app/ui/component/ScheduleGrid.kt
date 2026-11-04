@@ -26,6 +26,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.schedule.weekDatesOf
 import com.hyperschedule.app.theme.TimeLabelFontSize
@@ -37,6 +38,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 左侧节次/刻度列宽 */
 internal val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
+
+/** 低于这个高度就不排起止两行 */
+private val TimeLabelMinSectionHeight = 44.dp
 
 /** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗 */
 @Composable
@@ -116,8 +120,13 @@ internal fun SectionTimesColumn(
             val section = index + 1
             val isCurrent = section == currentSection
             val timeColor = if (isCurrent) accent else MiuixTheme.colorScheme.onSurfaceVariantActions
+            val sectionHeight = layout.sectionHeightOf(section)
             Column(
-                modifier = Modifier.fillMaxWidth().height(layout.sectionHeight).offset(y = layout.topOf(section)),
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .height(sectionHeight)
+                        .offset(y = layout.topOf(section)),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
@@ -129,7 +138,14 @@ internal fun SectionTimesColumn(
                         ),
                     color = if (isCurrent) accent else MiuixTheme.colorScheme.onSurface,
                 )
-                listOf(startTime, endTime).forEach { Text(text = it, style = timeStyle, color = timeColor) }
+                // 节次太矮排不下起止两行，只留开始时间
+                if (sectionHeight >= TimeLabelMinSectionHeight) {
+                    listOf(startTime, endTime).forEach {
+                        Text(text = it, style = timeStyle, color = timeColor)
+                    }
+                } else {
+                    Text(text = startTime, style = timeStyle, color = timeColor)
+                }
             }
         }
         // 特殊节次没有节次编号，只标起止时间
@@ -178,7 +194,7 @@ internal fun ScheduleGridLines(layout: ScheduleLayout, modifier: Modifier = Modi
             drawLine(color, Offset(0f, top), Offset(size.width, top), strokeWidth = 1f)
             // 末节把底边补上，整张表才封口
             if (section == layout.sectionCount) {
-                val bottom = top + layout.sectionHeight.toPx()
+                val bottom = top + layout.sectionHeightOf(section).toPx()
                 drawLine(color, Offset(0f, bottom), Offset(size.width, bottom), strokeWidth = 1f)
             }
         }
@@ -186,7 +202,11 @@ internal fun ScheduleGridLines(layout: ScheduleLayout, modifier: Modifier = Modi
 }
 
 @Composable
-internal fun SpecialBlockBands(layout: ScheduleLayout, modifier: Modifier = Modifier) {
+internal fun SpecialBlockBands(
+    layout: ScheduleLayout,
+    margin: Dp,
+    modifier: Modifier = Modifier,
+) {
     if (layout.bands.isEmpty()) return
     val background = MiuixTheme.colorScheme.secondaryContainer
     val textColor = MiuixTheme.colorScheme.onSecondaryContainer
@@ -203,7 +223,7 @@ internal fun SpecialBlockBands(layout: ScheduleLayout, modifier: Modifier = Modi
                             Modifier
                                 .weight(run.count().toFloat())
                                 .fillMaxHeight()
-                                .padding(horizontal = CardInset, vertical = CardInset)
+                                .padding(margin)
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(background)
                                 .padding(horizontal = 4.dp),
@@ -243,7 +263,11 @@ private fun consecutiveDays(days: Set<Int>): List<IntRange> {
 
 /** 午休/晚休分界线，铺满日期列的一条圆角条，文字居中 */
 @Composable
-internal fun BreakDividerRow(divider: BreakDivider, modifier: Modifier = Modifier) {
+internal fun BreakDividerRow(
+    divider: BreakDivider,
+    margin: Dp,
+    modifier: Modifier = Modifier,
+) {
     Box(
         modifier =
             modifier
@@ -251,7 +275,7 @@ internal fun BreakDividerRow(divider: BreakDivider, modifier: Modifier = Modifie
                 .height(DividerHeight)
                 .offset(y = divider.top)
                 // 课程卡外圈同样的间距，左右才对齐
-                .padding(horizontal = CardInset, vertical = 2.dp),
+                .padding(horizontal = margin, vertical = 2.dp),
         contentAlignment = Alignment.Center,
     ) {
         Box(

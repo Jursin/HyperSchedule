@@ -217,7 +217,7 @@ internal fun DayGridColumn(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .height(layout.sectionHeight)
+                        .height(layout.sectionHeightOf(pendingSection))
                         .offset(y = layout.topOf(pendingSection))
                         // 点击层放卡片外层，避免和列手势抢事件
                         .clickable(
@@ -227,7 +227,7 @@ internal fun DayGridColumn(
                         ),
             ) {
                 Card(
-                    modifier = Modifier.fillMaxSize().padding(CardInset),
+                    modifier = Modifier.fillMaxSize().padding(style.cardMargin.dp),
                     cornerRadius = style.cardCorner.dp,
                     insideMargin = PaddingValues(0.dp),
                     colors =
