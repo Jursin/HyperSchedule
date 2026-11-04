@@ -7,7 +7,6 @@ import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -178,26 +177,21 @@ internal fun DayGridColumn(
                 // 一格里的条目超过一条就打点
                 val stacked = items.sumOf { 1 + it.hiddenCount } > 1
                 Box(modifier = Modifier.offset(y = layout.topOf(start))) {
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        items.forEach { item ->
-                            // 只灰显源周那一张
-                            val dragged = item.course.id == draggingId
+                    CourseCardRow(
+                        items = items,
+                        style = style,
+                        heightOf = { item ->
                             val span = (item.course.endSection ?: start).coerceAtLeast(start)
-                            ScheduleCourseCard(
-                                course = item.course,
-                                style = style,
-                                heightOverride = layout.heightOf(start, span),
-                                // 落库后先按灰卡显示，颜色不跳
-                                isCurrentWeek = item.active && !dragged,
-                                isHoliday = isHoliday,
-                                isWorkSwap = isWorkSwap,
-                                showBadge = stacked,
-                                // 点击交给整列处理，卡片不抢手势
-                                onClick = null,
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
+                            layout.heightOf(start, span)
+                        },
+                        // 落库后先按灰卡显示，颜色不跳
+                        isCurrentWeek = { item -> item.active && item.course.id != draggingId },
+                        isHoliday = isHoliday,
+                        isWorkSwap = isWorkSwap,
+                        showBadge = { stacked },
+                        // 点击交给整列处理，卡片不抢手势
+                        onClick = null,
+                    )
                 }
             }
 

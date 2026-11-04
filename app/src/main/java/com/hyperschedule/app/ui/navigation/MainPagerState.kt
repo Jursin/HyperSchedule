@@ -42,6 +42,9 @@ class MainPagerState(
     var isNavigating by mutableStateOf(false)
         private set
 
+    var reselectTick by mutableIntStateOf(0)
+        private set
+
     private var navJob: Job? = null
 
     /** 底栏应跟随的页码，导航中返回目标页，否则返回实际页，包一层 [derivedStateOf] 让读取方只在结果变化时重组 */
@@ -51,7 +54,10 @@ class MainPagerState(
         }
 
     fun animateToPage(targetIndex: Int) {
-        if (targetIndex == selectedPage) return
+        if (targetIndex == selectedPage) {
+            reselectTick++
+            return
+        }
 
         navJob?.cancel()
 

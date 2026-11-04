@@ -21,6 +21,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.Dp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.schedule.HolidayPlan
 import com.hyperschedule.app.schedule.currentSectionAt
 import com.hyperschedule.app.theme.PageBottomInset
@@ -33,6 +34,9 @@ import com.hyperschedule.app.ui.component.ScheduleLayout
 import com.hyperschedule.app.ui.component.SectionTimesColumn
 import com.hyperschedule.app.ui.component.SpecialBlockBands
 import com.hyperschedule.app.ui.component.StretchOverscrollState
+import com.hyperschedule.app.ui.component.TimelineDay
+import com.hyperschedule.app.ui.component.TimelineWeekGrid
+import com.hyperschedule.app.ui.component.WeekCourse
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.resolveWeekCourses
 import com.hyperschedule.app.ui.component.stretchOverscroll
@@ -108,83 +112,141 @@ internal fun ScheduleWeekPage(
                 // 顶栏高度作为滚动内容的内边距
                 .padding(top = topPadding),
     ) {
-        // 网格线铺在时间列之后
-        Box(
-            modifier =
-                Modifier
-                    .fillMaxWidth()
-                    .stretchOverscroll(stretch),
-        ) {
-            if (style.gridLines) {
-                ScheduleGridLines(layout = layout, modifier = Modifier.matchParentSize())
-            }
-            Row(modifier = Modifier.fillMaxWidth()) {
-                SectionTimesColumn(
-                    layout = layout,
-                    currentSection = currentSection,
-                    sectionTimes = sectionTimes,
-                )
-                // 7 个日期列这块矩形
-                Box(
-                    modifier =
-                        Modifier
-                            .weight(1f)
-                            .onGloballyPositioned { coords -> onGridPositioned(coords.boundsInRoot()) },
-                ) {
-                    // 特殊节次铺在课程卡后面
-                    SpecialBlockBands(layout = layout, modifier = Modifier.matchParentSize())
-                    Row {
-                        for (day in 1..DAY_NAMES.size) {
-                            val plan = dayPlans[day - 1]
-                            // 补课列画被调那天的课
-                            val shownWeek = plan.weekOr(week)
-                            val shownDay = plan.dayOr(day)
-                            DayGridColumn(
-                                modifier = Modifier.weight(1f),
-                                layout = layout,
-                                courses =
-                                    coursesByWeek[shownWeek].orEmpty()
-                                        .filter { it.course.day == shownDay },
-                                sectionTimes = sectionTimes,
-                                style = style,
-                                // 灰卡只认源周那一张
-                                draggingId = draggingSlot?.takeIf { it.second == shownWeek }?.first,
-                                isHoliday = plan.holiday,
-                                isWorkSwap = plan.workSwap,
-                                // 补课列与拖拽中都不起拖
-                                dragEnabled = !plan.remapped && !dragInProgress,
-                                // 放假/补课列不落「+」
-                                pendingSection =
-                                    if (plan.holiday || plan.remapped) {
-                                        -1
-                                    } else {
-                                        pendingCell?.takeIf { it.day == day }?.section ?: -1
+        if (style.timeline) {
+            TimelineWeekPage(
+                week = week,
+                currentWeek = currentWeek,
+                now = now,
+                dayPlans = dayPlans,
+                coursesByWeek = coursesByWeek,
+                sectionTimes = sectionTimes,
+                style = style,
+                stretch = stretch,
+                onCourseClick = onCourseClick,
+            )
+        } else {
+            // 网格线铺在时间列之后
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .stretchOverscroll(stretch),
+            ) {
+                if (style.gridLines) {
+                    ScheduleGridLines(layout = layout, modifier = Modifier.matchParentSize())
+                }
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    SectionTimesColumn(
+                        layout = layout,
+                        currentSection = currentSection,
+                        sectionTimes = sectionTimes,
+                    )
+                    // 7 个日期列这块矩形
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .onGloballyPositioned { coords -> onGridPositioned(coords.boundsInRoot()) },
+                    ) {
+                        // 特殊节次铺在课程卡后面
+                        SpecialBlockBands(layout = layout, modifier = Modifier.matchParentSize())
+                        Row {
+                            for (day in 1..DAY_NAMES.size) {
+                                val plan = dayPlans[day - 1]
+                                // 补课列画被调那天的课
+                                val shownWeek = plan.weekOr(week)
+                                val shownDay = plan.dayOr(day)
+                                DayGridColumn(
+                                    modifier = Modifier.weight(1f),
+                                    layout = layout,
+                                    courses =
+                                        coursesByWeek[shownWeek].orEmpty()
+                                            .filter { it.course.day == shownDay },
+                                    sectionTimes = sectionTimes,
+                                    style = style,
+                                    // 灰卡只认源周那一张
+                                    draggingId = draggingSlot?.takeIf { it.second == shownWeek }?.first,
+                                    isHoliday = plan.holiday,
+                                    isWorkSwap = plan.workSwap,
+                                    // 补课列与拖拽中都不起拖
+                                    dragEnabled = !plan.remapped && !dragInProgress,
+                                    // 放假/补课列不落「+」
+                                    pendingSection =
+                                        if (plan.holiday || plan.remapped) {
+                                            -1
+                                        } else {
+                                            pendingCell?.takeIf { it.day == day }?.section ?: -1
+                                        },
+                                    // 没开学或放补课列不给添加
+                                    onCellTap =
+                                        if (startDate != null && !plan.holiday && !plan.remapped) {
+                                            { section -> onPendingCellChange(PendingCell(day, section)) }
+                                        } else {
+                                            null
+                                        },
+                                    // 点卡片只带一门课，顺带这一格的放假/调休角标
+                                    onCourseClick = { clicked -> onCourseClick(clicked, shownWeek, plan.markOrNull()) },
+                                    // 再点一次「+」直接进新建课程页
+                                    onPendingTap = { section -> onAddCourse(day, section, section) },
+                                    onDragStart = { course, position, pointerId ->
+                                        // 起拖成功才登记指针
+                                        if (editor.startDrag(week, course, position, allCourses)) {
+                                            touchState.begin(pointerId, position)
+                                        }
                                     },
-                                // 没开学或放补课列不给添加
-                                onCellTap =
-                                    if (startDate != null && !plan.holiday && !plan.remapped) {
-                                        { section -> onPendingCellChange(PendingCell(day, section)) }
-                                    } else {
-                                        null
-                                    },
-                                // 点卡片只带一门课，顺带这一格的放假/调休角标
-                                onCourseClick = { clicked -> onCourseClick(clicked, shownWeek, plan.markOrNull()) },
-                                // 再点一次「+」直接进新建课程页
-                                onPendingTap = { section -> onAddCourse(day, section, section) },
-                                onDragStart = { course, position, pointerId ->
-                                    // 起拖成功才登记指针
-                                    if (editor.startDrag(week, course, position, allCourses)) {
-                                        touchState.begin(pointerId, position)
-                                    }
-                                },
-                            )
+                                )
+                            }
                         }
+                        // 午休/晚休分界线
+                        layout.dividers.forEach { divider -> BreakDividerRow(divider = divider) }
                     }
-                    // 午休/晚休分界线
-                    layout.dividers.forEach { divider -> BreakDividerRow(divider = divider) }
                 }
             }
         }
         Spacer(modifier = Modifier.height(PageBottomInset))
     }
+}
+
+/** 时间轴视图 */
+@Composable
+private fun TimelineWeekPage(
+    week: Int,
+    currentWeek: Int?,
+    now: LocalDateTime,
+    dayPlans: List<HolidayDay>,
+    coursesByWeek: Map<Int, List<WeekCourse>>,
+    sectionTimes: List<Pair<String, String>>,
+    style: ScheduleStyle,
+    stretch: StretchOverscrollState,
+    onCourseClick: (Course, Int, String?) -> Unit,
+) {
+    val isThisWeek = week == currentWeek
+    val todayColumn = now.dayOfWeek.value
+    // 调休当日那列画的是别的星期的课，时间线不往上面压
+    val todayRemapped = dayPlans.getOrNull(todayColumn - 1)?.remapped == true
+    val days =
+        remember(week, dayPlans, coursesByWeek) {
+            (1..DAY_NAMES.size).map { day ->
+                val plan = dayPlans[day - 1]
+                val shownWeek = plan.weekOr(week)
+                val shownDay = plan.dayOr(day)
+                TimelineDay(
+                    column = day,
+                    week = shownWeek,
+                    courses = coursesByWeek[shownWeek].orEmpty().filter { it.course.day == shownDay },
+                    isHoliday = plan.holiday,
+                    isWorkSwap = plan.workSwap,
+                    mark = plan.markOrNull(),
+                )
+            }
+        }
+    TimelineWeekGrid(
+        days = days,
+        sectionTimes = sectionTimes,
+        style = style,
+        nowMinute = if (isThisWeek) now.hour * 60 + now.minute else -1,
+        todayColumn = if (isThisWeek && !todayRemapped) todayColumn else 0,
+        onCourseClick = { course, day -> onCourseClick(course, day.week, day.mark) },
+        modifier = Modifier.fillMaxWidth().stretchOverscroll(stretch),
+    )
 }

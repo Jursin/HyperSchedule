@@ -225,6 +225,9 @@ val LocalMainTabNavigating = compositionLocalOf { false }
 /** 当前页面槽是不是用户正在看的 Tab（只按 Tab 判断，二级页盖住不算离开），页面据此决定切走再回来时是否复位到今日/本周 */
 val LocalPageIsCurrent = compositionLocalOf { true }
 
+/** 停在本页时再点一次本 Tab 的次数，页面据此做复位 */
+val LocalPageReselect = compositionLocalOf { 0 }
+
 /** 全局最后一次按下的位置，页面据此判断点击是否落在交互区外 */
 val LocalLastTapDown = staticCompositionLocalOf<MutableState<Offset?>> { mutableStateOf(null) }
 
@@ -423,6 +426,7 @@ fun MainScaffold(
                                 CompositionLocalProvider(
                                     LocalMainTabNavigating provides mainPagerState.isNavigating,
                                     LocalPageIsCurrent provides (page == mainPagerState.selectedPage),
+                                    LocalPageReselect provides mainPagerState.reselectTick,
                                     LocalTabPageIndex provides page,
                                     LocalBackToNowHost provides backToNowHost,
                                 ) {

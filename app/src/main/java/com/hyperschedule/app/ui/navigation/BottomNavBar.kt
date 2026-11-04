@@ -265,11 +265,12 @@ private fun TabsPill(
                         val down = awaitFirstDown(requireUnconsumed = false)
                         val downX = logicalX(down.position.x)
                         val downIndex = indicator.nearestTo(downX)
+                        val onCurrent = downIndex == currentIndex
 
                         // 按下即选中
                         pressed = true
                         pressedIndex = downIndex
-                        if (downIndex != currentIndex) {
+                        if (!onCurrent) {
                             currentIndex = downIndex
                             indicator.select(downIndex)
                             onSelect(downIndex)
@@ -287,6 +288,8 @@ private fun TabsPill(
                                 val target = indicator.nearestTo(lastFrameX)
                                 if (target != currentIndex) {
                                     currentIndex = target
+                                    onSelect(target)
+                                } else if (onCurrent && !isDragging) {
                                     onSelect(target)
                                 }
                                 // 与当前项相同时也调用一次，把拖动中的拉伸收回原位

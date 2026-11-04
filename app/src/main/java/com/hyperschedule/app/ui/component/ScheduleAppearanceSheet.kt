@@ -47,32 +47,44 @@ fun ScheduleAppearanceSheet(
         onDismissFinished = onDismissFinished,
     ) {
         SheetScrollColumn {
-            PreferenceSection(cardColor = sheetCardColor(), title = "网格") {
+            PreferenceSection(cardColor = sheetCardColor(), title = "视图") {
                 SwitchPreference(
-                    checked = style.gridLines,
-                    onCheckedChange = { applyStyle(style.copy(gridLines = it)) },
-                    title = "显示网格线",
-                )
-                SwitchPreference(
-                    checked = style.breakDividers,
-                    onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
-                    title = "显示午休、晚休分界线",
+                    checked = style.timeline,
+                    onCheckedChange = { applyStyle(style.copy(timeline = it)) },
+                    title = "时间轴视图",
                 )
             }
 
+            if (!style.timeline) {
+                PreferenceSection(cardColor = sheetCardColor(), title = "网格") {
+                    SwitchPreference(
+                        checked = style.gridLines,
+                        onCheckedChange = { applyStyle(style.copy(gridLines = it)) },
+                        title = "显示网格线",
+                    )
+                    SwitchPreference(
+                        checked = style.breakDividers,
+                        onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
+                        title = "显示午休、晚休分界线",
+                    )
+                }
+            }
+
             PreferenceSection(cardColor = sheetCardColor(), title = "卡片") {
-                StyleSlider(
-                    title = "课程卡片高度",
-                    value = style.cardHeight.toFloat(),
-                    valueText = "${style.cardHeight}dp",
-                    valueRange = ScheduleStyle.MIN_CARD_HEIGHT.toFloat()..ScheduleStyle.MAX_CARD_HEIGHT.toFloat(),
-                    steps = ScheduleStyle.MAX_CARD_HEIGHT - ScheduleStyle.MIN_CARD_HEIGHT - 1,
-                    keyPoint = ScheduleStyle.Default.cardHeight.toFloat(),
-                    onValueChange = { value ->
-                        onStyleChange(style.copy(cardHeight = value.roundToInt()))
-                    },
-                    onValueChangeFinished = onStyleCommit,
-                )
+                if (!style.timeline) {
+                    StyleSlider(
+                        title = "课程卡片高度",
+                        value = style.cardHeight.toFloat(),
+                        valueText = "${style.cardHeight}dp",
+                        valueRange = ScheduleStyle.MIN_CARD_HEIGHT.toFloat()..ScheduleStyle.MAX_CARD_HEIGHT.toFloat(),
+                        steps = ScheduleStyle.MAX_CARD_HEIGHT - ScheduleStyle.MIN_CARD_HEIGHT - 1,
+                        keyPoint = ScheduleStyle.Default.cardHeight.toFloat(),
+                        onValueChange = { value ->
+                            onStyleChange(style.copy(cardHeight = value.roundToInt()))
+                        },
+                        onValueChangeFinished = onStyleCommit,
+                    )
+                }
                 StyleSlider(
                     title = "课程卡片圆角",
                     value = style.cardCorner.toFloat(),

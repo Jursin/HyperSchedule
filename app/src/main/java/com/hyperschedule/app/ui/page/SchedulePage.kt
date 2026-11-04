@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.page
 
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -24,6 +25,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseWithWeeks
@@ -44,12 +47,14 @@ import com.hyperschedule.app.ui.component.ProvideBackToNow
 import com.hyperschedule.app.ui.component.ScheduleAppearanceSheet
 import com.hyperschedule.app.ui.component.ScheduleDragLayer
 import com.hyperschedule.app.ui.component.ScheduleLayout
+import com.hyperschedule.app.ui.component.buildTimelineAxis
 import com.hyperschedule.app.ui.component.isSameSlotAs
 import com.hyperschedule.app.ui.component.rememberStretchOverscrollState
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.navigation.LocalLastTapDown
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
+import com.hyperschedule.app.ui.navigation.LocalPageReselect
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
 import com.hyperschedule.app.ui.page.schedule.EdgePages
 import com.hyperschedule.app.ui.page.schedule.HistoryFabColumn
@@ -64,6 +69,7 @@ import com.hyperschedule.app.ui.page.schedule.scheduleDragOwner
 import com.hyperschedule.app.ui.page.schedule.schedulePagerGesture
 import com.hyperschedule.app.ui.rememberHolidayPlan
 import java.time.LocalDateTime
+import kotlin.math.roundToInt
 import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.delay
@@ -257,7 +263,7 @@ fun SchedulePage(
                 totalWeeks = totalWeeks,
                 currentWeek = nowWeek,
                 today = today,
-                gridLines = style.gridLines,
+                gridLines = style.gridLines || style.timeline,
                 blurBackdrop = blurBackdrop,
                 scrollBehavior = scrollBehavior,
                 onManageTables = onManageTables,
@@ -273,6 +279,17 @@ fun SchedulePage(
             )
         },
     ) { paddingValues ->
+        // 时间轴视图切回本页、或停在本页时再点一次本 Tab，都把当前时刻翻到屏幕中间
+        if (style.timeline) {
+            ScrollToNowOnShow(
+                pageScroll = pageScroll,
+                sectionTimes = sectionTimes,
+                now = now,
+                topPadding = paddingValues.calculateTopPadding(),
+                pageIsCurrent = pageIsCurrent,
+                reselectTick = LocalPageReselect.current,
+            )
+        }
         // 拖动浮层与撤销按钮都挂在这一层
         Box(
             modifier =
@@ -454,5 +471,33 @@ fun SchedulePage(
                 showJumpDialog = false
             },
         )
+    }
+}
+
+/** 时间轴视图把当前时刻滚到屏幕中间 */
+@Composable
+private fun ScrollToNowOnShow(
+    pageScroll: ScrollState,
+    sectionTimes: List<Pair<String, String>>,
+    now: LocalDateTime,
+    topPadding: Dp,
+    pageIsCurrent: Boolean,
+    reselectTick: Int,
+) {
+    val density = LocalDensity.current
+    val axis = remember(sectionTimes) { buildTimelineAxis(sectionTimes) }
+    var wasCurrent by remember { mutableStateOf(pageIsCurrent) }
+    var handledTick by remember { mutableIntStateOf(reselectTick) }
+    LaunchedEffect(pageIsCurrent, reselectTick) {
+        val returning = pageIsCurrent && !wasCurrent
+        val tappedAgain = reselectTick != handledTick
+        wasCurrent = pageIsCurrent
+        handledTick = reselectTick
+        if (!pageIsCurrent || !(returning || tappedAgain)) return@LaunchedEffect
+        val viewport = pageScroll.viewportSize
+        val minute = now.hour * 60 + now.minute
+        if (viewport <= 0 || minute !in axis.startMinute until axis.endMinute) return@LaunchedEffect
+        val contentY = with(density) { topPadding.toPx() + axis.topOf(minute).toPx() }
+        pageScroll.animateScrollTo((contentY - viewport / 2f).roundToInt().coerceIn(0, pageScroll.maxValue))
     }
 }

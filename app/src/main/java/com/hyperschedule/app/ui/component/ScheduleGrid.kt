@@ -34,7 +34,8 @@ import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val SectionColumnWidth = 36.dp
+/** 左侧节次/刻度列宽 */
+internal val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
 
 /** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗 */
@@ -153,7 +154,7 @@ internal fun SectionTimesColumn(
 }
 
 @Composable
-private fun gridLineColor(): Color {
+internal fun gridLineColor(): Color {
     val isDark = isDarkTheme()
     return MiuixTheme.colorScheme.onSurface.copy(alpha = if (isDark) 0.20f else 0.07f)
 }

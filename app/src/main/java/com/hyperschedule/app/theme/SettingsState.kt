@@ -101,6 +101,7 @@ private val Prefs =
         boolSetting("showNonCurrentWeek", { it.showNonCurrentWeek }) { s, v -> s.copy(showNonCurrentWeek = v) },
         stringSetting("currentTableId", { it.currentTableId }) { s, v -> s.copy(currentTableId = v) },
         boolSetting("gridLines", { it.style.gridLines }) { s, v -> s.copy(style = s.style.copy(gridLines = v)) },
+        boolSetting("timeline", { it.style.timeline }) { s, v -> s.copy(style = s.style.copy(timeline = v)) },
         intSetting("cardHeight", { it.style.cardHeight }) { s, v -> s.copy(style = s.style.copy(cardHeight = v)) },
         intSetting("cardCorner", { it.style.cardCorner }) { s, v -> s.copy(style = s.style.copy(cardCorner = v)) },
         boolSetting("cardBorder", { it.style.cardBorder }) { s, v -> s.copy(style = s.style.copy(cardBorder = v)) },
@@ -441,6 +442,7 @@ data class ReminderSettings(
 
 data class ScheduleStyle(
     val gridLines: Boolean = true,
+    val timeline: Boolean = false,
     val cardHeight: Int = 92,
     val cardCorner: Int = 10,
     val cardBorder: Boolean = true,

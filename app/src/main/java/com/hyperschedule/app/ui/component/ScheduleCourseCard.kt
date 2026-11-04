@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -197,6 +198,36 @@ fun ScheduleCourseCard(
                 accent = isCurrentWeek,
                 fontSize = BadgeFontSize * scale,
                 modifier = Modifier.align(Alignment.TopEnd).padding(top = 5.dp, end = 5.dp),
+            )
+        }
+    }
+}
+
+/** 同一格并排的课程卡，网格视图与时间轴共用 */
+@Composable
+internal fun CourseCardRow(
+    items: List<WeekCourse>,
+    style: ScheduleStyle,
+    heightOf: (WeekCourse) -> Dp,
+    isCurrentWeek: (WeekCourse) -> Boolean,
+    isHoliday: Boolean,
+    isWorkSwap: Boolean,
+    showBadge: (WeekCourse) -> Boolean,
+    onClick: ((WeekCourse) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Row(modifier = modifier.fillMaxWidth()) {
+        items.forEach { item ->
+            ScheduleCourseCard(
+                course = item.course,
+                style = style,
+                heightOverride = heightOf(item),
+                isCurrentWeek = isCurrentWeek(item),
+                isHoliday = isHoliday,
+                isWorkSwap = isWorkSwap,
+                showBadge = showBadge(item),
+                onClick = onClick?.let { click -> { click(item) } },
+                modifier = Modifier.weight(1f),
             )
         }
     }
