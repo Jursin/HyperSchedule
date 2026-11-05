@@ -11,6 +11,7 @@ import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.data.model.TimeTable
 import com.hyperschedule.app.data.model.TimeTableCombo
 import com.hyperschedule.app.data.model.TimeTableComboRule
+import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import kotlinx.serialization.Serializable
 
 const val BACKUP_FORMAT = "hyperschedule-backup"
@@ -27,68 +28,77 @@ data class BackupPayload(
     val appVersionCode: Long = 0,
     val createdAt: String = "",
     val tables: List<TableRow> = emptyList(),
-    val configs: List<ConfigRow> = emptyList(),
-    val courses: List<CourseRow> = emptyList(),
-    val courseWeeks: List<WeekRow> = emptyList(),
     val timeTables: List<TimeTableRow> = emptyList(),
-    val timeSlots: List<SlotRow> = emptyList(),
-    val specialBlocks: List<SpecialRow> = emptyList(),
-    val bindings: List<BindingRow> = emptyList(),
     val combos: List<ComboRow> = emptyList(),
-    val comboRules: List<RuleRow> = emptyList(),
     val prefs: Map<String, PrefsSnapshot> = emptyMap(),
 ) {
     val tableCount: Int get() = tables.size
 
-    val courseCount: Int get() = courses.size
+    val courseCount: Int get() = tables.sumOf { it.courses.size }
 
     /** 指纹只看内容，不看时间与版本号 */
     fun contentKey(): BackupPayload = copy(appVersion = "", appVersionCode = 0, createdAt = "")
 }
 
+/** 课表 */
 @Serializable
 data class TableRow(
     val id: String,
     val name: String,
     val createdAt: Long,
+    val showWeekends: Boolean = false,
+    val semesterStartDate: String? = null,
+    val semesterTotalWeeks: Int = DEFAULT_TOTAL_WEEKS,
+    val binding: BindingRow? = null,
+    val courses: List<CourseRow> = emptyList(),
 ) {
     fun toEntity() = CourseTable(id = id, name = name, createdAt = createdAt)
 
-    companion object {
-        fun of(row: CourseTable) = TableRow(id = row.id, name = row.name, createdAt = row.createdAt)
-    }
-}
-
-@Serializable
-data class ConfigRow(
-    val courseTableId: String,
-    val showWeekends: Boolean = false,
-    val semesterStartDate: String? = null,
-    val semesterTotalWeeks: Int = 0,
-) {
-    fun toEntity() =
+    fun toConfig() =
         CourseTableConfig(
-            courseTableId = courseTableId,
+            courseTableId = id,
             showWeekends = showWeekends,
             semesterStartDate = semesterStartDate,
             semesterTotalWeeks = semesterTotalWeeks,
         )
 
     companion object {
-        fun of(row: CourseTableConfig) =
-            ConfigRow(
-                courseTableId = row.courseTableId,
-                showWeekends = row.showWeekends,
-                semesterStartDate = row.semesterStartDate,
-                semesterTotalWeeks = row.semesterTotalWeeks,
-            )
+        fun of(
+            row: CourseTable,
+            config: CourseTableConfig?,
+            binding: CourseTimeBinding?,
+            courses: List<CourseRow>,
+        ) = TableRow(
+            id = row.id,
+            name = row.name,
+            createdAt = row.createdAt,
+            showWeekends = config?.showWeekends ?: false,
+            semesterStartDate = config?.semesterStartDate,
+            semesterTotalWeeks = config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS,
+            binding = binding?.let(BindingRow::of),
+            courses = courses,
+        )
     }
 }
 
+/** 课表当前指向的作息或组合 */
+@Serializable
+data class BindingRow(
+    val targetType: String = CourseTimeBinding.TARGET_SINGLE,
+    val targetId: String,
+) {
+    fun toEntity(courseTableId: String) =
+        CourseTimeBinding(courseTableId = courseTableId, targetType = targetType, targetId = targetId)
+
+    companion object {
+        fun of(row: CourseTimeBinding) = BindingRow(targetType = row.targetType, targetId = row.targetId)
+    }
+}
+
+/** 课程 */
 @Serializable
 data class CourseRow(
     val id: String,
-    val courseTableId: String,
     val name: String,
     val teacher: String = "",
     val position: String = "",
@@ -102,8 +112,9 @@ data class CourseRow(
     val colorArgb: Int? = null,
     val remark: String? = null,
     val credit: Float? = null,
+    val weeks: List<Int> = emptyList(),
 ) {
-    fun toEntity() =
+    fun toEntity(courseTableId: String) =
         Course(
             id = id,
             courseTableId = courseTableId,
@@ -122,40 +133,33 @@ data class CourseRow(
             credit = credit,
         )
 
+    fun toWeeks(): List<CourseWeek> = weeks.distinct().map { CourseWeek(courseId = id, weekNumber = it) }
+
     companion object {
-        fun of(row: Course) =
-            CourseRow(
-                id = row.id,
-                courseTableId = row.courseTableId,
-                name = row.name,
-                teacher = row.teacher,
-                position = row.position,
-                day = row.day,
-                startSection = row.startSection,
-                endSection = row.endSection,
-                isCustomTime = row.isCustomTime,
-                customStartTime = row.customStartTime,
-                customEndTime = row.customEndTime,
-                colorInt = row.colorInt,
-                colorArgb = row.colorArgb,
-                remark = row.remark,
-                credit = row.credit,
-            )
+        fun of(
+            row: Course,
+            weeks: List<Int>,
+        ) = CourseRow(
+            id = row.id,
+            name = row.name,
+            teacher = row.teacher,
+            position = row.position,
+            day = row.day,
+            startSection = row.startSection,
+            endSection = row.endSection,
+            isCustomTime = row.isCustomTime,
+            customStartTime = row.customStartTime,
+            customEndTime = row.customEndTime,
+            colorInt = row.colorInt,
+            colorArgb = row.colorArgb,
+            remark = row.remark,
+            credit = row.credit,
+            weeks = weeks,
+        )
     }
 }
 
-@Serializable
-data class WeekRow(
-    val courseId: String,
-    val weekNumber: Int,
-) {
-    fun toEntity() = CourseWeek(courseId = courseId, weekNumber = weekNumber)
-
-    companion object {
-        fun of(row: CourseWeek) = WeekRow(courseId = row.courseId, weekNumber = row.weekNumber)
-    }
-}
-
+/** 作息 */
 @Serializable
 data class TimeTableRow(
     val id: String,
@@ -164,6 +168,8 @@ data class TimeTableRow(
     val defaultClassDuration: Int = 0,
     val morningAfternoonSplit: String = "",
     val afternoonEveningSplit: String = "",
+    val slots: List<SlotRow> = emptyList(),
+    val specials: List<SpecialRow> = emptyList(),
 ) {
     fun toEntity() =
         TimeTable(
@@ -176,51 +182,48 @@ data class TimeTableRow(
         )
 
     companion object {
-        fun of(row: TimeTable) =
-            TimeTableRow(
-                id = row.id,
-                name = row.name,
-                createdAt = row.createdAt,
-                defaultClassDuration = row.defaultClassDuration,
-                morningAfternoonSplit = row.morningAfternoonSplit,
-                afternoonEveningSplit = row.afternoonEveningSplit,
-            )
+        fun of(
+            row: TimeTable,
+            slots: List<SlotRow>,
+            specials: List<SpecialRow>,
+        ) = TimeTableRow(
+            id = row.id,
+            name = row.name,
+            createdAt = row.createdAt,
+            defaultClassDuration = row.defaultClassDuration,
+            morningAfternoonSplit = row.morningAfternoonSplit,
+            afternoonEveningSplit = row.afternoonEveningSplit,
+            slots = slots,
+            specials = specials,
+        )
     }
 }
 
 @Serializable
 data class SlotRow(
-    val timeTableId: String,
     val number: Int,
     val startTime: String = "",
     val endTime: String = "",
     val alias: String? = null,
 ) {
-    fun toEntity() =
+    fun toEntity(timeTableId: String) =
         TimeSlot(timeTableId = timeTableId, number = number, startTime = startTime, endTime = endTime, alias = alias)
 
     companion object {
         fun of(row: TimeSlot) =
-            SlotRow(
-                timeTableId = row.timeTableId,
-                number = row.number,
-                startTime = row.startTime,
-                endTime = row.endTime,
-                alias = row.alias,
-            )
+            SlotRow(number = row.number, startTime = row.startTime, endTime = row.endTime, alias = row.alias)
     }
 }
 
 @Serializable
 data class SpecialRow(
     val id: String,
-    val timeTableId: String,
     val name: String,
     val startTime: String = "",
     val endTime: String = "",
     val days: String = "",
 ) {
-    fun toEntity() =
+    fun toEntity(timeTableId: String) =
         SpecialTimeBlock(
             id = id,
             timeTableId = timeTableId,
@@ -234,7 +237,6 @@ data class SpecialRow(
         fun of(row: SpecialTimeBlock) =
             SpecialRow(
                 id = row.id,
-                timeTableId = row.timeTableId,
                 name = row.name,
                 startTime = row.startTime,
                 endTime = row.endTime,
@@ -243,45 +245,40 @@ data class SpecialRow(
     }
 }
 
-@Serializable
-data class BindingRow(
-    val courseTableId: String,
-    val targetType: String = CourseTimeBinding.TARGET_SINGLE,
-    val targetId: String,
-) {
-    fun toEntity() =
-        CourseTimeBinding(courseTableId = courseTableId, targetType = targetType, targetId = targetId)
-
-    companion object {
-        fun of(row: CourseTimeBinding) =
-            BindingRow(courseTableId = row.courseTableId, targetType = row.targetType, targetId = row.targetId)
-    }
-}
-
+/** 组合作息 */
 @Serializable
 data class ComboRow(
     val id: String,
     val name: String,
     val baseTimeTableId: String? = null,
     val createdAt: Long,
+    val rules: List<RuleRow> = emptyList(),
 ) {
     fun toEntity() = TimeTableCombo(id = id, name = name, baseTimeTableId = baseTimeTableId, createdAt = createdAt)
 
     companion object {
-        fun of(row: TimeTableCombo) =
-            ComboRow(id = row.id, name = row.name, baseTimeTableId = row.baseTimeTableId, createdAt = row.createdAt)
+        fun of(
+            row: TimeTableCombo,
+            rules: List<RuleRow>,
+        ) = ComboRow(
+            id = row.id,
+            name = row.name,
+            baseTimeTableId = row.baseTimeTableId,
+            createdAt = row.createdAt,
+            rules = rules,
+        )
     }
 }
 
+/** 组合内某段日期使用的作息 */
 @Serializable
 data class RuleRow(
     val id: String,
-    val comboId: String,
     val targetTimeTableId: String,
     val startDate: String,
     val endDate: String,
 ) {
-    fun toEntity() =
+    fun toEntity(comboId: String) =
         TimeTableComboRule(
             id = id,
             comboId = comboId,
@@ -294,7 +291,6 @@ data class RuleRow(
         fun of(row: TimeTableComboRule) =
             RuleRow(
                 id = row.id,
-                comboId = row.comboId,
                 targetTimeTableId = row.targetTimeTableId,
                 startDate = row.startDate,
                 endDate = row.endDate,

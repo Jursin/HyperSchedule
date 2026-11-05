@@ -40,11 +40,10 @@ data class BackupFile(
     val size: Long,
 )
 
-/** 恢复结果，含被丢弃的条数 */
+/** 恢复结果 */
 data class RestoreResult(
     val tableCount: Int,
     val courseCount: Int,
-    val droppedRows: Int,
 )
 
 /** 网络异常转成能直接显示的提示 */
@@ -87,22 +86,40 @@ class BackupRepository(
     suspend fun build(): BackupPayload =
         withContext(Dispatchers.IO) {
             val dao = db.backupDao()
+            val weeksByCourse = dao.weeks().groupBy({ it.courseId }, { it.weekNumber })
+            val configsByTable = dao.configs().associateBy { it.courseTableId }
+            val bindingsByTable = dao.bindings().associateBy { it.courseTableId }
+            val coursesByTable = dao.courses().groupBy { it.courseTableId }
+            val slotsByTable = dao.slots().groupBy { it.timeTableId }
+            val specialsByTable = dao.specials().groupBy { it.timeTableId }
+            val rulesByCombo = dao.comboRules().groupBy { it.comboId }
             BackupPayload(
                 format = BACKUP_FORMAT,
                 formatVersion = BACKUP_FORMAT_VERSION,
                 appVersion = getAppVersion(appContext),
                 appVersionCode = getAppVersionCode(appContext).toLongOrNull() ?: 0L,
                 createdAt = LocalDateTime.now().format(isoFormatter),
-                tables = dao.tables().map(TableRow::of),
-                configs = dao.configs().map(ConfigRow::of),
-                courses = dao.courses().map(CourseRow::of),
-                courseWeeks = dao.weeks().map(WeekRow::of),
-                timeTables = dao.timeTables().map(TimeTableRow::of),
-                timeSlots = dao.slots().map(SlotRow::of),
-                specialBlocks = dao.specials().map(SpecialRow::of),
-                bindings = dao.bindings().map(BindingRow::of),
-                combos = dao.combos().map(ComboRow::of),
-                comboRules = dao.comboRules().map(RuleRow::of),
+                tables =
+                    dao.tables().map { table ->
+                        TableRow.of(
+                            row = table,
+                            config = configsByTable[table.id],
+                            binding = bindingsByTable[table.id],
+                            courses =
+                                coursesByTable[table.id]
+                                    .orEmpty()
+                                    .map { course -> CourseRow.of(course, weeksByCourse[course.id].orEmpty()) },
+                        )
+                    },
+                timeTables =
+                    dao.timeTables().map { table ->
+                        TimeTableRow.of(
+                            row = table,
+                            slots = slotsByTable[table.id].orEmpty().map(SlotRow::of),
+                            specials = specialsByTable[table.id].orEmpty().map(SpecialRow::of),
+                        )
+                    },
+                combos = dao.combos().map { combo -> ComboRow.of(combo, rulesByCombo[combo.id].orEmpty().map(RuleRow::of)) },
                 prefs = collectPrefs(),
             )
         }
@@ -204,45 +221,37 @@ class BackupRepository(
         withContext(Dispatchers.IO) {
             if (payload.tables.isEmpty()) throw BackupException("备份里没有课表，未做改动")
             val dao = db.backupDao()
-            val tables = payload.tables.map { it.toEntity() }
-            val tableIds = tables.mapTo(HashSet()) { it.id }
-            val timeTables = payload.timeTables.map { it.toEntity() }
-            val timeTableIds = timeTables.mapTo(HashSet()) { it.id }
-            val combos = payload.combos.map { it.toEntity() }
-            val comboIds = combos.mapTo(HashSet()) { it.id }
+            val tableIds = payload.tables.mapTo(HashSet()) { it.id }
+            val timeTableIds = payload.timeTables.mapTo(HashSet()) { it.id }
+            val comboIds = payload.combos.mapTo(HashSet()) { it.id }
 
-            var dropped = 0
-            fun <T> keep(rows: List<T>, predicate: (T) -> Boolean): List<T> {
-                val kept = rows.filter(predicate)
-                dropped += rows.size - kept.size
-                return kept
-            }
-
-            val configs = keep(payload.configs) { it.courseTableId in tableIds }
-            val courses = keep(payload.courses) { it.courseTableId in tableIds }
-            val courseIds = courses.mapTo(HashSet()) { it.id }
-            val weeks = keep(payload.courseWeeks) { it.courseId in courseIds }
-            val slots = keep(payload.timeSlots) { it.timeTableId in timeTableIds }
-            val specials = keep(payload.specialBlocks) { it.timeTableId in timeTableIds }
-            val rules = keep(payload.comboRules) { it.comboId in comboIds && it.targetTimeTableId in timeTableIds }
-            val bindings =
-                keep(payload.bindings) { row ->
-                    row.courseTableId in tableIds &&
-                        if (row.targetType == CourseTimeBinding.TARGET_COMBO) {
-                            row.targetId in comboIds
-                        } else {
-                            row.targetId in timeTableIds
-                        }
-                }
-            // 基准作息被删掉的组合回落到课表专属作息，不留悬空引用
-            val fixedCombos =
-                combos.map { combo ->
-                    if (combo.baseTimeTableId != null && combo.baseTimeTableId !in timeTableIds) {
-                        combo.copy(baseTimeTableId = null)
+            // 组合的基准作息丢了就回落到课表专属作息，规则指向不存在的作息就丢掉
+            val combos =
+                payload.combos.map { combo ->
+                    val entity = combo.toEntity()
+                    if (entity.baseTimeTableId == null || entity.baseTimeTableId in timeTableIds) {
+                        entity
                     } else {
-                        combo
+                        entity.copy(baseTimeTableId = null)
                     }
                 }
+            val rules =
+                payload.combos.flatMap { combo ->
+                    combo.rules.filter { it.targetTimeTableId in timeTableIds }.map { it.toEntity(combo.id) }
+                }
+            // 存不存在都不报错的绑定要自己筛，指向的目标不在备份里就跳过
+            val bindings =
+                payload.tables
+                    .mapNotNull { table -> table.binding?.toEntity(table.id) }
+                    .filter { binding ->
+                        if (binding.targetType == CourseTimeBinding.TARGET_COMBO) {
+                            binding.targetId in comboIds
+                        } else {
+                            binding.targetId in timeTableIds
+                        }
+                    }
+            val courses = payload.tables.flatMap { table -> table.courses.map { it.toEntity(table.id) } }
+            val weeks = payload.tables.flatMap { table -> table.courses.flatMap { it.toWeeks() } }
 
             db.withTransaction {
                 // 先按「引用方 → 被引用方」清空，再反向插入，外键约束立即生效
@@ -257,20 +266,20 @@ class BackupRepository(
                 dao.clearTables()
                 dao.clearTimeTables()
 
-                dao.insertTables(tables)
-                dao.insertConfigs(configs.map { it.toEntity() })
-                dao.insertCourses(courses.map { it.toEntity() })
-                dao.insertWeeks(weeks.map { it.toEntity() })
-                dao.insertTimeTables(timeTables)
-                dao.insertSlots(slots.map { it.toEntity() })
-                dao.insertSpecials(specials.map { it.toEntity() })
-                dao.insertCombos(fixedCombos)
-                dao.insertComboRules(rules.map { it.toEntity() })
-                dao.insertBindings(bindings.map { it.toEntity() })
+                dao.insertTables(payload.tables.map { it.toEntity() })
+                dao.insertConfigs(payload.tables.map { it.toConfig() })
+                dao.insertCourses(courses)
+                dao.insertWeeks(weeks)
+                dao.insertTimeTables(payload.timeTables.map { it.toEntity() })
+                dao.insertSlots(payload.timeTables.flatMap { table -> table.slots.map { it.toEntity(table.id) } })
+                dao.insertSpecials(payload.timeTables.flatMap { table -> table.specials.map { it.toEntity(table.id) } })
+                dao.insertCombos(combos)
+                dao.insertComboRules(rules)
+                dao.insertBindings(bindings)
             }
 
             restorePrefs(payload.prefs, tableIds)
-            RestoreResult(tableCount = tables.size, courseCount = courses.size, droppedRows = dropped)
+            RestoreResult(tableCount = payload.tableCount, courseCount = payload.courseCount)
         }
 
     // 设置项

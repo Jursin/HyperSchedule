@@ -385,7 +385,7 @@ fun EduImportPage(
             config = repoStore.state,
             onApply = { config ->
                 // 留空的自定义仓库不生效，提示一下免得以为没保存
-                if (config.repo == EduRepo.CUSTOM && config.customUrl.isBlank()) {
+                if (config.repo == EduRepo.Custom && config.customUrl.isBlank()) {
                     context.toast("未填写仓库地址，已保留上次设置")
                 }
                 if (repoStore.update { config }) sync(notify = true)

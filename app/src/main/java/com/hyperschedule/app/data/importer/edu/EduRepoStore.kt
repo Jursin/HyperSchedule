@@ -14,14 +14,14 @@ enum class EduRepo(
     val label: String,
     val url: String,
 ) {
-    GITHUB("GitHub 仓库", "https://github.com/XingHeYuZhuan/shiguang_warehouse"),
-    GITEE("Gitee 仓库", "https://gitee.com/XingHeYuZhuan-gh/shiguang_warehouse"),
-    CUSTOM("自定义仓库", ""),
+    GitHub("GitHub 仓库", "https://github.com/XingHeYuZhuan/shiguang_warehouse"),
+    Gitee("Gitee 仓库", "https://gitee.com/XingHeYuZhuan-gh/shiguang_warehouse"),
+    Custom("自定义仓库", ""),
 }
 
 data class EduRepoConfig(
     val autoSync: Boolean = true,
-    val repo: EduRepo = EduRepo.GITEE,
+    val repo: EduRepo = EduRepo.Gitee,
     val customUrl: String = "",
     val customBranch: String = "main",
 )
@@ -50,7 +50,7 @@ class EduRepoStore private constructor(
         val before = state
         val next = transform(before)
         // 自定义仓库没填地址时保持原设置
-        val resolved = if (next.repo == EduRepo.CUSTOM && normalizeUrl(next.customUrl).isEmpty()) before else next
+        val resolved = if (next.repo == EduRepo.Custom && normalizeUrl(next.customUrl).isEmpty()) before else next
         if (resolved == before) return false
         state = resolved
         preferences.edit {
@@ -87,18 +87,18 @@ class EduRepoStore private constructor(
 
     private fun repoUrl(): String =
         when (state.repo) {
-            EduRepo.CUSTOM -> normalizeUrl(state.customUrl)
+            EduRepo.Custom -> normalizeUrl(state.customUrl)
             else -> state.repo.url
         }
 
     private fun branch(): String =
-        if (state.repo == EduRepo.CUSTOM) state.customBranch.trim().ifBlank { "main" } else "main"
+        if (state.repo == EduRepo.Custom) state.customBranch.trim().ifBlank { "main" } else "main"
 
     private fun load(): EduRepoConfig {
         val repo =
             preferences.getString("repo", null)
                 ?.let { saved -> EduRepo.entries.firstOrNull { it.name == saved } }
-                ?: EduRepo.GITEE
+                ?: EduRepo.Gitee
         return EduRepoConfig(
             autoSync = preferences.getBoolean("autoSync", true),
             repo = repo,

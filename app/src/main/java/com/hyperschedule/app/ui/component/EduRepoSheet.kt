@@ -56,7 +56,7 @@ fun EduRepoSheet(
                 )
             }
 
-            if (draft.repo == EduRepo.CUSTOM) {
+            if (draft.repo == EduRepo.Custom) {
                 PreferenceItemSection {
                     TextField(
                         value = draft.customUrl,

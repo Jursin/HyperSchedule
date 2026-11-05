@@ -457,8 +457,7 @@ fun BackupPage(
             }
             result.fold(
                 onSuccess = { result ->
-                    val skipped = if (result.droppedRows > 0) "，忽略 ${result.droppedRows} 条无法关联的记录" else ""
-                    context.toast("已恢复 ${result.tableCount} 张课表、${result.courseCount} 门课程$skipped")
+                    context.toast("已恢复 ${result.tableCount} 张课表、${result.courseCount} 门课程")
                 },
                 onFailure = { context.toast("恢复失败：${it.message ?: "数据未改动"}") },
             )
