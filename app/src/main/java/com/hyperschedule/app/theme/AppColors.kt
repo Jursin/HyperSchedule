@@ -42,3 +42,17 @@ fun sheetCardColor(): Color =
 
 @Composable
 fun pageWindowColor(): Color = panelColor(MiuixTheme.colorScheme.surface)
+
+/** 警告黄色 */
+private val WarningContentLight = Color(0xFF8A6100)
+private val WarningContentDark = Color(0xFFFFD27A)
+private val WarningContainerLight = Color(0xFFFFF3D6)
+private val WarningContainerDark = Color(0xFF3A2F13)
+
+/** 警告文字色 */
+@Composable
+fun warningColor(): Color = if (isDarkTheme()) WarningContentDark else WarningContentLight
+
+/** 警告底色 */
+@Composable
+fun warningContainerColor(): Color = if (isDarkTheme()) WarningContainerDark else WarningContainerLight

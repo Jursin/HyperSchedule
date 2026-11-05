@@ -9,6 +9,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.theme.warningColor
+import com.hyperschedule.app.theme.warningContainerColor
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Text
@@ -38,11 +40,6 @@ private val InfoBackgroundDark = Color(0xFF2A2A2A)
 private val InfoContentLight = Color(0xFF4D4D4D)
 private val InfoContentDark = Color(0xFFCFCFCF)
 
-private val WarningBackgroundLight = Color(0xFFFFF3D6)
-private val WarningBackgroundDark = Color(0xFF3A2F13)
-private val WarningContentLight = Color(0xFF8A6100)
-private val WarningContentDark = Color(0xFFFFD27A)
-
 private val CautionBackgroundLight = Color(0xFFFFE7E5)
 private val CautionBackgroundDark = Color(0xFF3D1F1D)
 private val CautionContentLight = Color(0xFFB3261E)
@@ -61,14 +58,14 @@ fun InfoCard(
             InfoCardType.Info -> if (dark) InfoBackgroundDark else InfoBackgroundLight
             // 主题色只铺一层淡底
             InfoCardType.Important -> MiuixTheme.colorScheme.primaryContainer.copy(alpha = IMPORTANT_TINT_ALPHA)
-            InfoCardType.Warning -> if (dark) WarningBackgroundDark else WarningBackgroundLight
+            InfoCardType.Warning -> warningContainerColor()
             InfoCardType.Caution -> if (dark) CautionBackgroundDark else CautionBackgroundLight
         }
     val contentColor =
         when (type) {
             InfoCardType.Info -> if (dark) InfoContentDark else InfoContentLight
             InfoCardType.Important -> MiuixTheme.colorScheme.primary
-            InfoCardType.Warning -> if (dark) WarningContentDark else WarningContentLight
+            InfoCardType.Warning -> warningColor()
             InfoCardType.Caution -> if (dark) CautionContentDark else CautionContentLight
         }
     Card(

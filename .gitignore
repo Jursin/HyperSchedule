@@ -18,6 +18,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+app/src/main/assets/CHANGELOG.md
 *.keystore
 *.jks
 

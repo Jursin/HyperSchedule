@@ -238,7 +238,8 @@ fun MainScaffold(
     initialPage: Int = 0,
     settingsPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     themePage: @Composable (onBack: () -> Unit) -> Unit = {},
-    updatePage: @Composable (onBack: () -> Unit) -> Unit = {},
+    updatePage: @Composable (onOpenLog: () -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
+    updateLogPage: @Composable (onBack: () -> Unit) -> Unit = {},
     aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
     courseDetailPage: @Composable (name: String, week: Int, onBack: () -> Unit) -> Unit = { _, _, _ -> },
     courseManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
@@ -522,7 +523,12 @@ fun MainScaffold(
                 }
                 entry<Page.Update> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        updatePage(onBack)
+                        updatePage({ navigate(Page.UpdateLog) }, onBack)
+                    }
+                }
+                entry<Page.UpdateLog> {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        updateLogPage(onBack)
                     }
                 }
                 entry<Page.About> {

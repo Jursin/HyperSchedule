@@ -13,6 +13,9 @@ sealed class Page : NavKey {
 
     @Serializable data object Update : Page()
 
+    /** 全部更新日志 */
+    @Serializable data object UpdateLog : Page()
+
     @Serializable data object About : Page()
 
     @Serializable data object License : Page()

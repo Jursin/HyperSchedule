@@ -21,7 +21,10 @@ import kotlinx.coroutines.withContext
 sealed interface UpdateDialogState {
     data object None : UpdateDialogState
 
-    data class Available(val version: String) : UpdateDialogState
+    data class Available(
+        val version: String,
+        val notes: List<ChangelogEntry>,
+    ) : UpdateDialogState
 
     data class Downloading(val progress: Float) : UpdateDialogState
 
@@ -81,11 +84,12 @@ class UpdateController private constructor(private val context: Context) {
         if (!silent) toast("正在检查更新")
         scope.launch {
             try {
+                val currentVersion = getAppVersion(context)
                 val release =
                     withContext(Dispatchers.IO) {
-                        AppUpdate.fetchRelease(source, acceptPrerelease, proxy)
+                        AppUpdate.fetchRelease(source, acceptPrerelease, proxy, currentVersion)
                     }
-                if (AppUpdate.compareVersions(release.version, getAppVersion(context)) <= 0) {
+                if (AppUpdate.compareVersions(release.version, currentVersion) <= 0) {
                     if (!silent) toast("已是最新版")
                     return@launch
                 }
@@ -96,11 +100,11 @@ class UpdateController private constructor(private val context: Context) {
                 }
                 pending = asset
                 pendingVersion = release.version
-                dialog = UpdateDialogState.Available(release.version)
+                dialog = UpdateDialogState.Available(release.version, release.notes)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: Exception) {
-                if (!silent) toast("检查更新失败")
+            } catch (e: Exception) {
+                if (!silent) toast("检查更新失败：${e.message ?: "网络错误"}")
             } finally {
                 checking = false
             }

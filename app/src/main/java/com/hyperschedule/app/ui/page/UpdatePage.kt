@@ -3,6 +3,9 @@ package com.hyperschedule.app.ui.page
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +13,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.getAppVersion
@@ -17,12 +21,14 @@ import com.hyperschedule.app.getAppVersionCode
 import com.hyperschedule.app.theme.SettingsStore
 import com.hyperschedule.app.theme.useLargeScreenWindow
 import com.hyperschedule.app.ui.component.ConfirmDialog
+import com.hyperschedule.app.ui.component.MarkdownText
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import com.hyperschedule.app.ui.effect.WindowBlurEffect
+import com.hyperschedule.app.update.ChangelogEntry
 import com.hyperschedule.app.update.UpdateController
 import com.hyperschedule.app.update.UpdateDialogState
 import com.hyperschedule.app.update.UpdateSource
@@ -30,10 +36,16 @@ import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
-fun UpdatePage(store: SettingsStore, controller: UpdateController, onBack: () -> Unit) {
+fun UpdatePage(
+    store: SettingsStore,
+    controller: UpdateController,
+    onOpenLog: () -> Unit,
+    onBack: () -> Unit,
+) {
     val state = store.state
     val context = LocalContext.current
     var showProxyDialog by remember { mutableStateOf(false) }
@@ -48,6 +60,10 @@ fun UpdatePage(store: SettingsStore, controller: UpdateController, onBack: () ->
                     store.update { it.copy(lastUpdateCheck = LocalDate.now().toString()) }
                     controller.checkForUpdate(state.updateSource, state.acceptPrerelease, state.githubProxyUrl)
                 },
+            )
+            ArrowPreference(
+                title = "更新日志",
+                onClick = onOpenLog,
             )
             OverlayDropdownPreference(
                 title = "更新源",
@@ -105,13 +121,15 @@ fun UpdateDialogs(controller: UpdateController, appBlur: Boolean) {
     when (val dialog = controller.dialog) {
         is UpdateDialogState.Available ->
             ConfirmDialog(
-                title = "检查到新版本",
-                message = "确定更新到最新版本 v${dialog.version} 吗？",
+                title = "检测到新版本",
+                summary = "v${dialog.version}",
                 appBlur = appBlur,
                 confirmText = "更新",
                 onConfirm = controller::startUpdate,
                 onDismiss = controller::dismissDialog,
-            )
+            ) {
+                ReleaseNotesView(notes = dialog.notes)
+            }
 
         is UpdateDialogState.Downloading ->
             ConfirmDialog(
@@ -164,5 +182,29 @@ private fun StatusDialog(title: String, text: String, appBlur: Boolean) {
             WindowBlurEffect(useBlur = appBlur)
             Text(text = text)
         },
+    )
+}
+
+/** 更新日志 */
+@Composable
+private fun ReleaseNotesView(notes: List<ChangelogEntry>) {
+    val maxHeight = (LocalWindowInfo.current.containerDpSize.height * 0.45f).coerceAtLeast(180.dp)
+    if (notes.isEmpty()) {
+        Text(
+            text = "该版本未提供更新日志",
+            style = MiuixTheme.textStyles.body2,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        return
+    }
+    val markdown =
+        remember(notes) {
+            notes.joinToString("\n\n") { note ->
+                if (notes.size > 1) "## v${note.version}\n\n${note.body}" else note.body
+            }
+        }
+    MarkdownText(
+        markdown = markdown,
+        modifier = Modifier.heightIn(max = maxHeight).verticalScroll(rememberScrollState()),
     )
 }

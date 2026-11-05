@@ -1,6 +1,7 @@
 package com.hyperschedule.app.update
 
 import com.hyperschedule.app.data.remote.httpGet
+import com.hyperschedule.app.data.remote.proxiedUrl
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -15,11 +16,19 @@ data class ReleaseAsset(
     val sha256: String?,
 )
 
-data class ReleaseInfo(val version: String, val assets: List<ReleaseAsset>)
+data class ReleaseInfo(
+    val version: String,
+    val assets: List<ReleaseAsset>,
+    val notes: List<ChangelogEntry>,
+)
 
 object AppUpdate {
-    /** 拉取最新发布，[acceptPrerelease] 为假时过滤掉测试版，未发版时按检查失败上报 */
-    fun fetchRelease(source: UpdateSource, acceptPrerelease: Boolean, proxy: String): ReleaseInfo {
+    fun fetchRelease(
+        source: UpdateSource,
+        acceptPrerelease: Boolean,
+        proxy: String,
+        currentVersion: String,
+    ): ReleaseInfo {
         // 统一拉列表再本地挑选，只按版本号取出最大的一条
         val body =
             httpGet(
@@ -27,15 +36,22 @@ object AppUpdate {
                 accept = "application/vnd.github+json",
             )
         val array = JSONArray(body.trimStart())
-        val node =
+        val releases =
             (0 until array.length())
                 .mapNotNull { array.optJSONObject(it) }
                 .filter { acceptPrerelease || !isPrerelease(it) }
                 // 没有 tag_name 的发布无法比较版本，直接排除
                 .filter { versionOf(it).isNotBlank() }
-                .maxWithOrNull { left, right -> compareVersions(versionOf(left), versionOf(right)) }
+        val latest =
+            releases.maxWithOrNull { left, right -> compareVersions(versionOf(left), versionOf(right)) }
                 ?: error("未获取到发布版本")
-        return ReleaseInfo(versionOf(node), parseAssets(node, proxy))
+        val notes =
+            releases
+                .filter { compareVersions(versionOf(it), currentVersion) > 0 }
+                .sortedWith { left, right -> compareVersions(versionOf(right), versionOf(left)) }
+                .map { ChangelogEntry(versionOf(it), it.optString("body").trim()) }
+                .filter { it.body.isNotEmpty() }
+        return ReleaseInfo(versionOf(latest), parseAssets(latest, proxy), notes)
     }
 
     private fun versionOf(node: JSONObject): String = node.optString("tag_name").removePrefix("v").trim()
@@ -84,17 +100,16 @@ object AppUpdate {
         return left.size - right.size
     }
 
-    /** 加速地址只作用于下载链接 */
+    /** 加速地址只作用于资源地址 */
     private fun parseAssets(node: JSONObject, proxy: String): List<ReleaseAsset> {
         val array = node.optJSONArray("assets") ?: return emptyList()
-        val prefix = proxy.trim().trimEnd('/')
         return (0 until array.length()).mapNotNull { index ->
             val item = array.optJSONObject(index) ?: return@mapNotNull null
             val url = item.optString("browser_download_url")
             if (url.isBlank()) return@mapNotNull null
             ReleaseAsset(
                 name = item.optString("name"),
-                url = if (prefix.isEmpty()) url else "$prefix/$url",
+                url = proxiedUrl(url, proxy),
                 size = item.optLong("size"),
                 sha256 = item.optString("digest").removePrefix("sha256:").ifBlank { null },
             )

@@ -46,6 +46,7 @@ import com.hyperschedule.app.ui.page.TimeTableEditPage
 import com.hyperschedule.app.ui.page.TimeTableManagePage
 import com.hyperschedule.app.ui.page.TodayPage
 import com.hyperschedule.app.ui.page.UpdateDialogs
+import com.hyperschedule.app.ui.page.UpdateLogPage
 import com.hyperschedule.app.ui.page.UpdatePage
 import com.hyperschedule.app.ui.rememberCourseTableData
 import com.hyperschedule.app.ui.rememberCoursesWithWeeks
@@ -141,7 +142,12 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                     themePage = { onBack -> ThemePage(settingsStore, onBack) },
-                    updatePage = { onBack -> UpdatePage(settingsStore, updateController, onBack) },
+                    updatePage = { onOpenLog, onBack ->
+                        UpdatePage(settingsStore, updateController, onOpenLog, onBack)
+                    },
+                    updateLogPage = { onBack ->
+                        UpdateLogPage(appBlur = settings.blur, onBack = onBack)
+                    },
                     aboutPage = { onBack, onLicenseClick -> AboutPage(onBack, onLicenseClick, appBlur = settings.blur) },
                     courseDetailPage = { name, week, onBack ->
                         CourseWeeksPage(

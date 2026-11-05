@@ -46,6 +46,12 @@ internal fun httpGet(url: String, accept: String? = null): String =
 internal fun httpGetBytes(url: String): ByteArray =
     httpGetResult(url, accept = null) { it.readCapped() }
 
+/** 加速地址拼到远端资源前面，没设置时原样返回 */
+internal fun proxiedUrl(url: String, proxy: String): String {
+    val prefix = proxy.trim().trimEnd('/')
+    return if (prefix.isEmpty()) url else "$prefix/$url"
+}
+
 /** gitee raw 偶发返回反盗链签名页，跟随签名链接再取一次 */
 internal fun httpGetGiteeRaw(url: String): ByteArray {
     val bytes = httpGetBytes(url)

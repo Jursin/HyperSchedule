@@ -27,6 +27,18 @@ val localProps = Properties().apply {
     if (file.exists()) file.inputStream().use { load(it) }
 }
 
+val copyChangelog = tasks.register<Copy>("copyChangelog") {
+    description = "复制 /CHANGELOG.md 到 assets"
+    from(rootProject.file("CHANGELOG.md"))
+    into(layout.projectDirectory.dir("src/main/assets"))
+}
+
+tasks.matching {
+    (it.name.startsWith("merge") && it.name.endsWith("Assets")) || it.name.contains("lint", ignoreCase = true)
+}.configureEach {
+    dependsOn(copyChangelog)
+}
+
 android {
     namespace = "com.hyperschedule.app"
     compileSdk = 37
