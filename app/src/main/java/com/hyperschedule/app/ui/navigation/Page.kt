@@ -73,4 +73,7 @@ sealed class Page : NavKey {
 
     /** 编辑组合作息，[comboId] 为空表示新建 */
     @Serializable data class ComboEdit(val comboId: String = "") : Page()
+
+    /** 壁纸裁剪，[uri] 是刚选中的原图，存盘后回到来源页 */
+    @Serializable data class WallpaperCrop(val uri: String) : Page()
 }

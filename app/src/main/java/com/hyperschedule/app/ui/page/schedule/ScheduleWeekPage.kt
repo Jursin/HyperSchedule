@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -37,6 +37,7 @@ import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.DayGridColumn
 import com.hyperschedule.app.ui.component.ScheduleGridLines
 import com.hyperschedule.app.ui.component.ScheduleLayout
+import com.hyperschedule.app.ui.component.SectionPill
 import com.hyperschedule.app.ui.component.SectionTimesColumn
 import com.hyperschedule.app.ui.component.SpecialBlockBands
 import com.hyperschedule.app.ui.component.StretchOverscrollState
@@ -46,12 +47,11 @@ import com.hyperschedule.app.ui.component.WeekCourse
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.resolveWeekCourses
 import com.hyperschedule.app.ui.component.stretchOverscroll
-import com.hyperschedule.app.ui.effect.captureForBlur
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.navigation.NavBarMetrics
 import java.time.LocalDate
 import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -59,7 +59,6 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 @Composable
 internal fun ScheduleWeekPage(
     page: Int,
-    pagerState: PagerState,
     layout: ScheduleLayout,
     sectionTimes: List<Pair<String, String>>,
     style: ScheduleStyle,
@@ -70,7 +69,6 @@ internal fun ScheduleWeekPage(
     holidayPlan: HolidayPlan,
     allCourses: List<CourseWithWeeks>,
     showNonCurrentWeek: Boolean,
-    blurBackdrop: LayerBackdrop?,
     topPadding: Dp,
     // 纵向滚动与拉伸全周共用一份
     pageScroll: ScrollState,
@@ -84,6 +82,8 @@ internal fun ScheduleWeekPage(
     onAddCourse: (Int, Int, Int) -> Unit,
 ) {
     val week = page - EdgePages + 1
+    // 有壁纸时底部统计文字也带胶囊底
+    val hasWallpaper = wallpaperVisible()
     val draggingSlot = editor.draggingSlot
     // 已经有一指在拖
     val dragInProgress = editor.drag?.released == false
@@ -121,8 +121,6 @@ internal fun ScheduleWeekPage(
         modifier =
             Modifier
                 .fillMaxSize()
-                // 只让当前页往 backdrop 里录
-                .captureForBlur(blurBackdrop.takeIf { page == pagerState.currentPage })
                 .scrollEndHaptic()
                 // 顶端下拉用原地拉伸
                 .nestedScroll(stretch.connection)
@@ -230,13 +228,20 @@ internal fun ScheduleWeekPage(
         // 学期外的空白周不显示统计
         if (inSemester) {
             Spacer(modifier = Modifier.height(SectionSpacing))
-            Text(
-                text = "本周共${weekCourseCount}节课".cjkDigitGap(),
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            val countText = "本周共${weekCourseCount}节课".cjkDigitGap()
+            if (hasWallpaper) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                    SectionPill(text = countText, style = MiuixTheme.textStyles.footnote1)
+                }
+            } else {
+                Text(
+                    text = countText,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
         }
         val bottomInset =
             if (inSemester && LocalWindowInfo.current.containerDpSize.width < WideLayoutMinWidth) {

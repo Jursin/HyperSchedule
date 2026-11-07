@@ -68,7 +68,7 @@ import kotlin.math.abs
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Months
 import top.yukonga.miuix.kmp.icon.extended.Settings
@@ -117,7 +117,7 @@ internal fun RowScope.NavBarTab(
 internal fun BottomNavBar(
     initialPage: Int,
     targetPage: State<Int>,
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: Backdrop?,
     onSelect: (Int) -> Unit,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
@@ -163,7 +163,7 @@ internal fun BottomNavBar(
 private fun TabsPill(
     initialPage: Int,
     targetPage: State<Int>,
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: Backdrop?,
     colors: NavBarPalette,
     labelTextStyle: TextStyle,
     onSelect: (Int) -> Unit,
@@ -321,7 +321,7 @@ private fun TabsPill(
 @Composable
 private fun SettingsButton(
     colors: NavBarPalette,
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: Backdrop?,
     onClick: () -> Unit,
 ) {
     val interactions = remember { MutableInteractionSource() }
@@ -372,7 +372,7 @@ private fun SettingsButton(
 @Composable
 private fun Modifier.navBarSurface(
     shape: Shape,
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: Backdrop?,
     colors: NavBarPalette,
     lift: Float,
 ): Modifier =
@@ -391,7 +391,6 @@ private fun Modifier.navBarSurface(
                 Modifier.navBarBlur(
                     backdrop = blurBackdrop,
                     shape = shape,
-                    blurRadius = NavBarMetrics.BAR_BLUR_RADIUS,
                     blendColor = colors.blurTint,
                 )
             } else {
@@ -469,7 +468,6 @@ internal object NavBarMetrics {
     val barShadowRadius: Dp = 10.dp
     val liftShadowDelta: Dp = 8.dp // 拖动中额外抬升
     const val LIFT_SHADOW_ALPHA = 0.8f // 抬升时投影浓度放大系数
-    const val BAR_BLUR_RADIUS = 20f // 模糊半径（dp），全分辨率高斯
 }
 
 internal object NavBarColors {

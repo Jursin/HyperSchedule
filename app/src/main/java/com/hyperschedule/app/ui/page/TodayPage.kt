@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.page
 
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -48,7 +49,9 @@ import com.hyperschedule.app.ui.component.TodayCourseList
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.effect.captureForBlur
+import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
@@ -76,10 +79,18 @@ fun TodayPage(
     reminder: ReminderSettings = ReminderSettings.Default,
     holidayRepository: HolidayRepository? = null,
     appBlur: Boolean = false,
+    wallpaper: String = "",
+    wallpaperBlur: Int = 0,
+    onWallpaperPick: (Uri) -> Unit = {},
+    onWallpaperClear: () -> Unit = {},
+    onWallpaperBlurChange: (Int) -> Unit = {},
+    onWallpaperBlurCommit: () -> Unit = {},
     onCourseClick: (name: String, week: Int) -> Unit = { _, _ -> },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
+    val hasWallpaper = wallpaperVisible()
+    // 顶栏不铺底色时不用再录采样层
+    val blurBackdrop = rememberAppBlurBackdrop(appBlur && !hasWallpaper)
     val scope = rememberCoroutineScope()
     val dateState = rememberDatePagerState()
 
@@ -133,6 +144,8 @@ fun TodayPage(
     )
 
     Scaffold(
+        // 壁纸铺在页面外的最底层，有壁纸时底色必须透明
+        containerColor = pageContainerColor(),
         topBar = {
             BlurredTopAppBar(
                 title = "今日课表",
@@ -192,7 +205,7 @@ fun TodayPage(
 
             Box(modifier = Modifier.fillMaxSize()) {
                 PageScrollColumn(
-                    // 采集点放在外层 pager 上，每页不再各自录制
+                    // 采集点在外层，每页不再各自录制
                     blurBackdrop = null,
                     scrollBehavior = scrollBehavior,
                     // 顶栏（含日期行）高度作为滚动内容的内边距，内容才能滚到它下方，顶栏有东西可模糊
@@ -259,6 +272,12 @@ fun TodayPage(
                 onStyleChange = onStyleChange,
                 onDismiss = { appearanceVisible = false },
                 onDismissFinished = { appearanceMounted = false },
+                wallpaper = wallpaper,
+                wallpaperBlur = wallpaperBlur,
+                onWallpaperPick = onWallpaperPick,
+                onWallpaperClear = onWallpaperClear,
+                onWallpaperBlurChange = onWallpaperBlurChange,
+                onWallpaperBlurCommit = onWallpaperBlurCommit,
             )
         }
     }

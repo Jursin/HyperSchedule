@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.page
 
+import android.net.Uri
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -50,7 +51,10 @@ import com.hyperschedule.app.ui.component.ScheduleLayout
 import com.hyperschedule.app.ui.component.buildTimelineAxis
 import com.hyperschedule.app.ui.component.isSameSlotAs
 import com.hyperschedule.app.ui.component.rememberStretchOverscrollState
+import com.hyperschedule.app.ui.effect.captureForBlur
+import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.navigation.LocalLastTapDown
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
@@ -88,6 +92,12 @@ fun SchedulePage(
     onStyleCommit: () -> Unit = {},
     holidayRepository: HolidayRepository? = null,
     appBlur: Boolean = false,
+    wallpaper: String = "",
+    wallpaperBlur: Int = 0,
+    onWallpaperPick: (Uri) -> Unit = {},
+    onWallpaperClear: () -> Unit = {},
+    onWallpaperBlurChange: (Int) -> Unit = {},
+    onWallpaperBlurCommit: () -> Unit = {},
     onEditCourse: (Course) -> Unit = {},
     onAddCourse: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
     onManageCourses: () -> Unit = {},
@@ -96,7 +106,9 @@ fun SchedulePage(
     onSaveCourses: (deletedIds: List<String>, rows: List<Pair<Course, List<Int>>>) -> Unit = { _, _ -> },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
+    val hasWallpaper = wallpaperVisible()
+    // 顶栏不铺底色时不用再录采样层
+    val blurBackdrop = rememberAppBlurBackdrop(appBlur && !hasWallpaper)
     val scope = rememberCoroutineScope()
 
     // 每分钟走一格
@@ -256,6 +268,8 @@ fun SchedulePage(
 
     // 采集放在周 pager 之外
     Scaffold(
+        // 壁纸铺在页面外的最底层，有壁纸时底色必须透明
+        containerColor = pageContainerColor(),
         topBar = {
             ScheduleTopBar(
                 startDate = startDate,
@@ -296,7 +310,9 @@ fun SchedulePage(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .onGloballyPositioned { coords -> dragLayerBounds = coords.boundsInRoot() },
+                    .onGloballyPositioned { coords -> dragLayerBounds = coords.boundsInRoot() }
+                    // 采集点从周页提到这里，顶栏的模糊才带得上页面内容
+                    .captureForBlur(blurBackdrop),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -326,7 +342,12 @@ fun SchedulePage(
                             validWeeks = { 1..totalWeeks },
                             origin = { pagerOrigin },
                             onMove = { centerX ->
-                                edgePager.update(centerX, dragLayerBounds, pageOfWeek(1)..pageOfWeek(totalWeeks), pagerState)
+                                edgePager.update(
+                                    centerX,
+                                    dragLayerBounds,
+                                    pageOfWeek(1)..pageOfWeek(totalWeeks),
+                                    pagerState,
+                                )
                             },
                             onEnd = { edgePager.stop() },
                         ),
@@ -337,7 +358,6 @@ fun SchedulePage(
             ) { page ->
                 ScheduleWeekPage(
                     page = page,
-                    pagerState = pagerState,
                     layout = layout,
                     sectionTimes = sectionTimes,
                     style = style,
@@ -348,7 +368,6 @@ fun SchedulePage(
                     holidayPlan = holidayPlan,
                     allCourses = allCourses,
                     showNonCurrentWeek = showNonCurrentWeek,
-                    blurBackdrop = blurBackdrop,
                     topPadding = paddingValues.calculateTopPadding(),
                     pageScroll = pageScroll,
                     stretch = stretch,
@@ -421,6 +440,12 @@ fun SchedulePage(
                     onStyleCommit = onStyleCommit,
                     onDismiss = { appearanceVisible = false },
                     onDismissFinished = { appearanceMounted = false },
+                    wallpaper = wallpaper,
+                    wallpaperBlur = wallpaperBlur,
+                    onWallpaperPick = onWallpaperPick,
+                    onWallpaperClear = onWallpaperClear,
+                    onWallpaperBlurChange = onWallpaperBlurChange,
+                    onWallpaperBlurCommit = onWallpaperBlurCommit,
                 )
             }
             if (detailItems.isNotEmpty()) {

@@ -61,7 +61,7 @@ import com.hyperschedule.app.ui.effect.navBarBlur
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -69,7 +69,7 @@ fun BackToNowButton(
     visible: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    blurBackdrop: LayerBackdrop? = null,
+    blurBackdrop: Backdrop? = null,
 ) {
     AnimatedVisibility(
         visible = visible,
@@ -86,7 +86,7 @@ fun BackToNowButton(
 }
 
 @Composable
-private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop?) {
+private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
     val isDark = isDarkTheme()
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
@@ -169,7 +169,6 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: LayerBackdrop
                     .navBarBlur(
                         backdrop = blurBackdrop,
                         shape = RoundedCornerShape(BackToNowCornerRadius),
-                        blurRadius = BackToNowBlurRadius,
                         blendColor = fillColor,
                     )
                     .pointerInput(buttonSize) {
@@ -253,8 +252,6 @@ private val BackToNowGlowDy = 8.dp
 
 /** 光晕外溢区 = 40dp 模糊空间 + 8dp 下移 */
 private val BackToNowGlowPad = 48.dp
-
-private const val BackToNowBlurRadius = 3f
 
 /** 光晕模糊半径（半分辨率位图，换算成全尺寸 σ） */
 private const val BackToNowGlowBlurPx = 40f

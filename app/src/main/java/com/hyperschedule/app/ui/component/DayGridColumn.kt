@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -13,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,7 +23,9 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
@@ -32,6 +36,8 @@ import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.theme.CourseTintAlpha
 import com.hyperschedule.app.theme.ScheduleStyle
+import com.hyperschedule.app.ui.effect.cardSurface
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
@@ -226,13 +232,29 @@ internal fun DayGridColumn(
                             onClick = { onPendingTap?.invoke(pendingSection) },
                         ),
             ) {
+                val pendingShape = RoundedCornerShape(style.cardCorner.dp)
+                // 有壁纸时「+」也铺一层 Card 同浓度的底，课程色压在最上面当色调
+                val hasWallpaper = wallpaperVisible()
                 Card(
-                    modifier = Modifier.fillMaxSize().padding(style.cardMargin.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(style.cardMargin.dp)
+                            .then(
+                                if (hasWallpaper) {
+                                    Modifier
+                                        .clip(pendingShape)
+                                        .cardSurface(pendingShape)
+                                        .background(pendingColor)
+                                } else {
+                                    Modifier
+                                },
+                            ),
                     cornerRadius = style.cardCorner.dp,
                     insideMargin = PaddingValues(0.dp),
                     colors =
                         CardDefaults.defaultColors(
-                            color = pendingColor,
+                            color = if (hasWallpaper) Color.Transparent else pendingColor,
                             contentColor = pendingContent,
                         ),
                     pressFeedbackType = PressFeedbackType.Sink,

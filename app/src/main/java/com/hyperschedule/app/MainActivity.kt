@@ -1,5 +1,6 @@
 package com.hyperschedule.app
 
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -13,6 +14,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.hyperschedule.app.data.WallpaperStore
 import com.hyperschedule.app.data.backup.BackupAuto
 import com.hyperschedule.app.data.backup.BackupRepository
 import com.hyperschedule.app.data.db.AppDatabase
@@ -48,6 +50,7 @@ import com.hyperschedule.app.ui.page.TodayPage
 import com.hyperschedule.app.ui.page.UpdateDialogs
 import com.hyperschedule.app.ui.page.UpdateLogPage
 import com.hyperschedule.app.ui.page.UpdatePage
+import com.hyperschedule.app.ui.page.WallpaperCropPage
 import com.hyperschedule.app.ui.rememberCourseTableData
 import com.hyperschedule.app.ui.rememberCoursesWithWeeks
 import com.hyperschedule.app.ui.rememberScheduleOverview
@@ -122,6 +125,21 @@ class MainActivity : ComponentActivity() {
                     appBlur = settings.blur,
                     predictiveBackEnabled = settings.predictiveBack,
                     initialPage = settings.launchPage,
+                    wallpaper = settings.wallpaper,
+                    wallpaperBlur = settings.wallpaperBlur,
+                    // 裁剪页存好图后把设置指向新文件，这时才能删旧图
+                    onWallpaperSaved = { path ->
+                        settingsStore.update { it.copy(wallpaper = path) }
+                        WallpaperStore.prune(applicationContext, path)
+                    },
+                    wallpaperCropPage = { uri, onSaved, onBack ->
+                        WallpaperCropPage(
+                            uri = uri,
+                            appBlur = settings.blur,
+                            onSaved = onSaved,
+                            onBack = onBack,
+                        )
+                    },
                     settingsPage = { navigate, onBack ->
                         SettingsPage(
                             store = settingsStore,
@@ -322,6 +340,17 @@ class MainActivity : ComponentActivity() {
                         )
                     },
                 ) { page, navigate ->
+                    // 两个 tab 共用同一张壁纸，选图统一进裁剪页，拖动模糊强度只改内存
+                    val pickWallpaper: (Uri) -> Unit = { uri -> navigate(Page.WallpaperCrop(uri.toString())) }
+                    val clearWallpaper: () -> Unit = {
+                        settingsStore.update { it.copy(wallpaper = "") }
+                        WallpaperStore.clear(applicationContext)
+                    }
+                    val previewWallpaperBlur: (Int) -> Unit = { value ->
+                        settingsStore.preview { it.copy(wallpaperBlur = value) }
+                    }
+                    // 拖动只改内存，抬手才落盘
+                    val commitSettings: () -> Unit = { settingsStore.save() }
                     when (page) {
                         0 ->
                             TodayPage(
@@ -332,6 +361,12 @@ class MainActivity : ComponentActivity() {
                                 reminder = settings.reminder,
                                 holidayRepository = holidayRepository,
                                 appBlur = settings.blur,
+                                wallpaper = settings.wallpaper,
+                                wallpaperBlur = settings.wallpaperBlur,
+                                onWallpaperPick = pickWallpaper,
+                                onWallpaperClear = clearWallpaper,
+                                onWallpaperBlurChange = previewWallpaperBlur,
+                                onWallpaperBlurCommit = commitSettings,
                                 onCourseClick = { name, week -> navigate(Page.CourseDetail(name, week)) },
                             )
                         1 ->
@@ -341,9 +376,15 @@ class MainActivity : ComponentActivity() {
                                 showNonCurrentWeek = settings.showNonCurrentWeek,
                                 style = settings.style,
                                 onStyleChange = { newStyle -> settingsStore.preview { it.copy(style = newStyle) } },
-                                onStyleCommit = { settingsStore.save() },
+                                onStyleCommit = commitSettings,
                                 holidayRepository = holidayRepository,
                                 appBlur = settings.blur,
+                                wallpaper = settings.wallpaper,
+                                wallpaperBlur = settings.wallpaperBlur,
+                                onWallpaperPick = pickWallpaper,
+                                onWallpaperClear = clearWallpaper,
+                                onWallpaperBlurChange = previewWallpaperBlur,
+                                onWallpaperBlurCommit = commitSettings,
                                 onEditCourse = { course ->
                                     navigate(Page.CourseEdit(course.name, focusId = course.id))
                                 },

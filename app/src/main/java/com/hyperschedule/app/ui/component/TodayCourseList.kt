@@ -3,6 +3,7 @@ package com.hyperschedule.app.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,6 +18,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -28,6 +30,8 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.theme.TodayStyle
+import com.hyperschedule.app.ui.effect.cardSurface
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.rememberToday
 import java.time.Duration
 import java.time.LocalDate
@@ -91,10 +95,7 @@ fun TodayCourseList(
                     if (items.isEmpty()) return@forEach
                     SectionPill(title)
                     Spacer(modifier = Modifier.height(2.dp))
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        cornerRadius = CardCornerRadius,
-                    ) {
+                    TodayCourseCard {
                         Column {
                             items.forEach { item ->
                                 TodayCourseRow(
@@ -119,10 +120,7 @@ fun TodayCourseList(
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 groups.forEach { (_, items) ->
                     items.forEach { item ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            cornerRadius = CardCornerRadius,
-                        ) {
+                        TodayCourseCard {
                             TodayCourseRow(
                                 item,
                                 slotMap,
@@ -138,6 +136,20 @@ fun TodayCourseList(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun TodayCourseCard(content: @Composable () -> Unit) {
+    val shape = RoundedCornerShape(CardCornerRadius)
+    if (wallpaperVisible()) {
+        Box(modifier = Modifier.fillMaxWidth().cardSurface(shape)) {
+            content()
+        }
+    } else {
+        Card(modifier = Modifier.fillMaxWidth(), cornerRadius = CardCornerRadius) {
+            content()
         }
     }
 }
@@ -306,18 +318,26 @@ internal fun SectionPill(
     text: String,
     modifier: Modifier = Modifier,
     textAlign: TextAlign? = null,
+    style: TextStyle = MiuixTheme.textStyles.body1,
 ) {
-    val cardColor = CardDefaults.defaultColors().color
+    val shape = RoundedCornerShape(percent = 50)
+    val hasWallpaper = wallpaperVisible()
     Text(
         text = text,
-        style = MiuixTheme.textStyles.body1,
+        style = style,
         fontWeight = FontWeight.Medium,
         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         textAlign = textAlign,
         modifier =
             modifier
                 .padding(vertical = 6.dp)
-                .background(color = cardColor, shape = RoundedCornerShape(percent = 50))
+                .then(
+                    if (hasWallpaper) {
+                        Modifier.cardSurface(shape)
+                    } else {
+                        Modifier.background(color = CardDefaults.defaultColors().color, shape = shape)
+                    },
+                )
                 .padding(horizontal = 10.dp, vertical = 4.dp),
     )
 }

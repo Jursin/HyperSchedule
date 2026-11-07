@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.component
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import com.hyperschedule.app.theme.TodayStyle
 import com.hyperschedule.app.theme.sheetCardColor
@@ -13,6 +14,12 @@ fun TodayAppearanceSheet(
     onStyleChange: (TodayStyle) -> Unit,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
+    wallpaper: String = "",
+    wallpaperBlur: Int = 0,
+    onWallpaperPick: (Uri) -> Unit = {},
+    onWallpaperClear: () -> Unit = {},
+    onWallpaperBlurChange: (Int) -> Unit = {},
+    onWallpaperBlurCommit: () -> Unit = {},
 ) {
     SheetScaffold(
         title = "今日课表外观",
@@ -21,11 +28,19 @@ fun TodayAppearanceSheet(
         onDismissFinished = onDismissFinished,
     ) {
         SheetScrollColumn {
-            PreferenceSection(cardColor = sheetCardColor(), title = "列表") {
+            PreferenceSection(cardColor = sheetCardColor(), title = "视图") {
                 SwitchPreference(
                     checked = style.showPeriods,
                     onCheckedChange = { onStyleChange(style.copy(showPeriods = it)) },
                     title = "显示时段分隔",
+                )
+                WallpaperPreferences(
+                    wallpaper = wallpaper,
+                    blur = wallpaperBlur,
+                    onPick = onWallpaperPick,
+                    onClear = onWallpaperClear,
+                    onBlurChange = onWallpaperBlurChange,
+                    onBlurCommit = onWallpaperBlurCommit,
                 )
             }
 

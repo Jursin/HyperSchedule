@@ -63,9 +63,12 @@ import com.hyperschedule.app.ui.component.LocalTabPageIndex
 import com.hyperschedule.app.ui.component.LocalWindowDismissState
 import com.hyperschedule.app.ui.component.WidePageWindow
 import com.hyperschedule.app.ui.component.WindowDismissState
-import com.hyperschedule.app.ui.page.LicensePage
+import com.hyperschedule.app.ui.effect.LocalWallpaper
+import com.hyperschedule.app.ui.effect.WallpaperBackground
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.effect.rememberWallpaperState
+import com.hyperschedule.app.ui.page.LicensePage
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
@@ -236,6 +239,11 @@ fun MainScaffold(
     appBlur: Boolean,
     predictiveBackEnabled: Boolean,
     initialPage: Int = 0,
+    wallpaper: String = "",
+    wallpaperBlur: Int = 0,
+    onWallpaperSaved: (String) -> Unit = {},
+    wallpaperCropPage: @Composable (uri: String, onSaved: (String) -> Unit, onBack: () -> Unit) -> Unit =
+        { _, _, _ -> },
     settingsPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     themePage: @Composable (onBack: () -> Unit) -> Unit = {},
     updatePage: @Composable (onOpenLog: () -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
@@ -421,6 +429,16 @@ fun MainScaffold(
             ) {
                 entry<Page.Home> {
                     NavEntry(interceptPredictiveBack, onBack, windowed = false) {
+                        // 壁纸只铺一层，位置在 Tab pager 之外，切 Tab 时不会跟着滑
+                        val wallpaperState = rememberWallpaperState(wallpaper, appBlur)
+                        val hasWallpaper = wallpaperState.bitmap != null
+                        // 有壁纸时底栏直接采壁纸那一层
+                        val barBackdrop =
+                            if (hasWallpaper) {
+                                wallpaperState.backdrop.takeIf { wallpaperState.glassEnabled }
+                            } else {
+                                navBarBackdrop
+                            }
                         // 宽屏改用左侧栏
                         Box(modifier = Modifier.fillMaxSize()) {
                             val pageContent: @Composable (Int) -> Unit = { page ->
@@ -434,64 +452,77 @@ fun MainScaffold(
                                     content(page, navigate)
                                 }
                             }
-                            Row(modifier = Modifier.fillMaxSize()) {
-                                if (wide) {
-                                    SideNavBar(
-                                        selectedPage = mainPagerState.targetPage.value,
-                                        onSelect = { mainPagerState.animateToPage(it) },
-                                        onOpenSettings = { navigate(Page.Settings) },
-                                    )
-                                }
-                                Box(
-                                    modifier =
-                                        Modifier
-                                            .weight(1f)
-                                            .fillMaxHeight(),
-                                ) {
-                                    // 关闭用户滑动，切页只走导航，否则顶栏上的拖动会被外层 pager 抢走
-                                    val pagerModifier =
-                                        Modifier
-                                            .fillMaxSize()
-                                            .captureForBlur(navBarBackdrop)
-                                    // 宽屏上下切换，窄屏左右切换
+                            CompositionLocalProvider(
+                                LocalWallpaper provides wallpaperState,
+                            ) {
+                                // 壁纸铺满整屏，宽屏侧栏也压在它上面
+                                WallpaperBackground(
+                                    state = wallpaperState,
+                                    blurRadius = wallpaperBlur,
+                                )
+                                Row(modifier = Modifier.fillMaxSize()) {
                                     if (wide) {
-                                        VerticalPager(
-                                            state = pagerState,
-                                            userScrollEnabled = false,
-                                            beyondViewportPageCount = 1,
-                                            modifier = pagerModifier,
-                                        ) { page -> pageContent(page) }
-                                    } else {
-                                        HorizontalPager(
-                                            state = pagerState,
-                                            userScrollEnabled = false,
-                                            beyondViewportPageCount = 1,
-                                            modifier = pagerModifier,
-                                        ) { page -> pageContent(page) }
+                                        SideNavBar(
+                                            selectedPage = mainPagerState.targetPage.value,
+                                            onSelect = { mainPagerState.animateToPage(it) },
+                                            onOpenSettings = { navigate(Page.Settings) },
+                                        )
                                     }
-                                    // 「今」按钮与底栏同层，切页时先收起，避免「先展开再收起」的闪动
-                                    val backToNowSlot = backToNowHost.slotOf(mainPagerState.selectedPage)
-                                    BackToNowButton(
-                                        visible = !mainPagerState.isNavigating && backToNowSlot?.visible?.value == true,
-                                        onClick = { backToNowSlot?.onClick?.invoke() },
-                                        modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
-                                        blurBackdrop = navBarBackdrop,
-                                    )
-                                    if (!wide) {
+                                    Box(
+                                        modifier =
+                                            Modifier
+                                                .weight(1f)
+                                                .fillMaxHeight(),
+                                    ) {
                                         Box(
                                             modifier =
                                                 Modifier
-                                                    .align(Alignment.BottomCenter)
-                                                    .padding(bottom = NavBarMetrics.floatingBottomMargin),
+                                                    .fillMaxSize()
+                                                    // 没有壁纸时把页面录进底栏的采样层；有壁纸就直接采壁纸那层
+                                                    .captureForBlur(if (hasWallpaper) null else navBarBackdrop),
                                         ) {
-                                            BottomNavBar(
-                                                initialPage = firstPage,
-                                                targetPage = mainPagerState.targetPage,
-                                                blurBackdrop = navBarBackdrop,
-                                                onSelect = { mainPagerState.animateToPage(it) },
-                                                onOpenSettings = { navigate(Page.Settings) },
-                                                modifier = Modifier.fillMaxWidth(0.63f),
-                                            )
+                                            // 关闭用户滑动，切页只走导航，否则顶栏上的拖动会被外层 pager 抢走
+                                            // 宽屏上下切换，窄屏左右切换
+                                            if (wide) {
+                                                VerticalPager(
+                                                    state = pagerState,
+                                                    userScrollEnabled = false,
+                                                    beyondViewportPageCount = 1,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                ) { page -> pageContent(page) }
+                                            } else {
+                                                HorizontalPager(
+                                                    state = pagerState,
+                                                    userScrollEnabled = false,
+                                                    beyondViewportPageCount = 1,
+                                                    modifier = Modifier.fillMaxSize(),
+                                                ) { page -> pageContent(page) }
+                                            }
+                                        }
+                                        // 「今」按钮与底栏同层，切页时先收起，避免「先展开再收起」的闪动
+                                        val backToNowSlot = backToNowHost.slotOf(mainPagerState.selectedPage)
+                                        BackToNowButton(
+                                            visible = !mainPagerState.isNavigating && backToNowSlot?.visible?.value == true,
+                                            onClick = { backToNowSlot?.onClick?.invoke() },
+                                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 48.dp),
+                                            blurBackdrop = barBackdrop,
+                                        )
+                                        if (!wide) {
+                                            Box(
+                                                modifier =
+                                                    Modifier
+                                                        .align(Alignment.BottomCenter)
+                                                        .padding(bottom = NavBarMetrics.floatingBottomMargin),
+                                            ) {
+                                                BottomNavBar(
+                                                    initialPage = firstPage,
+                                                    targetPage = mainPagerState.targetPage,
+                                                    blurBackdrop = barBackdrop,
+                                                    onSelect = { mainPagerState.animateToPage(it) },
+                                                    onOpenSettings = { navigate(Page.Settings) },
+                                                    modifier = Modifier.fillMaxWidth(0.63f),
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -604,6 +635,19 @@ fun MainScaffold(
                 entry<Page.ComboEdit> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         comboEditPage(key.comboId, onBack)
+                    }
+                }
+                entry<Page.WallpaperCrop> { key ->
+                    // 裁剪框要按整屏比例算，这一页始终铺满，不套浮窗
+                    NavEntry(interceptPredictiveBack, onBack, windowed = false) {
+                        wallpaperCropPage(
+                            key.uri,
+                            { path ->
+                                onWallpaperSaved(path)
+                                onBack()
+                            },
+                            onBack,
+                        )
                     }
                 }
             }

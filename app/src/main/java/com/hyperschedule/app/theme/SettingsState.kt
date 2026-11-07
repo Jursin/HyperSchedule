@@ -77,11 +77,25 @@ private inline fun <reified T : Enum<T>> enumSetting(
     },
 )
 
+/** 壁纸模糊强度上限（dp），0 表示不模糊 */
+const val MAX_WALLPAPER_BLUR = 40
+
+/** 壁纸模糊强度的档位间隔 */
+const val WALLPAPER_BLUR_STEP = 4
+
 /** 全部设置项 */
 private val Prefs =
     listOf(
         enumSetting("themeMode", { it.themeMode }) { s, v -> s.copy(themeMode = v) },
         boolSetting("blur", { it.blur }) { s, v -> s.copy(blur = v) },
+        // 壁纸存在应用私有目录，路径与模糊强度都是本机状态
+        stringSetting("wallpaper", { it.wallpaper }, backedUp = false) { s, v -> s.copy(wallpaper = v.orEmpty()) },
+        intSetting(
+            key = "wallpaperBlur",
+            get = { it.wallpaperBlur },
+            coerce = { it.coerceIn(0, MAX_WALLPAPER_BLUR) },
+            backedUp = false,
+        ) { s, v -> s.copy(wallpaperBlur = v) },
         boolSetting("predictiveBack", { it.predictiveBack }) { s, v -> s.copy(predictiveBack = v) },
         boolSetting("customColor", { it.customColor }) { s, v -> s.copy(customColor = v) },
         boolSetting("dynamicColor", { it.dynamicColor }) { s, v -> s.copy(dynamicColor = v) },
@@ -348,6 +362,8 @@ class SettingsStore private constructor(context: Context) {
 data class SettingsState(
     val themeMode: ThemeMode = ThemeMode.System,
     val blur: Boolean = true,
+    val wallpaper: String = "",
+    val wallpaperBlur: Int = 0,
     val predictiveBack: Boolean = true,
     val customColor: Boolean = false,
     val dynamicColor: Boolean = true,

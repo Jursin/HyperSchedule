@@ -41,6 +41,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.lerp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.ui.effect.cardSurface
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -85,6 +87,8 @@ internal fun SideNavBar(
             label = "sideNavExpand",
         )
     val palette = sideNavPalette()
+    // 有壁纸时面板换成毛玻璃，壁纸从侧栏后面透出来，没壁纸仍是实心面板
+    val onWallpaper = wallpaperVisible()
     // 文字在中段之后淡入，收起时先消失再收窄
     val labelAlpha = ((progress - 0.45f) / 0.55f).coerceIn(0f, 1f)
 
@@ -96,7 +100,7 @@ internal fun SideNavBar(
                 .width(lerp(NavCollapsedWidth, NavWidth, progress))
                 .fillMaxHeight()
                 .clip(NavShape)
-                .background(palette.panel)
+                .then(if (onWallpaper) Modifier.cardSurface(NavShape) else Modifier.background(palette.panel))
                 .padding(NavPanelPadding),
         verticalArrangement = Arrangement.spacedBy(NavItemGap),
     ) {

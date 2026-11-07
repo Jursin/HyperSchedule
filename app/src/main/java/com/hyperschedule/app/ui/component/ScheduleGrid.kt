@@ -31,6 +31,8 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.schedule.weekDatesOf
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.ui.effect.cardSurface
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -282,8 +284,14 @@ internal fun BreakDividerRow(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MiuixTheme.colorScheme.surfaceContainerHigh),
+                    // 有壁纸时与课程卡用同一套毛玻璃，没壁纸退回实心
+                    .then(
+                        if (wallpaperVisible()) {
+                            Modifier.cardSurface(RoundedCornerShape(12.dp))
+                        } else {
+                            Modifier.clip(RoundedCornerShape(12.dp)).background(MiuixTheme.colorScheme.surfaceContainerHigh)
+                        },
+                    ),
             contentAlignment = Alignment.Center,
         ) {
             Text(

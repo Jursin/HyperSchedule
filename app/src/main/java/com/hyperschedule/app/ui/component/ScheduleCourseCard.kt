@@ -37,6 +37,7 @@ import com.hyperschedule.app.theme.CourseTintAlpha
 import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColor
+import com.hyperschedule.app.ui.effect.cardSurface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -126,6 +127,8 @@ fun ScheduleCourseCard(
                 .height(heightOverride)
                 .padding(style.cardMargin.dp)
                 .clip(shape)
+                // 先铺一层和 Card 同浓度的底（开了模糊就采样壁纸），课程色压在上面
+                .cardSurface(shape)
                 .background(colors.background)
                 .then(
                     if (style.cardBorder) {

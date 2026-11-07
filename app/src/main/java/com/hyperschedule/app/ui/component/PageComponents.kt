@@ -40,6 +40,7 @@ import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
@@ -80,7 +81,7 @@ private fun Modifier.windowTopBarTrim(color: Color): Modifier {
 @Composable
 fun BlurredTopAppBar(
     title: String,
-    blurBackdrop: LayerBackdrop?,
+    blurBackdrop: Backdrop?,
     scrollBehavior: ScrollBehavior,
     onBack: (() -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
