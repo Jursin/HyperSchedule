@@ -38,6 +38,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -58,6 +59,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.graphics.createBitmap
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.effect.navBarBlur
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Text
@@ -93,26 +95,26 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
 
     // 开了自定义颜色就跟随全局配色，没开保持默认配色
     val dynamic = MiuixTheme.isDynamicColor
-    val accent = MiuixTheme.colorScheme.primary
+    val accent =
+        when {
+            dynamic -> MiuixTheme.colorScheme.primary
+            isDark -> Color(0xFF3C81FF)
+            else -> Color(0xFF277AFF)
+        }
     val onAccent = MiuixTheme.colorScheme.onPrimary
+    val wallpaper = wallpaperVisible()
     val fillColor =
-        when {
-            dynamic -> accent.copy(alpha = if (isDark) 0.8f else 0.86f)
-            isDark -> Color(0xCC3C81FFL)
-            else -> Color(0xDB277AFFL)
-        }
-    val outerColor =
-        when {
-            dynamic -> accent.copy(alpha = 0.8f)
-            isDark -> Color(0xCC3C81FFL)
-            else -> Color(0xCC277AFFL)
-        }
-    val glowColor =
-        when {
-            dynamic -> accent.copy(alpha = if (isDark) 0.3f else 0.2f)
-            isDark -> Color(0x4D3482FFL)
-            else -> Color(0x333C81FFL)
-        }
+        accent.copy(
+            alpha =
+                when {
+                    wallpaper -> if (isDark) 0.55f else 0.62f
+                    isDark -> 0.3f
+                    else -> 0.85f
+                },
+        )
+    val highlightColor = accent.copy(alpha = if (!wallpaper && isDark) 0.45f else 0f)
+    val outerColor = accent.copy(alpha = 0.8f)
+    val glowColor = accent.copy(alpha = if (isDark) 0.3f else 0.2f)
     // 内描边与文字都跟着底色走，浅色主色配深色前景才看得清
     val innerBorderColor = if (dynamic) onAccent.copy(alpha = 0.2f) else Color(0x33FFFFFF)
     val labelColor = if (dynamic) onAccent else Color.White
@@ -170,6 +172,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
                         backdrop = blurBackdrop,
                         shape = RoundedCornerShape(BackToNowCornerRadius),
                         blendColor = fillColor,
+                        blurRadius = BackToNowBlurRadius,
                     )
                     .pointerInput(buttonSize) {
                         awaitEachGesture {
@@ -213,11 +216,18 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
                     }
                     .onSizeChanged { buttonSize = it }
                     .semantics { contentDescription = "今" }
-                    // 填充 + 内缩半宽双描边，有模糊时填充交给模糊层
                     .drawBehind {
                         val radius = BackToNowCornerRadius.toPx()
                         val s = 1.dp.toPx()
-                        if (blurBackdrop == null) drawRoundRect(fillColor, cornerRadius = CornerRadius(radius))
+                        if (blurBackdrop == null) {
+                            drawRoundRect(fillColor, cornerRadius = CornerRadius(radius))
+                        } else if (highlightColor.alpha > 0f) {
+                            drawRoundRect(
+                                color = highlightColor,
+                                cornerRadius = CornerRadius(radius),
+                                blendMode = BlendMode.Plus,
+                            )
+                        }
                         drawRoundRect(
                             color = outerColor,
                             topLeft = Offset(s / 2, s / 2),
@@ -248,6 +258,9 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
 private val BackToNowWidth = 80.dp
 private val BackToNowHeight = 44.dp
 private val BackToNowCornerRadius = 80.dp
+
+/** 按钮玻璃的模糊半径 */
+private const val BackToNowBlurRadius = 6f
 private val BackToNowGlowDy = 8.dp
 
 /** 光晕外溢区 = 40dp 模糊空间 + 8dp 下移 */

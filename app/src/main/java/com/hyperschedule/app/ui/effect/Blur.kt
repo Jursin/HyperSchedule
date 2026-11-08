@@ -69,7 +69,8 @@ fun Modifier.navBarBlur(
     backdrop: Backdrop?,
     shape: Shape,
     blendColor: Color = MiuixTheme.colorScheme.surface.copy(alpha = BarBlendAlpha),
-): Modifier = glass(backdrop, shape, blendColor)
+    blurRadius: Float = GlassBlurRadius,
+): Modifier = glass(backdrop, shape, blendColor, blurRadius)
 
 /** 卡片在壁纸上的底，没壁纸时不加 */
 @Composable
@@ -79,12 +80,17 @@ fun Modifier.cardSurface(shape: Shape): Modifier {
 }
 
 @Composable
-private fun Modifier.glass(backdrop: Backdrop?, shape: Shape, blendColor: Color): Modifier {
+private fun Modifier.glass(
+    backdrop: Backdrop?,
+    shape: Shape,
+    blendColor: Color,
+    blurRadius: Float = GlassBlurRadius,
+): Modifier {
     if (backdrop == null) return background(blendColor, shape)
     val wallpaper = backdrop as? WallpaperBackdrop
     val shapeBlock = remember(shape) { { shape } }
     val effects: BackdropEffectScope.() -> Unit =
-        remember(wallpaper) { { if (wallpaper == null) blur(GlassBlurRadius * density) } }
+        remember(wallpaper, blurRadius) { { if (wallpaper == null) blur(blurRadius * density) } }
     val surface: DrawScope.() -> Unit = remember(blendColor) { { drawRect(blendColor) } }
     val glass =
         drawBackdrop(

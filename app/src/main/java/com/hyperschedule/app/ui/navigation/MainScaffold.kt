@@ -66,7 +66,7 @@ import com.hyperschedule.app.ui.component.WindowDismissState
 import com.hyperschedule.app.ui.effect.LocalWallpaper
 import com.hyperschedule.app.ui.effect.WallpaperBackground
 import com.hyperschedule.app.ui.effect.captureForBlur
-import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.effect.rememberBarBackdrop
 import com.hyperschedule.app.ui.effect.rememberWallpaperState
 import com.hyperschedule.app.ui.page.LicensePage
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
@@ -289,7 +289,6 @@ fun MainScaffold(
     )
     val coroutineScope = rememberCoroutineScope()
     val mainPagerState = rememberMainPagerState(pagerState, coroutineScope)
-    val navBarBackdrop = rememberAppBlurBackdrop(appBlur)
     // 「今」按钮跨页共享，切 tab 时按钮不随页面滑走，只就地收起/展开
     val backToNowHost = remember { BackToNowHostState() }
     val overlayHost = remember { OverlayHostState() }
@@ -431,14 +430,9 @@ fun MainScaffold(
                     NavEntry(interceptPredictiveBack, onBack, windowed = false) {
                         // 壁纸只铺一层，位置在 Tab pager 之外，切 Tab 时不会跟着滑
                         val wallpaperState = rememberWallpaperState(wallpaper, appBlur)
-                        val hasWallpaper = wallpaperState.bitmap != null
-                        // 有壁纸时底栏直接采壁纸那一层
+                        // 底栏采「壁纸 + 页面内容」，滚动穿过去的内容也会被糊进玻璃
                         val barBackdrop =
-                            if (hasWallpaper) {
-                                wallpaperState.backdrop.takeIf { wallpaperState.glassEnabled }
-                            } else {
-                                navBarBackdrop
-                            }
+                            rememberBarBackdrop(appBlur, wallpaperState)
                         // 宽屏改用左侧栏
                         Box(modifier = Modifier.fillMaxSize()) {
                             val pageContent: @Composable (Int) -> Unit = { page ->
@@ -478,8 +472,8 @@ fun MainScaffold(
                                             modifier =
                                                 Modifier
                                                     .fillMaxSize()
-                                                    // 没有壁纸时把页面录进底栏的采样层；有壁纸就直接采壁纸那层
-                                                    .captureForBlur(if (hasWallpaper) null else navBarBackdrop),
+                                                    // 页面内容录进底栏的采样层，壁纸由那层自己垫底
+                                                    .captureForBlur(barBackdrop),
                                         ) {
                                             // 关闭用户滑动，切页只走导航，否则顶栏上的拖动会被外层 pager 抢走
                                             // 宽屏上下切换，窄屏左右切换

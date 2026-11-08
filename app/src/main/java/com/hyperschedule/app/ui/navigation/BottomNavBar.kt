@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.effect.NavIndicatorAnimation
+import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.effect.navBarBlur
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -129,7 +130,11 @@ internal fun BottomNavBar(
         (if (isDark) NavBarColors.Dark else NavBarColors.Light).run {
             if (MiuixTheme.isDynamicColor) {
                 val container = MiuixTheme.colorScheme.surfaceContainer
-                copy(container = container, blurTint = container.copy(blurTint.alpha))
+                copy(
+                    container = container,
+                    blurTint = container.copy(blurTint.alpha),
+                    contentTint = container.copy(contentTint.alpha),
+                )
             } else {
                 this
             }
@@ -391,7 +396,8 @@ private fun Modifier.navBarSurface(
                 Modifier.navBarBlur(
                     backdrop = blurBackdrop,
                     shape = shape,
-                    blendColor = colors.blurTint,
+                    // 有壁纸时采样层已带蒙层
+                    blendColor = if (wallpaperVisible()) colors.blurTint else colors.contentTint,
                 )
             } else {
                 Modifier.background(colors.container, shape)
@@ -474,8 +480,8 @@ internal object NavBarColors {
     val Light =
         NavBarPalette(
             container = Color(0xFFFFFFFF),
-            // 蒙层要留出至少三成透明度，否则 blurred backdrop 被压成纯色，肉眼看就是实心白条
-            blurTint = Color(0xFFFFFFFF).copy(0.68f),
+            blurTint = Color.White.copy(0.45f),
+            contentTint = Color.White.copy(0.68f),
             selector = Color(0x0F000000),
             selectorPressed = Color(0x29000000), // 按下 16%
             icon = Color(0xFF000000), // 选中不变色
@@ -486,18 +492,20 @@ internal object NavBarColors {
     val Dark =
         NavBarPalette(
             container = Color(0xFF181818),
-            blurTint = Color(0xFF181818).copy(0.72f),
+            blurTint = Color.White.copy(0.08f),
+            contentTint = Color(0xFF181818).copy(0.72f),
             selector = Color(0x1FFFFFFF),
             selectorPressed = Color(0x42FFFFFF),
             icon = Color(0xF2FFFFFF),
             iconPressed = Color(0x91FFFFFF),
-            barShadowAlpha = 0.2f,
+            barShadowAlpha = 0.14f,
         )
 }
 
 internal data class NavBarPalette(
     val container: Color,
     val blurTint: Color,
+    val contentTint: Color,
     val selector: Color,
     val selectorPressed: Color,
     val icon: Color,

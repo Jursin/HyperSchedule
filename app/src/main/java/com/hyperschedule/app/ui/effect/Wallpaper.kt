@@ -28,7 +28,9 @@ import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 解码后的壁纸长边上限 */
@@ -90,6 +92,26 @@ fun rememberWallpaperState(wallpaper: String, blurEnabled: Boolean): WallpaperSt
 @Composable
 fun pageContainerColor(): Color =
     if (wallpaperVisible()) Color.Transparent else MiuixTheme.colorScheme.surface
+
+/** 底栏采样层 */
+@Composable
+fun rememberBarBackdrop(
+    enabled: Boolean,
+    state: WallpaperState,
+): LayerBackdrop? {
+    if (!enabled || !isRuntimeShaderSupported()) return null
+    val surface = MiuixTheme.colorScheme.surface
+    return rememberLayerBackdrop {
+        // 在绘制里读壁纸状态，换壁纸时这一层自己重录
+        val bitmap = state.bitmap
+        if (bitmap == null) {
+            drawRect(surface)
+        } else {
+            drawWallpaper(bitmap, size.toIntSize(), surface.copy(alpha = WallpaperScrimAlpha))
+        }
+        drawContent()
+    }
+}
 
 /** 页面最底层的壁纸，同时驱动一次预烘 */
 @Composable

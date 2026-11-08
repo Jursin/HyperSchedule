@@ -95,9 +95,9 @@ class WallpaperBackdrop : Backdrop {
         if (area.width <= 0 || area.height <= 0) return
         val key = keyOf(source, area, density)
         if (key == bakedKey) return
-        val result = blurWallpaper(source, area, scrim, key.last() as Float, checkActive) ?: return
+        val texture = blurWallpaper(source, area, scrim, key.last() as Float, checkActive) ?: return
         bakedKey = key
-        baked = result
+        baked = texture
     }
 
     internal fun clear() {
@@ -110,29 +110,36 @@ class WallpaperBackdrop : Backdrop {
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?,
         downscaleFactor: Int,
-    ) {
-        // 状态必须最早读，纹理换新靠它通知每个玻璃面重画
-        val texture = baked ?: return
-        val surface = coordinates ?: return
-        val wallpaper = anchor ?: return
-        val offset = runCatching { wallpaper.localPositionOf(surface, Offset.Zero) }.getOrNull() ?: return
-        val scale = texture.scale
-        if (scale <= 0f) return
-        val image = texture.image
-        withTransform({
-            // 先平移到壁纸层原点，再按 1/scale 放大回窗口坐标
-            translate(-offset.x, -offset.y)
-            scale(1f / scale, 1f / scale, Offset.Zero)
-        }) {
-            drawImage(
-                image = image,
-                srcOffset = IntOffset.Zero,
-                srcSize = IntSize(image.width, image.height),
-                dstOffset = IntOffset.Zero,
-                dstSize = IntSize(image.width, image.height),
-                filterQuality = FilterQuality.Low,
-            )
-        }
+    ) = drawTexture(baked, anchor, coordinates)
+}
+
+/** 纹理按壁纸层坐标贴回去 */
+private fun DrawScope.drawTexture(
+    texture: BakedWallpaper?,
+    anchor: LayoutCoordinates?,
+    coordinates: LayoutCoordinates?,
+) {
+    // 状态必须最早读，纹理换新靠它通知每个玻璃面重画
+    if (texture == null) return
+    val surface = coordinates ?: return
+    val wallpaper = anchor ?: return
+    val offset = runCatching { wallpaper.localPositionOf(surface, Offset.Zero) }.getOrNull() ?: return
+    val scale = texture.scale
+    if (scale <= 0f) return
+    val image = texture.image
+    withTransform({
+        // 先平移到壁纸层原点，再按 1/scale 放大回窗口坐标
+        translate(-offset.x, -offset.y)
+        scale(1f / scale, 1f / scale, Offset.Zero)
+    }) {
+        drawImage(
+            image = image,
+            srcOffset = IntOffset.Zero,
+            srcSize = IntSize(image.width, image.height),
+            dstOffset = IntOffset.Zero,
+            dstSize = IntSize(image.width, image.height),
+            filterQuality = FilterQuality.Low,
+        )
     }
 }
 
