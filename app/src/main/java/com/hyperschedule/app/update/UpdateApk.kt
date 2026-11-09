@@ -6,7 +6,6 @@ import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.ParcelFileDescriptor
-import android.os.storage.StorageManager
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
@@ -28,6 +27,9 @@ import okhttp3.Request
 internal object UpdateApk {
     private const val NAME = "hyperschedule.apk"
 
+    /** 等传输线程收尾的上限，防止管道写端卡死拖住安装流程 */
+    private const val PIPE_WAIT_MS = 30_000L
+
     /** 放 filesDir，避免 cacheDir 被系统清掉 */
     private fun dir(context: Context): File = File(context.filesDir, "update")
 
@@ -48,9 +50,7 @@ internal object UpdateApk {
         onProgress: suspend (Float) -> Unit,
     ): File =
         withContext(Dispatchers.IO) {
-            val folder = dir(context)
-            folder.mkdirs()
-            reserveSpace(context, folder, asset.size)
+            dir(context).mkdirs()
             try {
                 fetch(context, asset, onProgress)
             } catch (e: CancellationException) {
@@ -60,14 +60,6 @@ internal object UpdateApk {
                 fetch(context, asset, onProgress)
             }
         }
-
-    /** 先把空间划出来，避免写到一半被别的应用挤爆 */
-    private fun reserveSpace(context: Context, folder: File, size: Long) {
-        if (size <= 0L) return
-        val storage = context.getSystemService(StorageManager::class.java) ?: return
-        runCatching { storage.allocateBytes(storage.getUuidForPath(folder), size) }
-            .onFailure { error("存储空间不足") }
-    }
 
     private suspend fun fetch(
         context: Context,
@@ -188,19 +180,21 @@ internal object UpdateApk {
                         }
                     }
                 }
-            val output =
-                runCatching { service.installApk(pipe[0]) }
-                    .getOrElse {
-                        pipe[0].close()
-                        writer.join()
-                        return@withContext it.message ?: "安装失败"
-                    }
-            pipe[0].close()
-            writer.join()
-            when {
-                output.contains("Success") -> null
-                output.isBlank() -> "安装失败"
-                else -> output.trim().lineSequence().first()
+            try {
+                val output = service.installApk(pipe[0])
+                when {
+                    output.contains("Success") -> null
+                    output.isBlank() -> "安装失败"
+                    else -> output.trim().lineSequence().first()
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.message ?: "安装失败"
+            } finally {
+                // 关掉读端让写入线程从 copyTo 里退出，超时只是兜底
+                runCatching { pipe[0].close() }
+                writer.join(PIPE_WAIT_MS)
             }
         }
 

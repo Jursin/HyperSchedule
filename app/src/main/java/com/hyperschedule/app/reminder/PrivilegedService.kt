@@ -12,12 +12,11 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import rikka.shizuku.Shizuku
 
-/** 以 shell 身份运行的服务，绑定管理与服务实现都在这里 */
+/** 以 shell 身份运行的服务 */
 internal object PrivilegedService {
 
     private const val TAG = "CourseReminder"
 
-    /** 首次绑定要等 Shevery 起进程，`app_process` 冷启动约 1 秒，失败时服务端还会退避重试三次，留够余量 */
     private const val BIND_TIMEOUT_SECONDS = 8L
 
     @Volatile
@@ -29,7 +28,6 @@ internal object PrivilegedService {
     private val connection =
         object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, binder: IBinder?) {
-                // 回调走主线程，这里不能碰日志以外的东西，否则等于让调用方多等一轮
                 service = binder?.takeIf { it.pingBinder() }?.let { IPrivilegedService.Stub.asInterface(it) }
                 if (service != null) latch.countDown()
             }
@@ -40,7 +38,6 @@ internal object PrivilegedService {
             }
         }
 
-    /** 已绑过直接复用，否则现绑一次，拿不到就返回 null，由调用方退回应用内直连 */
     @Synchronized
     fun get(context: Context): IPrivilegedService? {
         service?.takeIf { it.asBinder().pingBinder() }?.let { return it }
@@ -56,7 +53,6 @@ internal object PrivilegedService {
             if (latch.await(BIND_TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
                 service
             } else {
-                // 进程没起来就撤掉记录，否则同版本号的后续绑定会一直去复用它
                 runCatching { Shizuku.unbindUserService(args, connection, true) }
                 Log.w(TAG, "绑定超时（${BIND_TIMEOUT_SECONDS}s），Shevery 没把服务进程拉起来")
                 null
@@ -67,7 +63,7 @@ internal object PrivilegedService {
         }
     }
 
-    /** `debuggable` 固定 false，置为 true 时 Shevery 会给 `app_process` 加一串 JDWP 调试参数，没接调试器时纯属多余 */
+    /** `debuggable` 固定 false */
     private fun userServiceArgs(context: Context): Shizuku.UserServiceArgs =
         Shizuku.UserServiceArgs(
             ComponentName(context.packageName, PrivilegedServiceImpl::class.java.name),
@@ -75,7 +71,6 @@ internal object PrivilegedService {
             .daemon(false)
             .processNameSuffix("privileged")
             .debuggable(false)
-            .version(2)
 }
 
 /** 隐藏 API 只能按名字反射拿，$$ 让 $ 不被当成插值前缀 */

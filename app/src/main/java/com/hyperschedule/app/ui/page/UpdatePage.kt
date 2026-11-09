@@ -19,7 +19,6 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.getAppVersion
 import com.hyperschedule.app.getAppVersionCode
 import com.hyperschedule.app.theme.SettingsStore
-import com.hyperschedule.app.theme.useLargeScreenWindow
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.MarkdownText
 import com.hyperschedule.app.ui.component.PreferenceScreen
@@ -27,7 +26,6 @@ import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import com.hyperschedule.app.ui.effect.WindowBlurEffect
 import com.hyperschedule.app.update.ChangelogEntry
 import com.hyperschedule.app.update.UpdateController
 import com.hyperschedule.app.update.UpdateDialogState
@@ -37,7 +35,6 @@ import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 @Composable
 fun UpdatePage(
@@ -139,6 +136,7 @@ fun UpdateDialogs(controller: UpdateController, appBlur: Boolean) {
                 cancelText = null,
                 destructive = true,
                 onConfirm = controller::stopUpdate,
+                // 点外部或返回只收起弹窗，下载继续在通知栏显示
                 onDismiss = controller::hideProgress,
             ) {
                 LinearProgressIndicator(progress = dialog.progress, modifier = Modifier.fillMaxWidth())
@@ -150,39 +148,8 @@ fun UpdateDialogs(controller: UpdateController, appBlur: Boolean) {
                 )
             }
 
-        UpdateDialogState.AwaitingPermission -> StatusDialog("正在等待授权", "请在系统设置中允许安装应用", appBlur)
-
-        // 后台下载完成后靠通知把用户叫回来，回到前台立刻拉起安装器
         UpdateDialogState.None, is UpdateDialogState.ReadyToInstall -> Unit
-
-        UpdateDialogState.Installing ->
-            StatusDialog("正在安装更新", "安装完成后应用会自动关闭，重新打开即可用上新版本", appBlur)
-
-        UpdateDialogState.NeedPermission ->
-            ConfirmDialog(
-                title = "需要安装应用权限",
-                message = "更新应用需要安装应用权限，请在系统设置中开启。",
-                appBlur = appBlur,
-                confirmText = "去设置",
-                onConfirm = controller::openInstallSettings,
-                onDismiss = controller::dismissDialog,
-            )
     }
-}
-
-/** 只有一句说明的等待态弹窗 */
-@Composable
-private fun StatusDialog(title: String, text: String, appBlur: Boolean) {
-    WindowDialog(
-        show = true,
-        title = title,
-        // 平板（横竖屏）居中弹出，手机贴底
-        largeScreen = useLargeScreenWindow(),
-        content = {
-            WindowBlurEffect(useBlur = appBlur)
-            Text(text = text)
-        },
-    )
 }
 
 /** 更新日志 */

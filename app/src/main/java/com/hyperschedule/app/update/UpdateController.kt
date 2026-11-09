@@ -28,21 +28,13 @@ sealed interface UpdateDialogState {
 
     data class Downloading(val progress: Float) : UpdateDialogState
 
-    data object AwaitingPermission : UpdateDialogState
-
     /** 后台下载完成，等回到前台再拉起系统安装器 */
     data class ReadyToInstall(val file: File) : UpdateDialogState
-
-    /** 交给 Shizuku 静默安装，装完系统会杀掉本进程 */
-    data object Installing : UpdateDialogState
-
-    data object NeedPermission : UpdateDialogState
 }
 
 /** App 是否在前台，后台拉不起安装器 */
 internal object AppForeground {
-    @Volatile
-    var resumed: Boolean = false
+    @Volatile var resumed: Boolean = false
 }
 
 /** 检查、下载与安装，进程级单例，Activity 重建不会中断下载 */
@@ -75,6 +67,7 @@ class UpdateController private constructor(private val context: Context) {
         proxy: String,
         silent: Boolean = false,
     ) {
+        // 下载期间再点检查就回到进度弹窗
         if (downloading) {
             reopenProgress()
             return
@@ -174,31 +167,10 @@ class UpdateController private constructor(private val context: Context) {
 
     /** 回到前台，接续被拦下的安装 */
     fun onAppResumed() {
-        when (val state = dialog) {
-            UpdateDialogState.AwaitingPermission ->
-                if (UpdateApk.canInstall(context)) {
-                    install(UpdateApk.target(context))
-                } else {
-                    dialog = UpdateDialogState.NeedPermission
-                }
-
-            is UpdateDialogState.ReadyToInstall -> {
-                dialog = UpdateDialogState.None
-                UpdateNotification.cancel(context)
-                install(state.file)
-            }
-
-            else -> Unit
-        }
-    }
-
-    fun openInstallSettings() {
-        if (!UpdateApk.openPermissionSettings(context)) {
-            toast("无法打开权限设置")
-            dialog = UpdateDialogState.None
-            return
-        }
-        dialog = UpdateDialogState.AwaitingPermission
+        val state = dialog as? UpdateDialogState.ReadyToInstall ?: return
+        dialog = UpdateDialogState.None
+        UpdateNotification.cancel(context)
+        install(state.file)
     }
 
     private fun reopenProgress() {
@@ -209,9 +181,8 @@ class UpdateController private constructor(private val context: Context) {
 
     private fun install(file: File) {
         if (ShizukuAccess.hasPermission) {
-            // 静默安装不挑前后台、也不用授权页，装完系统会直接杀掉本进程
             UpdateNotification.cancel(context)
-            dialog = UpdateDialogState.Installing
+            dialog = UpdateDialogState.None
             scope.launch {
                 val error = UpdateApk.installSilently(context, file)
                 if (error != null) {
@@ -225,7 +196,6 @@ class UpdateController private constructor(private val context: Context) {
     }
 
     private fun installBySystem(file: File) {
-        // 后台既拉不起安装器也拉不起授权页，统一交给通知把用户叫回来
         if (!AppForeground.resumed) {
             UpdateNotification.showDone(context, pendingVersion)
             dialog = UpdateDialogState.ReadyToInstall(file)
@@ -233,7 +203,8 @@ class UpdateController private constructor(private val context: Context) {
         }
         UpdateNotification.cancel(context)
         if (!UpdateApk.canInstall(context)) {
-            openInstallSettings()
+            dialog = UpdateDialogState.None
+            if (!UpdateApk.openPermissionSettings(context)) toast("请在系统设置中允许安装应用")
             return
         }
         if (!UpdateApk.install(context, file)) toast("无法启动安装器")

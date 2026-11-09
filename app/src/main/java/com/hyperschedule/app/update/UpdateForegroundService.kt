@@ -10,9 +10,7 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.graphics.drawable.Icon
 import android.os.Build
-import android.os.Handler
 import android.os.IBinder
-import android.os.Looper
 import android.os.PowerManager
 import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
@@ -106,16 +104,6 @@ internal object UpdateNotification {
 class UpdateForegroundService : Service() {
     private var wakeLock: PowerManager.WakeLock? = null
 
-    private val handler = Handler(Looper.getMainLooper())
-
-    private val renewWakeLock =
-        object : Runnable {
-            override fun run() {
-                acquireWakeLock()
-                handler.postDelayed(this, WAKE_LOCK_RENEW)
-            }
-        }
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_CANCEL) {
             onCancel?.invoke()
@@ -129,14 +117,12 @@ class UpdateForegroundService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        handler.removeCallbacks(renewWakeLock)
-        renewWakeLock.run()
+        acquireWakeLock()
         ServiceCompat.startForeground(this, UpdateNotification.ID, notification, foregroundType())
         return START_NOT_STICKY
     }
 
     override fun onDestroy() {
-        handler.removeCallbacks(renewWakeLock)
         wakeLock?.let { runCatching { if (it.isHeld) it.release() } }
         wakeLock = null
         super.onDestroy()
@@ -152,11 +138,12 @@ class UpdateForegroundService : Service() {
         }
 
     private fun acquireWakeLock() {
+        // 每次进度刷新都会重进 onStartCommand，锁只拿一次
+        if (wakeLock != null) return
         val lock =
-            wakeLock
-                ?: getSystemService(PowerManager::class.java)
-                    ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "HyperSchedule:update")
-                    ?.apply { setReferenceCounted(false) }
+            getSystemService(PowerManager::class.java)
+                ?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "HyperSchedule:update")
+                ?.apply { setReferenceCounted(false) }
                 ?: return
         wakeLock = lock
         runCatching { lock.acquire(WAKE_LOCK_TIMEOUT) }
@@ -172,7 +159,6 @@ class UpdateForegroundService : Service() {
 
         private const val EXTRA_NOTIFICATION = "com.hyperschedule.app.extra.UPDATE_NOTIFICATION"
         private const val WAKE_LOCK_TIMEOUT = 10 * 60 * 1000L
-        private const val WAKE_LOCK_RENEW = 9 * 60 * 1000L
 
         /** 下载中启动或刷新前台服务 */
         fun show(context: Context, notification: Notification) {
