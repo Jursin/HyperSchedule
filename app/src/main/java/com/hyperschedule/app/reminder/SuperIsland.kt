@@ -34,15 +34,18 @@ internal object SuperIsland {
 
     /** 上次发过的岛内容，岛自己会走字，同样的内容不必重发 */
     private val lastPosted = ConcurrentHashMap<Int, String>()
+    private val supported: Boolean by lazy { readIslandFeature() }
 
     /** 系统属性只能靠隐藏 API 读，读不到就当作不支持 */
     @SuppressLint("PrivateApi")
-    fun isSupported(): Boolean =
+    private fun readIslandFeature(): Boolean =
         runCatching {
             Class.forName("android.os.SystemProperties")
                 .getMethod("getBoolean", String::class.java, Boolean::class.javaPrimitiveType)
                 .invoke(null, KEY_ISLAND_FEATURE, false) as? Boolean
         }.getOrNull() == true
+
+    fun isSupported(): Boolean = supported
 
     /** 设备支持且 Shizuku 授权在手才能发岛 */
     fun canPost(): Boolean = isSupported() && ShizukuAccess.hasPermission
@@ -255,7 +258,7 @@ internal object SuperIsland {
             .coerceIn(60L, ISLAND_TIMEOUT_MAX_SECONDS.toLong())
             .toInt()
 
-    /** 发岛，断网绕开系统校验后再 notify，返回是否真的绕行了 */
+    /** 发岛，断网绕开系统校验后再 notify；只有真的发出去且绕过校验才算成功，否则调用方要退回普通通知 */
     private fun post(
         context: Context,
         id: Int,
@@ -303,8 +306,10 @@ internal object SuperIsland {
             ShizukuBypass.withBypass(context) {
                 posted = runCatching { notificationManager(context)?.notify(id, notification) }.isSuccess
             }
-        if (posted) lastPosted[id] = signature
-        return bypassed
+        // 只有真按岛发出去才记住内容，退回普通通知时由调用方重发
+        val shown = posted && bypassed
+        if (shown) lastPosted[id] = signature
+        return shown
     }
 
     /** 通知被收掉后允许重发同样的内容 */

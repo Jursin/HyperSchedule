@@ -45,30 +45,24 @@ class ReminderReceiver : BroadcastReceiver() {
             return
         }
         val courses = cached?.courses ?: data.coursesOn(date).also { ReminderCache.put(date, it, data) }
+        // 显示哪一门统一交给对账决定，冲突课程的课前闹钟不会各自去抢同一条通知
         when (type) {
+            ReminderScheduler.TYPE_DAY_ROLLOVER -> return ReminderScheduler.resyncNow(context)
             ReminderScheduler.TYPE_PRE_CLASS -> {
                 val course = courses.firstOrNull { it.id == courseId }
                 // 课已经不在这一天、或早就上完了（闹钟被系统拖后太多），不补发，改为重排
                 if (course == null || now.isAfter(course.start.plusMinutes(LATE_GRACE_MINUTES))) {
-                    ReminderScheduler.resyncNow(context)
-                    return
+                    return ReminderScheduler.resyncNow(context)
                 }
-                // 显示哪一门统一交给对账决定，冲突课程的课前闹钟不会各自去抢同一条通知
-                ReminderRuntime.sync(context, data.reminder, courses, now)
-            }
-            ReminderScheduler.TYPE_DAY_ROLLOVER -> ReminderScheduler.resyncNow(context)
-            else -> {
-                // 上课那一刻先收干净，之后挂哪条交给对账
-                if (type == ReminderScheduler.TYPE_CLASS_START) ReminderNotifier.cancelAll(context)
-                ReminderRuntime.sync(
-                    context = context,
-                    reminder = data.reminder,
-                    today = courses,
-                    now = now,
-                    periodic = type == ReminderScheduler.TYPE_LIVE_TICK,
-                )
             }
         }
+        ReminderRuntime.sync(
+            context = context,
+            reminder = data.reminder,
+            today = courses,
+            now = now,
+            periodic = type == ReminderScheduler.TYPE_LIVE_TICK,
+        )
     }
 }
 

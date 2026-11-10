@@ -9,18 +9,17 @@ import android.widget.Toast
 import androidx.core.content.edit
 import com.hyperschedule.app.theme.SettingsStore
 
-/** 上课自动勿扰，进入时记下用户原来的档位，退出时只还原仍由本应用写着的那些项 */
+/** 上课自动勿扰 */
 internal object ClassDnd {
 
     private const val PREF = "reminder_runtime"
-    private const val KEY_APPLIED = "dnd_applied"
     private const val KEY_MANUAL = "dnd_manual"
-    private const val KEY_TOUCHED_FILTER = "dnd_touched_filter"
-    private const val KEY_TOUCHED_RINGER = "dnd_touched_ringer"
+    private const val KEY_EXPECTED_END = "dnd_expected_end"
     private const val KEY_FILTER = "dnd_original_filter"
-    private const val KEY_RINGER = "dnd_original_ringer"
     private const val KEY_APPLIED_FILTER = "dnd_applied_filter"
+    private const val KEY_RINGER = "dnd_original_ringer"
     private const val KEY_APPLIED_RINGER = "dnd_applied_ringer"
+    private const val STALE_GRACE_MILLIS = 60_000L
 
     /** 与 [com.hyperschedule.app.theme.ReminderSettings.DND_MODE_LABELS] 的下标一一对应 */
     private const val MODE_SILENT = 1
@@ -28,100 +27,123 @@ internal object ClassDnd {
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREF, Context.MODE_PRIVATE)
 
-    /** 当前是不是由本应用接管着，通知上的「上课勿扰」按钮靠它判断该开还是该关 */
-    fun isApplied(context: Context): Boolean = prefs(context).getBoolean(KEY_APPLIED, false)
-
-    /** 这次接管是手动开的，此时自动勿扰逻辑不许插手 */
-    fun isManual(context: Context): Boolean = prefs(context).getBoolean(KEY_MANUAL, false)
-
-    /** 手动开关，[isApplied] 为真就还给用户，否则按设定档位接管 */
-    fun toggle(context: Context, mode: Int): Boolean {
-        if (isApplied(context)) {
-            restore(context)
-            return false
-        }
-        prefs(context).edit { putBoolean(KEY_MANUAL, true) }
-        return apply(context, mode)
+    /** 当前是否由本应用接管 */
+    fun isApplied(context: Context): Boolean {
+        val store = prefs(context)
+        return store.getInt(KEY_APPLIED_FILTER, -1) >= 0 || store.getInt(KEY_APPLIED_RINGER, -1) >= 0
     }
 
-    /** 按档位接管系统状态，返回是否真的接管成功 */
-    fun apply(context: Context, mode: Int): Boolean {
+    /** 点击通知的「上课勿扰」，接管与续期共用同一条路径，课后照常按档位还原 */
+    fun isManual(context: Context): Boolean =
+        isApplied(context) && prefs(context).getBoolean(KEY_MANUAL, false)
+
+    fun toggle(context: Context, mode: Int): Boolean = apply(context, mode, manual = true)
+
+    /** 按档位补上对应的一项，只写一次 */
+    fun apply(
+        context: Context,
+        mode: Int,
+        endMillis: Long = 0L,
+        manual: Boolean = false,
+    ): Boolean {
         if (!ReminderPermissions.hasDndAccess(context)) return false
-        val manager = context.getSystemService(NotificationManager::class.java) ?: return false
-        val audio = context.getSystemService(AudioManager::class.java) ?: return false
         val store = prefs(context)
-        // 连着几节课只记第一次接管前的状态，别用上一节课的状态盖掉用户的原设置
-        if (!store.getBoolean(KEY_APPLIED, false)) {
-            store.edit {
-                putBoolean(KEY_APPLIED, true)
-                putBoolean(KEY_TOUCHED_FILTER, false)
-                putBoolean(KEY_TOUCHED_RINGER, false)
-                putInt(KEY_FILTER, manager.currentInterruptionFilter)
-                putInt(KEY_RINGER, audio.ringerMode)
-            }
+        var expectedEnd = store.getLong(KEY_EXPECTED_END, 0L)
+        // 上一节漏收尾的记录先结清，别把它的原值当成这节的
+        if (expectedEnd > 0L && System.currentTimeMillis() >= expectedEnd + STALE_GRACE_MILLIS) {
+            restore(context)
+            expectedEnd = 0L
         }
-        // 静音模式动的是铃声，另外两档动的是勿扰过滤
-        val filter =
-            when (mode) {
-                MODE_SILENT -> null
-                MODE_PRIORITY -> NotificationManager.INTERRUPTION_FILTER_PRIORITY
+
+        val silent = mode == MODE_SILENT
+        val target =
+            when {
+                silent -> AudioManager.RINGER_MODE_SILENT
+                mode == MODE_PRIORITY -> NotificationManager.INTERRUPTION_FILTER_PRIORITY
                 else -> NotificationManager.INTERRUPTION_FILTER_NONE
             }
-        val done =
+        val current = currentValue(context, silent) ?: return false
+        val appliedKey = if (silent) KEY_APPLIED_RINGER else KEY_APPLIED_FILTER
+        if (store.getInt(appliedKey, -1) == target) {
+            if (endMillis > expectedEnd) store.edit { putLong(KEY_EXPECTED_END, endMillis) }
+            return true
+        }
+        if (!write(context, silent, target)) return false
+        val firstTake = !isApplied(context)
+        val originalKey = if (silent) KEY_RINGER else KEY_FILTER
+        val original = store.getInt(originalKey, -1)
+        store.edit {
+            // 只认第一次接管前的值，课中换档位、重复点按钮都不改它
+            if (firstTake) putBoolean(KEY_MANUAL, manual)
+            if (original < 0) putInt(originalKey, current)
+            putInt(appliedKey, target)
+            putLong(KEY_EXPECTED_END, maxOf(expectedEnd, endMillis))
+        }
+        return true
+    }
+
+    /** 把记录的有效期拉到这门课下课，用户课前点开的也留到那时才收 */
+    fun extend(context: Context, endMillis: Long) {
+        if (endMillis <= 0L || !isApplied(context)) return
+        val store = prefs(context)
+        val expectedEnd = store.getLong(KEY_EXPECTED_END, 0L)
+        if (endMillis <= expectedEnd) return
+        store.edit { putLong(KEY_EXPECTED_END, endMillis) }
+    }
+
+    /** 下课收尾 */
+    fun restore(context: Context) {
+        if (!isApplied(context)) return
+        val store = prefs(context)
+        val filterApplied = store.getInt(KEY_APPLIED_FILTER, -1)
+        val filterOriginal = store.getInt(KEY_FILTER, -1)
+        if (filterApplied >= 0 && filterOriginal >= 0) {
+            val manager = context.getSystemService(NotificationManager::class.java)
             runCatching {
-                if (filter == null) {
-                    audio.ringerMode = AudioManager.RINGER_MODE_SILENT
-                } else {
-                    manager.setInterruptionFilter(filter)
-                }
-            }.isSuccess
-        if (done) {
-            store.edit {
-                // 记下自己写进去的值，退出时靠它判断用户中途有没有改过
-                if (filter == null) {
-                    putBoolean(KEY_TOUCHED_RINGER, true)
-                    putInt(KEY_APPLIED_RINGER, AudioManager.RINGER_MODE_SILENT)
-                } else {
-                    putBoolean(KEY_TOUCHED_FILTER, true)
-                    putInt(KEY_APPLIED_FILTER, filter)
+                if (manager != null && manager.currentInterruptionFilter == filterApplied) {
+                    manager.setInterruptionFilter(filterOriginal)
                 }
             }
         }
-        return done
-    }
-
-    /** 退出勿扰接管，系统值已被用户改过时保留现状，不为还原而覆盖用户的操作 */
-    fun restore(context: Context) {
-        val prefs = prefs(context)
-        if (!prefs.getBoolean(KEY_APPLIED, false)) return
-        val manager = context.getSystemService(NotificationManager::class.java)
-        val audio = context.getSystemService(AudioManager::class.java)
-        runCatching {
-            if (prefs.getBoolean(KEY_TOUCHED_FILTER, false)) {
-                val original = prefs.getInt(KEY_FILTER, -1)
-                val applied = prefs.getInt(KEY_APPLIED_FILTER, -1)
-                if (manager != null && original >= 0 && manager.currentInterruptionFilter == applied) {
-                    manager.setInterruptionFilter(original)
-                }
-            }
-            if (prefs.getBoolean(KEY_TOUCHED_RINGER, false)) {
-                val original = prefs.getInt(KEY_RINGER, -1)
-                val applied = prefs.getInt(KEY_APPLIED_RINGER, -1)
-                if (audio != null && original >= 0 && audio.ringerMode == applied) {
-                    audio.ringerMode = original
-                }
+        val ringerApplied = store.getInt(KEY_APPLIED_RINGER, -1)
+        val ringerOriginal = store.getInt(KEY_RINGER, -1)
+        if (ringerApplied >= 0 && ringerOriginal >= 0) {
+            val audio = context.getSystemService(AudioManager::class.java)
+            runCatching {
+                if (audio != null && audio.ringerMode == ringerApplied) audio.ringerMode = ringerOriginal
             }
         }
         clear(context)
     }
 
-    /** 一次性忘掉接管记录，开机、应用更新、关闭提醒后原状态已无意义 */
+    /** 清除状态 */
     fun clear(context: Context) {
         prefs(context).edit { clear() }
     }
+
+    /** 当前系统状态 */
+    private fun currentValue(context: Context, silent: Boolean): Int? =
+        if (silent) {
+            context.getSystemService(AudioManager::class.java)?.ringerMode
+        } else {
+            context.getSystemService(NotificationManager::class.java)?.currentInterruptionFilter
+        }
+
+    /** 写目标状态 */
+    private fun write(context: Context, silent: Boolean, target: Int): Boolean =
+        runCatching {
+            if (silent) {
+                val audio = context.getSystemService(AudioManager::class.java)
+                if (audio != null && audio.ringerMode != target) audio.ringerMode = target
+            } else {
+                val manager = context.getSystemService(NotificationManager::class.java)
+                if (manager != null && manager.currentInterruptionFilter != target) {
+                    manager.setInterruptionFilter(target)
+                }
+            }
+        }.isSuccess
 }
 
-/** 通知与超级岛上的「上课勿扰」按钮，点一下开，再点一下关 */
 class ClassDndReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -132,7 +154,8 @@ class ClassDndReceiver : BroadcastReceiver() {
             return
         }
         val applied = ClassDnd.toggle(context, SettingsStore.get(context).state.reminder.dndMode)
-        Toast.makeText(context, if (applied) "已开启勿扰" else "已关闭勿扰", Toast.LENGTH_SHORT).show()
+        val text = if (applied) "已开启勿扰" else "开启勿扰失败"
+        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
     }
 
     companion object {

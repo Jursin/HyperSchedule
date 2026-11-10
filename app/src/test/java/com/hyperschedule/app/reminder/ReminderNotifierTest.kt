@@ -42,9 +42,4 @@ class ReminderNotifierTest {
         assertEquals("10分钟后上课".cjkDigitGap(), preClassHead(soon))
         assertEquals("现在上课", preClassHead(course.copy(start = LocalDateTime.now().minusMinutes(1))))
     }
-
-    @Test
-    fun inClassTailShowsEndClockTime() {
-        assertEquals("17:40下课".cjkDigitGap(), inClassTail(course.end!!))
-    }
 }

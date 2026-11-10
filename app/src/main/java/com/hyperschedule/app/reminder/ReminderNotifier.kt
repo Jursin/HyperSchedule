@@ -77,7 +77,7 @@ internal object ReminderNotifier {
         cancel(context, IN_CLASS_ID)
     }
 
-    fun cancel(context: Context, id: Int) {
+    private fun cancel(context: Context, id: Int) {
         lastPosted -= id
         SuperIsland.forget(id)
         runCatching { notificationManager(context)?.cancel(id) }
