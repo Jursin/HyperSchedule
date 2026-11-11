@@ -7,18 +7,48 @@ import android.content.pm.PackageManager
 import android.os.IBinder
 import android.provider.Settings
 import android.util.Log
+import com.hamondev.shevery.api.SheveryPrivilege
+import com.hamondev.shevery.api.SheveryProvider
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuBinderWrapper
 import rikka.shizuku.SystemServiceHelper
 import androidx.core.net.toUri
 
+class AppSheveryProvider : SheveryProvider() {
+    override fun onCreate(): Boolean = true
+}
+
 /** Shizuku 系服务的接入状态与授权 */
 internal object ShizukuAccess {
 
     /** 优先 Shevery，装了原版 Shizuku 也认 */
-    private val MANAGER_PACKAGES = listOf("com.hamondev.shevery", "moe.shizuku.privileged.api")
+    private const val SHEVERY_PACKAGE = "com.hamondev.shevery"
+    private const val SHIZUKU_PACKAGE = "moe.shizuku.privileged.api"
+    private val MANAGER_PACKAGES = listOf(SHEVERY_PACKAGE, SHIZUKU_PACKAGE)
 
     private const val REQUEST_CODE = 0x5A1
+
+    @Volatile
+    private var appContext: Context? = null
+
+    @Volatile
+    private var shevery = false
+
+    @Volatile
+    private var managerChecked = false
+
+    fun init(context: Context) {
+        val app = context.applicationContext
+        appContext = app
+        if (!managerChecked) {
+            managerChecked = true
+            shevery = isInstalled(app, SHEVERY_PACKAGE)
+        }
+    }
+
+    /** 界面上显示的管理器名 */
+    val managerName: String
+        get() = if (shevery) "Shevery" else "Shizuku"
 
     /** 服务 binder 是否已经送到本进程 */
     val isRunning: Boolean
@@ -30,11 +60,12 @@ internal object ShizukuAccess {
                 runCatching { Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED }
                     .getOrDefault(false)
 
+    private fun isInstalled(context: Context, packageName: String): Boolean =
+        runCatching { context.packageManager.getPackageInfo(packageName, 0) }.isSuccess
+
     /** 已安装的管理器包名，服务没起时靠它把用户领过去 */
     private fun managerPackage(context: Context): String? =
-        MANAGER_PACKAGES.firstOrNull {
-            runCatching { context.packageManager.getPackageInfo(it, 0) }.isSuccess
-        }
+        MANAGER_PACKAGES.firstOrNull { isInstalled(context, it) }
 
     fun openManager(context: Context) {
         val packageName = managerPackage(context) ?: return
@@ -48,12 +79,18 @@ internal object ShizukuAccess {
 
     /** 请求授权，结果通过 [onResult] 异步回来 */
     fun requestPermission(onResult: (Boolean) -> Unit) {
+        appContext?.let { init(it) }
         if (!isRunning) return onResult(false)
         if (hasPermission) return onResult(true)
         val first = synchronized(pending) { pending.add(onResult); pending.size == 1 }
         if (!first) return
         Shizuku.addRequestPermissionResultListener(resultListener)
-        runCatching { Shizuku.requestPermission(REQUEST_CODE) }
+        runCatching {
+                // 原生通道的授权结果会同步回 Shizuku 门面，所以监听器只用挂一套
+                if (shevery) SheveryPrivilege.requestPermission(REQUEST_CODE)
+                else Shizuku.requestPermission(REQUEST_CODE)
+            }
+            .recoverCatching { Shizuku.requestPermission(REQUEST_CODE) }
             .onFailure {
                 Shizuku.removeRequestPermissionResultListener(resultListener)
                 deliver(false)
@@ -62,6 +99,7 @@ internal object ShizukuAccess {
 
     /** 先挂上「binder 到达」监听，等它到了再弹授权框 */
     fun requestPermissionWhenReady(onResult: (Boolean) -> Unit) {
+        appContext?.let { init(it) }
         if (isRunning) return requestPermission(onResult)
         val listener =
             object : Shizuku.OnBinderReceivedListener {

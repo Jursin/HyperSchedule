@@ -24,6 +24,7 @@ import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.reminder.ReminderScheduler
+import com.hyperschedule.app.reminder.ShizukuAccess
 import com.hyperschedule.app.theme.AppTheme
 import com.hyperschedule.app.theme.SettingsStore
 import com.hyperschedule.app.ui.navigation.MainScaffold
@@ -69,6 +70,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ShizukuAccess.init(applicationContext)
         enableEdgeToEdge()
         setContent {
             val settings = settingsStore.state

@@ -42,6 +42,7 @@ internal object PrivilegedService {
     fun get(context: Context): IPrivilegedService? {
         service?.takeIf { it.asBinder().pingBinder() }?.let { return it }
         service = null
+        ShizukuAccess.init(context)
         if (!ShizukuAccess.hasPermission) {
             Log.w(TAG, "Shizuku 没在运行或本应用没拿到授权")
             return null
