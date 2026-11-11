@@ -15,10 +15,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.backup.BACKUP_FOLDER
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
@@ -29,9 +31,6 @@ import com.hyperschedule.app.theme.BackupSettings
 import com.hyperschedule.app.theme.S3Settings
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.WebDavSettings
-import com.hyperschedule.app.ui.component.Bucket
-import com.hyperschedule.app.ui.component.Cloud
-import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
@@ -82,10 +81,10 @@ internal fun WebDavBackupTab(
                 RemoteField(
                     label = "服务器地址",
                     value = draft.serverUrl,
-                    icon = Cloud,
+                    icon = ImageVector.vectorResource(R.drawable.ic_cloud),
                     error = serverUrlError(draft.serverUrl),
                 ) { draft.serverUrl = it },
-                RemoteField(label = "用户名", value = draft.username, icon = Person) { draft.username = it },
+                RemoteField(label = "用户名", value = draft.username, icon = ImageVector.vectorResource(R.drawable.ic_person)) { draft.username = it },
                 RemoteField(label = "密码", value = draft.password, icon = MiuixIcons.Lock, secret = true) {
                     draft.password = it
                 },
@@ -127,10 +126,10 @@ internal fun S3BackupTab(
                 RemoteField(
                     label = "端点",
                     value = draft.endpoint,
-                    icon = Cloud,
+                    icon = ImageVector.vectorResource(R.drawable.ic_cloud),
                     error = serverUrlError(draft.endpoint),
                 ) { draft.endpoint = it },
-                RemoteField(label = "访问密钥 ID", value = draft.accessKeyId, icon = Person) {
+                RemoteField(label = "访问密钥 ID", value = draft.accessKeyId, icon = ImageVector.vectorResource(R.drawable.ic_person)) {
                     draft.accessKeyId = it
                 },
                 RemoteField(
@@ -142,7 +141,7 @@ internal fun S3BackupTab(
                 RemoteField(
                     label = "存储桶",
                     value = draft.bucket,
-                    icon = Bucket,
+                    icon = ImageVector.vectorResource(R.drawable.ic_bucket),
                     error = s3BucketError(draft.bucket),
                 ) { draft.bucket = it },
                 RemoteField(

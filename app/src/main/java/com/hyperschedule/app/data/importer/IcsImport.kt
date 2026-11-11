@@ -137,7 +137,7 @@ object IcsImport {
         val base =
             IcsEvent(
                 name = name,
-                location = properties.firstValue("LOCATION")?.let(::unescape)?.trim().orEmpty(),
+                location = properties.firstValue("LOCATION")?.let(::unescape).orEmpty().normalizePosition(),
                 detail = detail,
                 date = start.toLocalDate(),
                 startMinutes = startMinutes,

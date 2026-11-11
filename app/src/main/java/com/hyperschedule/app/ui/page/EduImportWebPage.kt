@@ -38,12 +38,15 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.net.toUri
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.importer.edu.EduScriptRepository
 import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
@@ -52,19 +55,18 @@ import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.CreateTableDialog
-import com.hyperschedule.app.ui.component.Devices
 import com.hyperschedule.app.ui.component.EduAlertState
-import com.hyperschedule.app.ui.component.EduPromptDialog
-import com.hyperschedule.app.ui.component.EduPromptState
 import com.hyperschedule.app.ui.component.EduPostBodyRegistry
 import com.hyperschedule.app.ui.component.EduPostBridge
 import com.hyperschedule.app.ui.component.EduPostInterceptScript
 import com.hyperschedule.app.ui.component.EduPromiseBridgeScript
+import com.hyperschedule.app.ui.component.EduPromptDialog
+import com.hyperschedule.app.ui.component.EduPromptState
 import com.hyperschedule.app.ui.component.EduSelectionDialog
 import com.hyperschedule.app.ui.component.EduSelectionState
 import com.hyperschedule.app.ui.component.EduSslState
-import com.hyperschedule.app.ui.component.ImportTablePickerDialog
 import com.hyperschedule.app.ui.component.EduWebBridge
+import com.hyperschedule.app.ui.component.ImportTablePickerDialog
 import com.hyperschedule.app.ui.component.interceptPostRequest
 import com.hyperschedule.app.ui.component.toast
 import kotlinx.coroutines.launch
@@ -344,7 +346,7 @@ fun EduImportWebPage(
                         containerColor = MiuixTheme.colorScheme.secondaryVariant,
                     ) {
                         Icon(
-                            imageVector = Devices,
+                            imageVector = ImageVector.vectorResource(R.drawable.ic_devices),
                             contentDescription = if (desktopMode) "切换到手机模式" else "切换到电脑模式",
                             modifier = Modifier.size(22.dp),
                             tint = MiuixTheme.colorScheme.onSecondaryVariant,

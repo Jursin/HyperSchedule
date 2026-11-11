@@ -45,6 +45,7 @@ fun SettingsPage(
     onOpenBackup: () -> Unit = {},
     onOpenHoliday: () -> Unit = {},
     onOpenReminder: () -> Unit = {},
+    onOpenWearPush: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val state = store.state
@@ -139,6 +140,7 @@ fun SettingsPage(
             ArrowPreference("课程提醒", onClick = onOpenReminder)
             ArrowPreference("节假日与调休", onClick = onOpenHoliday)
             ArrowPreference("备份与恢复", onClick = onOpenBackup)
+            ArrowPreference("推送到穿戴设备", onClick = onOpenWearPush)
         }
 
         PreferenceSection("更多") {

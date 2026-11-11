@@ -51,6 +51,7 @@ import com.hyperschedule.app.ui.page.UpdateDialogs
 import com.hyperschedule.app.ui.page.UpdateLogPage
 import com.hyperschedule.app.ui.page.UpdatePage
 import com.hyperschedule.app.ui.page.WallpaperCropPage
+import com.hyperschedule.app.ui.page.WearPushPage
 import com.hyperschedule.app.ui.rememberCourseTableData
 import com.hyperschedule.app.ui.rememberCoursesWithWeeks
 import com.hyperschedule.app.ui.rememberScheduleOverview
@@ -156,6 +157,7 @@ class MainActivity : ComponentActivity() {
                             onOpenBackup = { navigate(Page.Backup) },
                             onOpenHoliday = { navigate(Page.Holiday) },
                             onOpenReminder = { navigate(Page.Reminder) },
+                            onOpenWearPush = { navigate(Page.WearPush) },
                             onBack = onBack,
                         )
                     },
@@ -335,6 +337,18 @@ class MainActivity : ComponentActivity() {
                     reminderPage = { onBack ->
                         CourseReminderPage(
                             store = settingsStore,
+                            appBlur = settings.blur,
+                            onBack = onBack,
+                        )
+                    },
+                    wearPushPage = { onBack ->
+                        WearPushPage(
+                            tables = rememberTableSummaries(repository),
+                            currentTableId = settingsStore.state.currentTableId,
+                            setting = settings.wearPush,
+                            onSettingChange = { next -> settingsStore.update { it.copy(wearPush = next) } },
+                            repository = repository,
+                            holidayRepository = holidayRepository,
                             appBlur = settings.blur,
                             onBack = onBack,
                         )

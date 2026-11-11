@@ -12,6 +12,7 @@ import com.hyperschedule.app.data.importer.CourseTableConfigJson
 import com.hyperschedule.app.data.importer.CourseTableJsonParser
 import com.hyperschedule.app.data.importer.IcsImport
 import com.hyperschedule.app.data.importer.TimeSlotJson
+import com.hyperschedule.app.data.importer.normalizePosition
 import com.hyperschedule.app.data.importer.requireValidForImport
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.CourseTable
@@ -716,7 +717,7 @@ private fun CourseJson.toEntity(tableId: String, colorIndex: Int) =
         courseTableId = tableId,
         name = name,
         teacher = teacher,
-        position = position,
+        position = position.normalizePosition(),
         day = day,
         startSection = startSection,
         endSection = endSection,

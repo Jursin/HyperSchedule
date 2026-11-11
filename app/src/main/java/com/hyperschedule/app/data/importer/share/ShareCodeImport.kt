@@ -3,6 +3,7 @@ package com.hyperschedule.app.data.importer.share
 import com.hyperschedule.app.data.importer.CourseJson
 import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
+import com.hyperschedule.app.data.importer.normalizePosition
 import com.hyperschedule.app.data.importer.requireValidForImport
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import com.hyperschedule.app.schedule.MAX_TOTAL_WEEKS
@@ -116,14 +117,14 @@ internal fun continuousSlots(slots: List<TimeSlotJson>): List<TimeSlotJson> {
     return if (sorted.withIndex().all { (index, slot) -> slot.number == index + 1 }) sorted else emptyList()
 }
 
-/** 合并重复课程，去掉首尾空白后按节次与周次归并，自定义时间的课程原样保留 */
+/** 合并重复课程，去掉首尾空白与前导 @ 后按节次与周次归并，自定义时间的课程原样保留 */
 internal fun mergeCourses(courses: List<CourseJson>): List<CourseJson> {
     val normalized =
         courses.map {
             it.copy(
                 name = it.name.trim(),
                 teacher = it.teacher.trim(),
-                position = it.position.trim(),
+                position = it.position.normalizePosition(),
                 weeks = it.weeks.distinct().sorted(),
             )
         }

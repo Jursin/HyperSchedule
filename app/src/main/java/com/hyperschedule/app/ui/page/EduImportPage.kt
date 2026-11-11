@@ -31,6 +31,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -40,17 +41,19 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.importer.edu.Adapter
 import com.hyperschedule.app.data.importer.edu.EduRepo
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
 import com.hyperschedule.app.data.importer.edu.GLOBAL_TOOL_SCHOOL_ID
-import com.hyperschedule.app.data.importer.edu.School
+import com.hyperschedule.app.data.importer.edu.School as EduSchool
 import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SheetMaxHeight
@@ -58,8 +61,6 @@ import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.EduRepoSheet
-import com.hyperschedule.app.ui.component.Person
-import com.hyperschedule.app.ui.component.School as SchoolIcon
 import com.hyperschedule.app.ui.component.SheetBottomSpacer
 import com.hyperschedule.app.ui.component.SheetScaffold
 import com.hyperschedule.app.ui.component.SheetScrollColumn
@@ -104,7 +105,7 @@ private val SchoolTabs =
 private sealed interface SchoolRow {
     data class Header(val letter: String) : SchoolRow
 
-    data class Item(val school: School) : SchoolRow
+    data class Item(val school: EduSchool) : SchoolRow
 
     data object Divider : SchoolRow
 }
@@ -115,7 +116,7 @@ fun EduImportPage(
     repository: SchoolRepository,
     repoStore: EduRepoStore,
     appBlur: Boolean = false,
-    onOpenAdapter: (school: School, adapter: Adapter, url: String) -> Unit = { _, _, _ -> },
+    onOpenAdapter: (school: EduSchool, adapter: Adapter, url: String) -> Unit = { _, _, _ -> },
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -140,16 +141,16 @@ fun EduImportPage(
         }
 
     // null 表示还在读取索引
-    var schools by remember { mutableStateOf<List<School>?>(null) }
+    var schools by remember { mutableStateOf<List<EduSchool>?>(null) }
     var updating by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var tab by remember { mutableIntStateOf(0) }
     // 抽屉内容跟着学校走，收起动画期间不清空
-    var sheetSchool by remember { mutableStateOf<School?>(null) }
+    var sheetSchool by remember { mutableStateOf<EduSchool?>(null) }
     var sheetVisible by remember { mutableStateOf(false) }
     var moreVisible by remember { mutableStateOf(false) }
     // 通用工具没有固定网址，进页面前先问一次
-    var urlDialog by remember { mutableStateOf<Pair<School, Adapter>?>(null) }
+    var urlDialog by remember { mutableStateOf<Pair<EduSchool, Adapter>?>(null) }
 
     // 拉索引并刷新列表，notify 为真时把结果提示出来
     fun sync(notify: Boolean) {
@@ -437,7 +438,7 @@ private fun UrlInputDialog(
 /** 适配器抽屉，点一个适配器进入网页导入 */
 @Composable
 private fun AdapterSheet(
-    school: School,
+    school: EduSchool,
     show: Boolean,
     onOpen: (Adapter) -> Unit,
     onDismiss: () -> Unit,
@@ -447,7 +448,7 @@ private fun AdapterSheet(
 
     SheetScaffold(
         title = school.name,
-        titleIcon = SchoolIcon,
+        titleIcon = ImageVector.vectorResource(R.drawable.ic_school),
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
@@ -517,7 +518,7 @@ private fun AdapterCard(adapter: Adapter, onClick: () -> Unit) {
                 Spacer(modifier = Modifier.height(6.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Person,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_person),
                         contentDescription = null,
                         modifier = Modifier.size(14.dp),
                         tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
@@ -544,7 +545,7 @@ private fun Adapter.categoryLabel(): String =
 
 @Composable
 private fun SchoolItem(
-    school: School,
+    school: EduSchool,
     onClick: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current

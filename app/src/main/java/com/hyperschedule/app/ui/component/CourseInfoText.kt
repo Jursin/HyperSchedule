@@ -18,10 +18,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.schedule.cjkDigitGap
@@ -59,12 +61,13 @@ private val IconTextGap = 3.dp
 internal data class InfoField(val icon: String, val alt: String, val value: String)
 
 /** 字段图标，未知 id 退回文件图标 */
+@Composable
 private fun infoIconVector(id: String): ImageVector = when (id) {
     InfoIconId.WEEKS -> MiuixIcons.Years
-    InfoIconId.SECTION -> Clock
-    InfoIconId.POSITION -> Location
-    InfoIconId.TEACHER -> Person
-    InfoIconId.CREDIT -> AwardStar
+    InfoIconId.SECTION -> ImageVector.vectorResource(R.drawable.ic_schedule)
+    InfoIconId.POSITION -> ImageVector.vectorResource(R.drawable.ic_location_on)
+    InfoIconId.TEACHER -> ImageVector.vectorResource(R.drawable.ic_person)
+    InfoIconId.CREDIT -> ImageVector.vectorResource(R.drawable.ic_award_star)
     else -> MiuixIcons.File
 }
 

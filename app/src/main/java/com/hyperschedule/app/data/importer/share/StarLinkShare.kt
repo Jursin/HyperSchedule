@@ -4,6 +4,7 @@ import com.hyperschedule.app.data.importer.CourseJson
 import com.hyperschedule.app.data.importer.CourseTableConfigJson
 import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
+import com.hyperschedule.app.data.importer.normalizePosition
 import com.hyperschedule.app.schedule.formatMinutes
 import kotlinx.serialization.Serializable
 
@@ -32,7 +33,7 @@ internal object StarLinkShare {
                     name = course.name?.takeIf { it.isNotBlank() } ?: return@mapNotNull null,
                     teacher = course.teacher.orEmpty(),
                     // 星链的地点统一带 @ 前缀
-                    position = course.location.orEmpty().removePrefix("@").trim(),
+                    position = course.location.orEmpty().normalizePosition(),
                     day = course.weekday ?: return@mapNotNull null,
                     startSection = course.startSection ?: 1,
                     endSection = course.endSection ?: course.startSection ?: 1,

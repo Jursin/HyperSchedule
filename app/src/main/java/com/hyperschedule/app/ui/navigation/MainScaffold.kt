@@ -277,6 +277,7 @@ fun MainScaffold(
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
     reminderPage: @Composable (onBack: () -> Unit) -> Unit = {},
+    wearPushPage: @Composable (onBack: () -> Unit) -> Unit = {},
     timeTableEditPage: @Composable (planId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
     comboEditPage: @Composable (comboId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
     content: @Composable (page: Int, navigate: (Page) -> Unit) -> Unit,
@@ -619,6 +620,11 @@ fun MainScaffold(
                 entry<Page.Reminder> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         reminderPage(onBack)
+                    }
+                }
+                entry<Page.WearPush> {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        wearPushPage(onBack)
                     }
                 }
                 entry<Page.TimeTableEdit> { key ->

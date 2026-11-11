@@ -26,20 +26,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.model.Course
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.CardInsidePadding
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.courseColorAt
 import com.hyperschedule.app.theme.rememberCoursePalette
-import com.hyperschedule.app.ui.component.Clock
-import com.hyperschedule.app.ui.component.Location
-import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatWeeks
@@ -84,19 +83,19 @@ internal fun GroupCard(
                 InfoRow(icon = MiuixIcons.Weeks, label = "上课星期", onClick = onPickDay) {
                     ValueText(dayLabel(group.day))
                 }
-                InfoRow(icon = Clock, label = "上课时间", onClick = onPickTime) {
+                InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_schedule), label = "上课时间", onClick = onPickTime) {
                     val text = timeText(group)
                     if (text.isEmpty()) ValueText("必填", placeholder = true) else ValueText(text)
                 }
                 ThinDivider()
-                InfoRow(icon = Location, label = "地点") {
+                InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_location_on), label = "地点") {
                     InlineField(
                         value = group.position,
                         onValueChange = { onChange(group.copy(position = it)) },
                         hint = "选填",
                     )
                 }
-                InfoRow(icon = Person, label = "教师") {
+                InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_person), label = "教师") {
                     InlineField(
                         value = group.teacher,
                         onValueChange = { onChange(group.copy(teacher = it)) },

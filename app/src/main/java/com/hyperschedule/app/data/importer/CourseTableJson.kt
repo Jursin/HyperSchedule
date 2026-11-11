@@ -89,6 +89,8 @@ object CourseTableJsonParser {
 /** 严格 HH:mm */
 private val TimePattern = Regex("(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]")
 
+internal fun String.normalizePosition(): String = trim().trimStart('@').trim()
+
 /** 导入前的结构校验，不合法直接抛 [IllegalArgumentException]，由调用方把 message 提示给用户并整个文件拒绝 */
 fun CourseTableJson.requireValidForImport() {
     courses.forEach {

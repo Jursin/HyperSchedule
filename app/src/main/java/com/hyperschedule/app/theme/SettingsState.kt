@@ -195,6 +195,12 @@ private val Prefs =
             { it.reminder.dndMode },
             coerce = { it.coerceIn(ReminderSettings.DND_MODE_LABELS.indices) },
         ) { s, v -> s.copy(reminder = s.reminder.copy(dndMode = v)) },
+        stringSetting("wearPushTableId", { it.wearPush.tableId }) { s, v ->
+            s.copy(wearPush = s.wearPush.copy(tableId = v))
+        },
+        boolSetting("wearPushExcludeHoliday", { it.wearPush.excludeHoliday }) { s, v ->
+            s.copy(wearPush = s.wearPush.copy(excludeHoliday = v))
+        },
         // 这几项都是本机状态，不进备份
         boolSetting("backupAuto", { it.backup.autoBackup }) { s, v ->
             s.copy(backup = s.backup.copy(autoBackup = v))
@@ -381,6 +387,7 @@ data class SettingsState(
     val style: ScheduleStyle = ScheduleStyle(),
     val todayStyle: TodayStyle = TodayStyle(),
     val reminder: ReminderSettings = ReminderSettings(),
+    val wearPush: WearPushSettings = WearPushSettings(),
     val backup: BackupSettings = BackupSettings(),
     val webDav: WebDavSettings = WebDavSettings(),
     val s3: S3Settings = S3Settings(),
@@ -474,6 +481,14 @@ data class ReminderSettings(
         fun preMinuteIndexOf(minutes: Int): Int = PRE_MINUTE_OPTIONS.indexOf(snapPreMinutes(minutes))
     }
 }
+
+/** 推送到穿戴设备的选项 */
+data class WearPushSettings(
+    /** 选中的课表，为空时用当前课表 */
+    val tableId: String? = null,
+    /** 推送时按节假日与调休调整课程 */
+    val excludeHoliday: Boolean = true,
+)
 
 data class ScheduleStyle(
     val gridLines: Boolean = true,

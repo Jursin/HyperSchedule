@@ -164,6 +164,7 @@ dependencies {
     implementation(libs.aboutlibraries.compose.core)
     implementation(libs.shizuku.api)
     implementation(libs.shizuku.provider)
+    implementation(files("libs/xms-wearable-lib_1.4_release.aar"))
     implementation(libs.okhttp)
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.androidx.lifecycle.runtime.compose)

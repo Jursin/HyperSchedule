@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.CardCornerRadius
@@ -40,10 +42,8 @@ import com.hyperschedule.app.theme.CourseTintAlpha
 import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.rememberCourseColor
-import com.hyperschedule.app.ui.component.AwardStar
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
-import com.hyperschedule.app.ui.component.Person
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
@@ -266,11 +266,11 @@ private fun CourseManageCard(
                 }
                 if (teacher.isNotBlank()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    MetaRow(icon = Person, text = teacher)
+                    MetaRow(icon = ImageVector.vectorResource(R.drawable.ic_person), text = teacher)
                 }
                 if (credit != null) {
                     Spacer(modifier = Modifier.height(if (teacher.isNotBlank()) 4.dp else 10.dp))
-                    MetaRow(icon = AwardStar, text = "${formatCredit(credit)}学分".cjkDigitGap())
+                    MetaRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), text = "${formatCredit(credit)}学分".cjkDigitGap())
                 }
             }
         }

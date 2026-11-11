@@ -68,6 +68,9 @@ sealed class Page : NavKey {
     /** 课程提醒 */
     @Serializable data object Reminder : Page()
 
+    /** 推送到穿戴设备 */
+    @Serializable data object WearPush : Page()
+
     /** 编辑作息方案（专属/公共），[planId] 为空表示新建 */
     @Serializable data class TimeTableEdit(val planId: String = "") : Page()
 

@@ -24,6 +24,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -35,6 +37,7 @@ import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.R
 import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
@@ -46,9 +49,7 @@ import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColorOf
 import com.hyperschedule.app.ui.CourseTableData
 import com.hyperschedule.app.ui.component.AddFab
-import com.hyperschedule.app.ui.component.AwardStar
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
-import com.hyperschedule.app.ui.component.Book
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.SaveFab
 import com.hyperschedule.app.ui.component.formatCredit
@@ -56,6 +57,7 @@ import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
 import com.hyperschedule.app.ui.component.rememberEditBackGuard
 import com.hyperschedule.app.ui.component.toast
+import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.page.courseedit.ColorCard
 import com.hyperschedule.app.ui.page.courseedit.EditState
 import com.hyperschedule.app.ui.page.courseedit.GroupCard
@@ -69,7 +71,6 @@ import com.hyperschedule.app.ui.page.courseedit.sanitizeCredit
 import com.hyperschedule.app.ui.page.courseedit.sortedBySchedule
 import com.hyperschedule.app.ui.page.courseedit.toArgbInt
 import com.hyperschedule.app.ui.page.courseedit.toCourse
-import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -274,11 +275,11 @@ fun CourseEditPage(
                         modifier = Modifier.fillMaxWidth(),
                         cornerRadius = CardCornerRadius,
                     ) {
-                        InfoRow(icon = Book, label = "课程名称") {
+                        InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_book), label = "课程名称") {
                             InlineField(value = name, onValueChange = { name = it }, hint = "必填")
                         }
                         ThinDivider()
-                        InfoRow(icon = AwardStar, label = "学分") {
+                        InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), label = "学分") {
                             InlineField(
                                 value = credit,
                                 onValueChange = { credit = sanitizeCredit(it) },
