@@ -17,6 +17,8 @@
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
+    <uses-permission android:name="com.hamondev.shevery.permission.PRIVILEGED_API" />
+    <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
     <queries>
         <package android:name="com.xiaomi.xmsf" />
@@ -69,6 +71,13 @@
                 <action android:name="com.hyperschedule.app.action.TOGGLE_DND" />
             </intent-filter>
         </receiver>
+
+        <provider
+            android:name="com.hamondev.shevery.api.SheveryProvider"
+            android:authorities="${applicationId}.shevery"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false" />
 
         <provider
             android:name="rikka.shizuku.ShizukuProvider"

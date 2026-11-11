@@ -62,6 +62,7 @@ fun CourseReminderPage(
         val observer =
             LifecycleEventObserver { _, event ->
                 if (event == Lifecycle.Event.ON_RESUME) {
+                    ShizukuAccess.init(context)
                     perms = ReminderPermissions.read(context)
                     shizukuGranted = ShizukuAccess.hasPermission
                 }
@@ -94,7 +95,7 @@ fun CourseReminderPage(
     fun requestShizuku() {
         if (!ShizukuAccess.isRunning) {
             // 服务没起时管理器也弹不出授权框，只能把用户领到管理器里自己点启动
-            Toast.makeText(context, "请先在 Shizuku 中启动服务", Toast.LENGTH_LONG).show()
+            Toast.makeText(context, "请先在 ${ShizukuAccess.managerName} 中启动服务", Toast.LENGTH_LONG).show()
             ShizukuAccess.openManager(context)
             return
         }
@@ -215,7 +216,7 @@ fun CourseReminderPage(
             )
             if (islandSupported) {
                 ArrowPreference(
-                    title = "Shizuku 授权",
+                    title = "${ShizukuAccess.managerName} 授权",
                     summary = "将通知样式提升为小米超级岛",
                     endActions = { GrantedLabel(shizukuGranted) },
                     onClick = { if (!shizukuGranted) requestShizuku() },

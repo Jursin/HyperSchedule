@@ -28,7 +28,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
   - 支持课前提醒、课中提醒，显示上课、下课倒计时
   - 上课自动开启静音/勿扰，下课自动恢复
   - 支持设备显示为实时动态通知（Android 16+）
-  - 支持设备提升为小米超级岛（HyperOS 3+，需 Shizuku 授权）
+  - 支持设备提升为小米超级岛（HyperOS 3+，需 Shevery 或 Shizuku 授权）
 - **备份与恢复：**
   - 支持备份到本地自选目录、WebDAV 或 S3 兼容对象存储（AWS S3、Cloudflare R2、MinIO 等）
   - 可设置启动时自动备份、备份保留数量
@@ -75,6 +75,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
 
 - [Miuix](https://github.com/compose-miuix-ui/miuix)：HyperOS 风格 Compose 组件库
 - [Shizuku](https://github.com/RikkaApps/Shizuku)：小米超级岛通知所需的授权通道
+- [Shevery-API](https://github.com/HmnDev-Tech/Shevery-API)：兼容 Shevery 原生通道的 Shizuku API 超集
 - [holiday-calendar](https://github.com/cg-zhou/holiday-calendar)：节假日与调休数据
 - [shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)：教务系统导入的适配脚本
 - [shiguangschedule](https://github.com/ShiGuangSchedule/shiguangschedule)：数据管理参考

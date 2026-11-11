@@ -75,6 +75,7 @@ internal object ReminderScheduler {
     }
 
     suspend fun resyncNow(context: Context) {
+        ShizukuAccess.init(context)
         val alarmManager = context.getSystemService(AlarmManager::class.java)
         cancelScheduled(context, alarmManager)
         val data = ReminderData.load(context)

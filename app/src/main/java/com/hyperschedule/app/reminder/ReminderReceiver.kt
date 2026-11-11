@@ -30,6 +30,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 
     private suspend fun handle(context: Context, type: Int, day: String?, courseId: String?) {
+        ShizukuAccess.init(context)
         // 附加信息丢了（系统重建过 PendingIntent）就整表重排，比静默跳过稳妥
         if (type !in ReminderScheduler.TYPE_PRE_CLASS..ReminderScheduler.TYPE_LIVE_TICK) {
             ReminderScheduler.resyncNow(context)
