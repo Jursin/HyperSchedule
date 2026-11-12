@@ -22,10 +22,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.CardCornerRadius
+import com.hyperschedule.app.theme.ContainerTintAlpha
 import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.warningColor
-import com.hyperschedule.app.theme.warningContainerColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.MarkdownText
 import com.hyperschedule.app.ui.component.pageContentPadding
@@ -120,15 +120,16 @@ private fun ChangelogCard(entry: ChangelogEntry, meta: ReleaseMeta?) {
 /** 预发布版本的角标 */
 @Composable
 private fun PrereleaseBadge() {
+    val warning = warningColor()
     Text(
         text = "测试版",
         style = MiuixTheme.textStyles.footnote1,
         fontWeight = FontWeight.Medium,
-        color = warningColor(),
+        color = warning,
         modifier =
             Modifier
                 .background(
-                    color = warningContainerColor(),
+                    color = warning.copy(alpha = ContainerTintAlpha),
                     shape = RoundedCornerShape(6.dp),
                 )
                 .padding(horizontal = 6.dp, vertical = 2.dp),

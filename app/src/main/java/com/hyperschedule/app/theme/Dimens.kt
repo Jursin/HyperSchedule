@@ -2,7 +2,6 @@ package com.hyperschedule.app.theme
 
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -42,9 +41,6 @@ val WidePageMaxWidth = 512.dp
 const val WidePageHeightFraction = 0.8f
 
 val WidePageContentInset = 20.dp
-
-/** 浮窗的遮罩强度 */
-val WindowScrimColor = Color.Black.copy(alpha = 0.6f)
 
 fun widePageHeight(
     width: Dp,

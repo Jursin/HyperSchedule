@@ -21,7 +21,7 @@ import com.hyperschedule.app.theme.SelectCellCorner
 import com.hyperschedule.app.theme.SelectCellFontSize
 import com.hyperschedule.app.theme.SelectCellHeight
 import com.hyperschedule.app.theme.SelectCellSpacing
-import com.hyperschedule.app.theme.selectCellIdleColor
+import com.hyperschedule.app.theme.subtleFillColor
 import kotlin.math.max
 import kotlin.math.min
 import top.yukonga.miuix.kmp.basic.Text
@@ -42,7 +42,7 @@ fun WeekdaySelectGrid(
 ) {
     val selectedColor = MiuixTheme.colorScheme.primary
     val selectedContent = MiuixTheme.colorScheme.onPrimary
-    val idleColor = selectCellIdleColor()
+    val idleColor = subtleFillColor()
     val idleContent =
         if (enabled) {
             MiuixTheme.colorScheme.onSurfaceVariantSummary

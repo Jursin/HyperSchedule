@@ -5,6 +5,7 @@ import android.util.Log
 import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.db.entity.TimeTable
 import com.hyperschedule.app.data.importer.normalizePosition
 import com.hyperschedule.app.data.model.HolidayEntry
 import com.hyperschedule.app.schedule.HolidayPlan
@@ -43,6 +44,7 @@ data class WearCourse(
     val isCustomTime: Boolean,
     val teacher: String? = null,
     val position: String? = null,
+    val remark: String? = null,
     val weeks: List<Int>? = null,
     val customStartTime: String? = null,
     val customEndTime: String? = null,
@@ -61,6 +63,8 @@ data class WearTimeSlot(
 data class WearConfig(
     val semesterStartDate: String? = null,
     val semesterTotalWeeks: Int? = null,
+    val morningAfternoonSplit: String? = null,
+    val afternoonEveningSplit: String? = null,
 )
 
 /** 空字段不写进 JSON，穿戴设备按缺失处理 */
@@ -81,6 +85,7 @@ private fun String?.normalizedClock(): String? {
 fun buildWearSchedule(
     courses: List<CourseWithWeeks>,
     slots: List<TimeSlot>,
+    timeTable: TimeTable?,
     startDate: LocalDate?,
     lastWeek: Int,
     entries: List<HolidayEntry> = emptyList(),
@@ -126,6 +131,11 @@ fun buildWearSchedule(
                 // 手表从开学日期起每满 7 天算一周，归一成周一才与手机一致
                 semesterStartDate = startDate?.let { semesterStartMonday(it).toString() },
                 semesterTotalWeeks = lastWeek,
+                // 时段分隔随作息表下发
+                morningAfternoonSplit =
+                    timeTable?.morningAfternoonSplit.normalizedClock() ?: TimeTable.DEFAULT_MORNING_SPLIT,
+                afternoonEveningSplit =
+                    timeTable?.afternoonEveningSplit.normalizedClock() ?: TimeTable.DEFAULT_EVENING_SPLIT,
             ),
     )
 }
@@ -160,6 +170,7 @@ private fun Course.toWearCourse(
     if (courseName.isEmpty() || day !in 1..7 || weeks.isEmpty()) return null
     val teacherText = teacher.trim().takeIf { it.isNotEmpty() }
     val positionText = position.normalizePosition().takeIf { it.isNotEmpty() }
+    val remarkText = remark?.trim()?.takeIf { it.isNotEmpty() }
     if (isCustomTime) {
         val start = customStartTime.normalizedClock() ?: return null
         val end = customEndTime.normalizedClock() ?: return null
@@ -169,6 +180,7 @@ private fun Course.toWearCourse(
             isCustomTime = true,
             teacher = teacherText,
             position = positionText,
+            remark = remarkText,
             weeks = weeks,
             customStartTime = start,
             customEndTime = end,
@@ -182,6 +194,7 @@ private fun Course.toWearCourse(
         isCustomTime = false,
         teacher = teacherText,
         position = positionText,
+        remark = remarkText,
         weeks = weeks,
         startSection = start,
         endSection = end,

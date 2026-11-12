@@ -25,7 +25,7 @@ import com.hyperschedule.app.theme.SelectCellCorner
 import com.hyperschedule.app.theme.SelectCellFontSize
 import com.hyperschedule.app.theme.SelectCellHeight
 import com.hyperschedule.app.theme.SelectCellSpacing
-import com.hyperschedule.app.theme.selectCellIdleColor
+import com.hyperschedule.app.theme.subtleFillColor
 import kotlin.math.max
 import kotlin.math.min
 import top.yukonga.miuix.kmp.basic.Text
@@ -125,7 +125,7 @@ private fun RowScope.WeekRangeCell(
                 .weight(1f)
                 .height(SelectCellHeight)
                 .squircleClip(SelectCellCorner)
-                .background(if (isSelected) MiuixTheme.colorScheme.primary else selectCellIdleColor()),
+                .background(if (isSelected) MiuixTheme.colorScheme.primary else subtleFillColor()),
         contentAlignment = Alignment.Center,
     ) {
         Text(text = "$weekNum", fontSize = SelectCellFontSize, color = textColor)

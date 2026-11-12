@@ -16,6 +16,7 @@ import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.theme.BadgeFontSize
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColor
+import com.hyperschedule.app.theme.subtleFillColor
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -52,7 +53,7 @@ internal fun HolidayMarkBadge(
         when {
             useAccent -> tint.copy(alpha = 0.32f)
             isDark -> MiuixTheme.colorScheme.onSurface.copy(alpha = 0.10f)
-            else -> MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+            else -> subtleFillColor()
         }
     val content =
         when {

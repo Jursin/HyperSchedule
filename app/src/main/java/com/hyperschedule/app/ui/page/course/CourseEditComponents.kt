@@ -39,6 +39,7 @@ import com.hyperschedule.app.theme.CardInsidePadding
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.courseColorAt
 import com.hyperschedule.app.theme.rememberCoursePalette
+import com.hyperschedule.app.theme.subtleFillColor
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatWeeks
@@ -423,7 +424,7 @@ internal fun ColorCell(
                     .background(
                         when {
                             color != null -> color
-                            isDark -> MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+                            isDark -> subtleFillColor()
                             else -> MiuixTheme.colorScheme.surface
                         }
                     ),

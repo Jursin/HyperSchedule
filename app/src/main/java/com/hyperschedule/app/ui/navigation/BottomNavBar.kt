@@ -141,25 +141,27 @@ internal object NavBarMetrics {
 internal object NavBarColors {
     val Light =
         NavBarPalette(
-            container = Color(0xFFFFFFFF),
-            blurTint = Color.White.copy(0.45f),
-            contentTint = Color.White.copy(0.68f),
-            selector = Color(0x0F000000),
-            selectorPressed = Color(0x29000000), // 按下 16%
-            icon = Color(0xFF000000), // 选中不变色
-            iconPressed = Color(0x99000000),
+            container = Color.White,
+            blurTint = Color.White.copy(alpha = 0.45f),
+            contentTint = Color.White.copy(alpha = 0.68f),
+            selector = Color.Black.copy(alpha = 0.06f),
+            // 按下 16%
+            selectorPressed = Color.Black.copy(alpha = 0.16f),
+            // 选中不变色
+            icon = Color.Black,
+            iconPressed = Color.Black.copy(alpha = 0.6f),
             barShadowAlpha = 0.1f,
         )
 
     val Dark =
         NavBarPalette(
             container = Color(0xFF181818),
-            blurTint = Color.White.copy(0.08f),
-            contentTint = Color(0xFF181818).copy(0.72f),
-            selector = Color(0x1FFFFFFF),
-            selectorPressed = Color(0x42FFFFFF),
-            icon = Color(0xF2FFFFFF),
-            iconPressed = Color(0x91FFFFFF),
+            blurTint = Color.White.copy(alpha = 0.08f),
+            contentTint = Color(0xFF181818).copy(alpha = 0.72f),
+            selector = Color.White.copy(alpha = 0.12f),
+            selectorPressed = Color.White.copy(alpha = 0.26f),
+            icon = Color.White.copy(alpha = 0.95f),
+            iconPressed = Color.White.copy(alpha = 0.57f),
             barShadowAlpha = 0.14f,
         )
 }

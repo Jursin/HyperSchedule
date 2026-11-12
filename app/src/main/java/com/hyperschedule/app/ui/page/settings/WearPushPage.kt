@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -43,7 +44,11 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.schedule.semesterStartMonday
 import com.hyperschedule.app.theme.CardCornerRadius
-import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.theme.dangerColor
+import com.hyperschedule.app.theme.dangerContainerColor
+import com.hyperschedule.app.theme.successColor
+import com.hyperschedule.app.theme.successContainerColor
+import com.hyperschedule.app.ui.component.Container
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
@@ -67,13 +72,8 @@ import top.yukonga.miuix.kmp.utils.PressFeedbackType
 private const val PERMISSION_DENIED_HINT = "穿戴设备未授权"
 private const val WEAR_APP_MISSING_HINT = "穿戴设备未安装快应用"
 
-// 连接状态卡片配色
-private val CardConnectedLight = Color(0xFFDFFAE4)
-private val CardConnectedDark = Color(0xFF1A3825)
-private val CardDisconnectedLight = Color(0xFFFAEEEE)
-private val CardDisconnectedDark = Color(0xFF381A1A)
-private val CardIconConnected = Color(0xFF36D167)
-private val CardIconDisconnected = Color(0xFFD13636)
+// 快应用获取链接
+private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=com.schedule.vela&provider=OfficialV2"
 
 /** 快应用装了就直接拉起，未安装返回 false；签名不一致等异常交给调用方提示 */
 private suspend fun WearSync.openWearApp(nodeId: String): Boolean {
@@ -82,11 +82,10 @@ private suspend fun WearSync.openWearApp(nodeId: String): Boolean {
     return true
 }
 
-/** 组装好的推送内容；[hasStartDate] 为假时手表只能沿用自己上次的开学日期 */
+/** 组装好的推送内容 */
 private class PushPayload(
     val schedule: WearSchedule,
     val holidayApplied: Boolean,
-    val hasStartDate: Boolean,
 )
 
 /** 读取课表并按放假调休调整后组装推送内容 */
@@ -99,14 +98,16 @@ private suspend fun buildPushPayload(
     val config = repository.configOnce(tableId)
     val courses = repository.coursesOnce(tableId)
     val startDate = parseDateOrNull(config?.semesterStartDate.orEmpty())
-    val configuredWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceIn(1, MAX_TOTAL_WEEKS)
+    require(startDate != null) { "请先设置开学日期" }
+    val configuredWeeks = config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS
+    require(configuredWeeks in 1..MAX_TOTAL_WEEKS) { "请先设置学期周数" }
     // 课表里有课的最大周次也参与
     val courseWeeks = courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0
     val lastWeek = maxOf(configuredWeeks, courseWeeks).coerceIn(1, MAX_TOTAL_WEEKS)
-    // 没填开学日期或没勾选排除节假日时，不查假期，按原始周次推送
-    val startMonday = startDate?.let(::semesterStartMonday)
+    // 没勾选排除节假日时按原始周次推送
+    val startMonday = semesterStartMonday(startDate)
     val entries =
-        if (startMonday != null && excludeHoliday) {
+        if (excludeHoliday) {
             holidayRepository.entriesIn(startMonday, startMonday.plusWeeks(lastWeek.toLong()).minusDays(1))
         } else {
             emptyList()
@@ -116,6 +117,7 @@ private suspend fun buildPushPayload(
         buildWearSchedule(
             courses = courses,
             slots = repository.slotsOnce(tableId),
+            timeTable = repository.effectiveTimeTableOnce(tableId),
             startDate = startDate,
             lastWeek = lastWeek,
             entries = entries,
@@ -126,7 +128,6 @@ private suspend fun buildPushPayload(
     return PushPayload(
         schedule = schedule,
         holidayApplied = holidayApplied,
-        hasStartDate = startDate != null,
     )
 }
 
@@ -143,11 +144,14 @@ fun WearPushPage(
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
+    val uriHandler = LocalUriHandler.current
     val scope = rememberCoroutineScope()
     val wear = remember(context) { WearSync(context) }
 
     var deviceId by remember { mutableStateOf<String?>(null) }
     var deviceName by remember { mutableStateOf("") }
+    // null 表示还没查（未连接或刚进页面），false 才是设备上确实没装
+    var appInstalled by remember { mutableStateOf<Boolean?>(null) }
     var pushing by remember { mutableStateOf(false) }
 
     val ids = tables.map { it.table.id }
@@ -161,7 +165,10 @@ fun WearPushPage(
     // 拉起快应用，签名不一致、未安装等失败原因都提示出来
     suspend fun openWearAppSafely(nodeId: String) {
         runCatching { wear.openWearApp(nodeId) }
-            .onSuccess { if (!it) toast(WEAR_APP_MISSING_HINT) }
+            .onSuccess { installed ->
+                appInstalled = installed
+                if (!installed) toast(WEAR_APP_MISSING_HINT)
+            }
             .onFailure { toast(describeWearError(it)) }
     }
 
@@ -169,14 +176,17 @@ fun WearPushPage(
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(wear, lifecycleOwner) {
         var lastNodeId: String? = null
+        var wasResumed = false
         while (isActive) {
+            val resumed = lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
             // 退到后台就不再查，别让穿戴服务每秒被问一次
-            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+            if (resumed) {
                 val node = runCatching { wear.connectedNode() }.getOrNull()
                 deviceId = node?.id
                 deviceName = node?.name.orEmpty()
                 if (node == null) {
                     lastNodeId = null
+                    appInstalled = null
                 } else if (node.id != lastNodeId) {
                     lastNodeId = node.id
                     // 权限通过才去拉起快应用；签名不一致时申请权限就会失败，这里已经不重复提示
@@ -191,8 +201,11 @@ fun WearPushPage(
                         },
                         onFailure = { toast(describeWearError(it)) },
                     )
+                } else if (!wasResumed) {
+                    appInstalled = runCatching { wear.isWearAppInstalled(node.id) }.getOrNull()
                 }
             }
+            wasResumed = resumed
             delay(1000.milliseconds)
         }
     }
@@ -225,12 +238,7 @@ fun WearPushPage(
             result.fold(
                 onSuccess = {
                     val count = payload.schedule.courses.map { it.name }.distinct().size
-                    val suffix =
-                        when {
-                            payload.holidayApplied -> "（已排除节假日与调休）"
-                            !payload.hasStartDate -> "（未设置开始日期，手表沿用上次的日期）"
-                            else -> ""
-                        }
+                    val suffix = if (payload.holidayApplied) "（已排除节假日与调休）" else ""
                     toast("已推送${count}门课程$suffix".cjkDigitGap())
                 },
                 onFailure = { toast("推送失败：${describeWearError(it)}") },
@@ -295,8 +303,15 @@ fun WearPushPage(
             SwitchPreference(
                 checked = setting.excludeHoliday,
                 onCheckedChange = { checked -> onSettingChange(setting.copy(excludeHoliday = checked)) },
-                title = "推送调整后课程",
-                summary = "按放假与补课调整课程",
+                title = "推送调整后课表",
+                summary = "推送排除假期与调休后课表",
+            )
+        }
+
+        if (deviceId != null && appInstalled == false) {
+            Container(
+                text = "通过 AstroBox 获取穿戴设备快应用",
+                onClick = { uriHandler.openUri(WEAR_APP_URL) },
             )
         }
     }
@@ -313,8 +328,8 @@ private fun ConnectionStatusCard(
     val containerColor =
         when {
             dynamic -> if (isConnected) scheme.secondaryContainer else scheme.errorContainer
-            isDarkTheme() -> if (isConnected) CardConnectedDark else CardDisconnectedDark
-            else -> if (isConnected) CardConnectedLight else CardDisconnectedLight
+            isConnected -> successContainerColor()
+            else -> dangerContainerColor()
         }
     val textColor =
         when {
@@ -324,8 +339,8 @@ private fun ConnectionStatusCard(
     val iconColor =
         when {
             dynamic -> (if (isConnected) scheme.primary else scheme.error).copy(alpha = 0.8f)
-            isConnected -> CardIconConnected
-            else -> CardIconDisconnected
+            isConnected -> successColor()
+            else -> dangerColor()
         }
 
     Card(

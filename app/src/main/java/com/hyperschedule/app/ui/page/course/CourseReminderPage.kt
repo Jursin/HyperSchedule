@@ -14,7 +14,6 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.core.content.ContextCompat
@@ -28,6 +27,7 @@ import com.hyperschedule.app.reminder.ReminderPermissions
 import com.hyperschedule.app.reminder.ReminderScheduler
 import com.hyperschedule.app.reminder.ShizukuAccess
 import com.hyperschedule.app.reminder.SuperIsland
+import com.hyperschedule.app.theme.successColor
 import com.hyperschedule.app.ui.component.NumberPickerDialog
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
@@ -39,8 +39,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-private val GrantedColor = Color(0xFF4CAF50)
 
 @Composable
 fun CourseReminderPage(
@@ -255,7 +253,7 @@ private fun GrantedLabel(
     Text(
         text = if (granted) grantedText else deniedText,
         style = MiuixTheme.textStyles.body2,
-        color = if (granted) GrantedColor else MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        color = if (granted) successColor() else MiuixTheme.colorScheme.onSurfaceVariantSummary,
         textAlign = TextAlign.End,
         maxLines = 1,
     )

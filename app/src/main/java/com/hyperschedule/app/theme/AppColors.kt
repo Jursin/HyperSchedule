@@ -7,52 +7,86 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 课程色叠加到底色上的不透明度，课程卡、管理列表与占位格共用 */
 const val CourseTintAlpha = 0.15f
 
-/** 浮层面板的实测底色，浅色略深于白、深色略浅于底 */
-private val PanelLight = Color(0xFFF2F2F2)
-private val PanelDark = Color(0xFF1E1E1E)
+/** 提示容器底色比例 */
+const val ContainerTintAlpha = 0.12f
+
+// 中性色阶
+private val SurfaceLight = Color(0xFFF2F2F2)
+private val SurfaceDark = Color(0xFF1E1E1E)
+private val SurfaceRaisedDark = Color(0xFF303030)
+
+// 默认蓝
+private val AccentBlueLight = Color(0xFF3482FF)
+private val AccentBlueDark = Color(0xFF277AF7)
+
+// 警告黄
+private val WarningLight = Color(0xFFBF8700)
+private val WarningDark = Color(0xFFFFD75E)
+
+// 成功绿
+private val Success = Color(0xFF36D167)
+private val SuccessContainerLight = Color(0xFFDFFAE4)
+private val SuccessContainerDark = Color(0xFF1A3825)
+
+// 危险红
+private val DangerLight = Color(0xFFE00000)
+private val DangerDark = Color(0xFFFF4D4D)
+private val DangerContainerLight = Color(0xFFFFEBEB)
+private val DangerContainerDark = Color(0xFF3D1A1A)
+
+/** 浮窗与弹层的遮罩强度 */
+val WindowScrimColor = Color.Black.copy(alpha = 0.6f)
 
 /** 动态取色时取 [dynamic]，否则用实测底色 */
 @Composable
 private fun panelColor(dynamic: Color): Color =
     when {
         MiuixTheme.isDynamicColor -> dynamic
-        isDarkTheme() -> PanelDark
-        else -> PanelLight
-    }
-
-/** 选择格未选中时的底色，叠在对话框底色上，深浅色都留一档差 */
-@Composable
-fun selectCellIdleColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
-
-/** 浮窗与弹层顶边的高光描边，深浅色都压得很淡 */
-@Composable
-fun panelOutlineColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f)
-
-@Composable
-fun sheetPanelColor(): Color = panelColor(MiuixTheme.colorScheme.surfaceContainer)
-
-/** 抽屉里的卡片，浅色纯白、深色 #303030，动态取色跟随主题 */
-@Composable
-fun sheetCardColor(): Color =
-    when {
-        MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surfaceContainerHigh
-        isDarkTheme() -> Color(0xFF303030)
-        else -> Color.White
+        isDarkTheme() -> SurfaceDark
+        else -> SurfaceLight
     }
 
 @Composable
 fun pageWindowColor(): Color = panelColor(MiuixTheme.colorScheme.surface)
 
-/** 警告黄色 */
-private val WarningContentLight = Color(0xFF8A6100)
-private val WarningContentDark = Color(0xFFFFD27A)
-private val WarningContainerLight = Color(0xFFFFF3D6)
-private val WarningContainerDark = Color(0xFF3A2F13)
-
-/** 警告文字色 */
 @Composable
-fun warningColor(): Color = if (isDarkTheme()) WarningContentDark else WarningContentLight
+fun sheetPanelColor(): Color = panelColor(MiuixTheme.colorScheme.surfaceContainer)
 
-/** 警告底色 */
+/** 抽屉里的卡片，动态取色跟随主题 */
 @Composable
-fun warningContainerColor(): Color = if (isDarkTheme()) WarningContainerDark else WarningContainerLight
+fun sheetCardColor(): Color =
+    when {
+        MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surfaceContainerHigh
+        isDarkTheme() -> SurfaceRaisedDark
+        else -> Color.White
+    }
+
+@Composable
+fun panelOutlineColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.06f)
+
+/** 中性浅填充 */
+@Composable
+fun subtleFillColor(): Color = MiuixTheme.colorScheme.onSurface.copy(alpha = 0.08f)
+
+/** 默认蓝 */
+@Composable
+fun accentBlueColor(): Color = if (isDarkTheme()) AccentBlueDark else AccentBlueLight
+
+/** 警告黄 */
+@Composable
+fun warningColor(): Color = if (isDarkTheme()) WarningDark else WarningLight
+
+/** 成功绿 */
+fun successColor(): Color = Success
+
+/** 成功绿底色 */
+@Composable
+fun successContainerColor(): Color = if (isDarkTheme()) SuccessContainerDark else SuccessContainerLight
+
+/** 危险红 */
+@Composable
+fun dangerColor(): Color = if (isDarkTheme()) DangerDark else DangerLight
+
+/** 危险红底色 */
+@Composable
+fun dangerContainerColor(): Color = if (isDarkTheme()) DangerContainerDark else DangerContainerLight

@@ -8,8 +8,7 @@ import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.sizeLabel
 import com.hyperschedule.app.data.backup.title
 import com.hyperschedule.app.ui.component.ConfirmDialog
-import com.hyperschedule.app.ui.component.InfoCard
-import com.hyperschedule.app.ui.component.InfoCardType
+import com.hyperschedule.app.ui.component.Container
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
@@ -44,7 +43,7 @@ internal fun BackupFileSection(
 /** 恢复前的风险提示 */
 @Composable
 internal fun RestoreHint() {
-    InfoCard(text = "恢复会覆盖当前全部课表与设置，覆盖前会自动备份一次。", type = InfoCardType.Important)
+    Container(text = "恢复会覆盖当前全部课表与设置，覆盖前会自动备份一次。")
 }
 
 @Composable

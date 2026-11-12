@@ -35,6 +35,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.currentWeekOf
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.theme.PageBottomInset
+import com.hyperschedule.app.theme.subtleFillColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.DatePickerDialog
 import com.hyperschedule.app.ui.component.MarkHoliday
@@ -320,7 +321,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
             val accent = plan.workSwap
             val colors = MiuixTheme.colorScheme
             val chipColor =
-                if (accent) colors.primary.copy(alpha = 0.12f) else colors.onSurface.copy(alpha = 0.08f)
+                if (accent) colors.primary.copy(alpha = 0.12f) else subtleFillColor()
             Text(
                 text =
                     when {
