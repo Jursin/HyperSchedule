@@ -9,10 +9,14 @@ import androidx.annotation.Keep
 import com.hyperschedule.app.data.importer.TimeSlotJson
 import com.hyperschedule.app.data.importer.edu.EduImportJson
 import com.hyperschedule.app.data.repository.ScheduleRepository
+import com.hyperschedule.app.data.repository.importEduCombo
+import com.hyperschedule.app.data.repository.importEduConfig
+import com.hyperschedule.app.data.repository.importEduCourses
+import com.hyperschedule.app.data.repository.importEduTimeSlots
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 /** 教务脚本桥，对应页面里的 window.AndroidBridge，方法名与参数顺序是脚本契约 */

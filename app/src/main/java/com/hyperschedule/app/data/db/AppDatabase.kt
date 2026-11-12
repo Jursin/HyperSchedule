@@ -9,16 +9,16 @@ import com.hyperschedule.app.data.db.dao.CourseDao
 import com.hyperschedule.app.data.db.dao.CourseTableDao
 import com.hyperschedule.app.data.db.dao.TimeTableComboDao
 import com.hyperschedule.app.data.db.dao.TimeTableDao
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseTable
-import com.hyperschedule.app.data.model.CourseTableConfig
-import com.hyperschedule.app.data.model.CourseTimeBinding
-import com.hyperschedule.app.data.model.CourseWeek
-import com.hyperschedule.app.data.model.SpecialTimeBlock
-import com.hyperschedule.app.data.model.TimeSlot
-import com.hyperschedule.app.data.model.TimeTable
-import com.hyperschedule.app.data.model.TimeTableCombo
-import com.hyperschedule.app.data.model.TimeTableComboRule
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseTable
+import com.hyperschedule.app.data.db.entity.CourseTableConfig
+import com.hyperschedule.app.data.db.entity.CourseTimeBinding
+import com.hyperschedule.app.data.db.entity.CourseWeek
+import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
+import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.db.entity.TimeTable
+import com.hyperschedule.app.data.db.entity.TimeTableCombo
+import com.hyperschedule.app.data.db.entity.TimeTableComboRule
 
 @Database(
     entities = [

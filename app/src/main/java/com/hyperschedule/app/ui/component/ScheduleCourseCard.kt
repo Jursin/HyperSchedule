@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -31,10 +32,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.local.ScheduleStyle
 import com.hyperschedule.app.theme.BadgeFontSize
 import com.hyperschedule.app.theme.CourseTintAlpha
-import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColor
 import com.hyperschedule.app.ui.effect.cardSurface
@@ -80,12 +81,14 @@ fun ScheduleCourseCard(
 
     val showPosition = style.showPosition && course.position.isNotBlank()
     val showTeacher = style.showTeacher && course.teacher.isNotBlank()
-    // 卡片高度能放下几行就显示几行，超出省略
+    // 字号换算成高度要带上系统字体缩放
+    val fontScale = LocalDensity.current.fontScale
     val availableHeight =
         heightOverride.value - 2f * (style.cardMargin + style.cardPadding) - CardTextSlack
     val reservedForInfo =
-        ((if (showPosition) 1 else 0) + (if (showTeacher) 1 else 0)) * infoLineHeight.value
-    val nameMaxLines = ((availableHeight - reservedForInfo) / lineHeight.value).toInt().coerceAtLeast(1)
+        ((if (showPosition) 1 else 0) + (if (showTeacher) 1 else 0)) * infoLineHeight.value * fontScale
+    val nameMaxLines =
+        ((availableHeight - reservedForInfo) / (lineHeight.value * fontScale)).toInt().coerceAtLeast(1)
     val maxLines = nameMaxLines + (if (showPosition) 1 else 0) + (if (showTeacher) 1 else 0)
 
     // 卡片会随滚动/换页反复组合，文本只在内容或字号变化时重建
@@ -228,7 +231,7 @@ private fun rememberCourseCardColors(course: Course, isCurrentWeek: Boolean): Co
     val isDark = isDarkTheme()
     val tint = rememberCourseColor(course)
     val background = MiuixTheme.colorScheme.background
-    // 主题灰先合成为实色再压透明度，静态主题里 onSurface 是纯黑/纯白，直接 copy(alpha) 会丢掉色相变成发白的灰片，浅色用中灰做基色，深色用白色压到很低透明度
+    // 主题灰先合成为实色再压透明度，直接 copy(alpha) 会丢色相
     val neutralSource =
         when {
             MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.onSurfaceVariantActions

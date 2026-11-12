@@ -1,7 +1,7 @@
 package com.hyperschedule.app.data.backup
 
 import android.content.Context
-import com.hyperschedule.app.theme.SettingsStore
+import com.hyperschedule.app.data.local.SettingsStore
 import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex

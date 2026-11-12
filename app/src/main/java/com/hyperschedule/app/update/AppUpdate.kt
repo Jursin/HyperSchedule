@@ -83,7 +83,7 @@ object AppUpdate {
         }
     }
 
-    /** 预发布标识逐段比较，数字段按数值、字母段按字典序，数字段小于字母段，前缀相同则段数少者小 */
+    /** 预发布标识逐段比较，数字段按数值、字母段按字典序，数字段小于字母段 */
     private fun comparePrerelease(left: List<String>, right: List<String>): Int {
         for (index in 0 until minOf(left.size, right.size)) {
             val a = left[index].toIntOrNull()

@@ -9,58 +9,63 @@ import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.hyperschedule.app.data.WallpaperStore
 import com.hyperschedule.app.data.backup.BackupAuto
 import com.hyperschedule.app.data.backup.BackupRepository
 import com.hyperschedule.app.data.db.AppDatabase
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
 import com.hyperschedule.app.data.importer.edu.EduScriptRepository
 import com.hyperschedule.app.data.importer.edu.SchoolRepository
+import com.hyperschedule.app.data.local.SettingsStore
+import com.hyperschedule.app.data.local.WallpaperStore
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
+import com.hyperschedule.app.data.repository.deleteCombo
+import com.hyperschedule.app.data.repository.deletePublicSchedule
 import com.hyperschedule.app.reminder.ReminderScheduler
 import com.hyperschedule.app.reminder.ShizukuAccess
 import com.hyperschedule.app.theme.AppTheme
-import com.hyperschedule.app.theme.SettingsStore
 import com.hyperschedule.app.ui.navigation.MainScaffold
 import com.hyperschedule.app.ui.navigation.Page
-import com.hyperschedule.app.ui.page.AboutPage
-import com.hyperschedule.app.ui.page.BackupPage
-import com.hyperschedule.app.ui.page.ComboEditPage
-import com.hyperschedule.app.ui.page.CourseEditPage
-import com.hyperschedule.app.ui.page.CourseManagePage
-import com.hyperschedule.app.ui.page.CourseReminderPage
-import com.hyperschedule.app.ui.page.CourseTableManagePage
-import com.hyperschedule.app.ui.page.CourseWeeksPage
-import com.hyperschedule.app.ui.page.EduImportPage
-import com.hyperschedule.app.ui.page.EduImportWebPage
-import com.hyperschedule.app.ui.page.HolidayPage
-import com.hyperschedule.app.ui.page.ScheduleExportPage
-import com.hyperschedule.app.ui.page.ScheduleImportPage
-import com.hyperschedule.app.ui.page.SchedulePage
-import com.hyperschedule.app.ui.page.SettingsPage
-import com.hyperschedule.app.ui.page.ThemePage
-import com.hyperschedule.app.ui.page.TimeTableEditPage
-import com.hyperschedule.app.ui.page.TimeTableManagePage
-import com.hyperschedule.app.ui.page.TodayPage
-import com.hyperschedule.app.ui.page.UpdateDialogs
-import com.hyperschedule.app.ui.page.UpdateLogPage
-import com.hyperschedule.app.ui.page.UpdatePage
-import com.hyperschedule.app.ui.page.WallpaperCropPage
-import com.hyperschedule.app.ui.page.WearPushPage
-import com.hyperschedule.app.ui.rememberCourseTableData
-import com.hyperschedule.app.ui.rememberCoursesWithWeeks
-import com.hyperschedule.app.ui.rememberScheduleOverview
-import com.hyperschedule.app.ui.rememberTableSummaries
+import com.hyperschedule.app.ui.page.course.CourseEditPage
+import com.hyperschedule.app.ui.page.course.CourseManagePage
+import com.hyperschedule.app.ui.page.course.CourseReminderPage
+import com.hyperschedule.app.ui.page.course.CourseWeeksPage
+import com.hyperschedule.app.ui.page.schedule.SchedulePage
+import com.hyperschedule.app.ui.page.settings.AboutPage
+import com.hyperschedule.app.ui.page.settings.BackupPage
+import com.hyperschedule.app.ui.page.settings.HolidayPage
+import com.hyperschedule.app.ui.page.settings.SettingsPage
+import com.hyperschedule.app.ui.page.settings.ThemePage
+import com.hyperschedule.app.ui.page.settings.UpdateDialogs
+import com.hyperschedule.app.ui.page.settings.UpdateLogPage
+import com.hyperschedule.app.ui.page.settings.UpdatePage
+import com.hyperschedule.app.ui.page.settings.WallpaperCropPage
+import com.hyperschedule.app.ui.page.settings.WearPushPage
+import com.hyperschedule.app.ui.page.table.ComboEditPage
+import com.hyperschedule.app.ui.page.table.CourseTableManagePage
+import com.hyperschedule.app.ui.page.table.TimeTableEditPage
+import com.hyperschedule.app.ui.page.table.TimeTableManagePage
+import com.hyperschedule.app.ui.page.today.TodayPage
+import com.hyperschedule.app.ui.page.transfer.EduImportPage
+import com.hyperschedule.app.ui.page.transfer.EduImportWebPage
+import com.hyperschedule.app.ui.page.transfer.ScheduleExportPage
+import com.hyperschedule.app.ui.page.transfer.ScheduleImportPage
+import com.hyperschedule.app.ui.state.rememberCourseTableData
+import com.hyperschedule.app.ui.state.rememberCoursesWithWeeks
+import com.hyperschedule.app.ui.state.rememberScheduleOverview
+import com.hyperschedule.app.ui.state.rememberTableSummaries
 import com.hyperschedule.app.update.AppForeground
 import com.hyperschedule.app.update.UpdateController
-import kotlin.time.Duration.Companion.milliseconds
 import java.time.LocalDate
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -90,6 +95,8 @@ class MainActivity : ComponentActivity() {
             }
             val updateController = UpdateController.of(applicationContext)
             val lifecycleOwner = LocalLifecycleOwner.current
+            // 授权返回后补一次对账，已发通知才能升级为岛
+            var hadPrivilege by remember { mutableStateOf(ShizukuAccess.hasPermission) }
             DisposableEffect(lifecycleOwner) {
                 val observer =
                     LifecycleEventObserver { _, event ->
@@ -97,6 +104,11 @@ class MainActivity : ComponentActivity() {
                             Lifecycle.Event.ON_RESUME -> {
                                 AppForeground.resumed = true
                                 updateController.onAppResumed()
+                                val granted = ShizukuAccess.hasPermission
+                                if (granted && !hadPrivilege) {
+                                    ReminderScheduler.resync(applicationContext)
+                                }
+                                hadPrivilege = granted
                             }
 
                             Lifecycle.Event.ON_STOP -> AppForeground.resumed = false

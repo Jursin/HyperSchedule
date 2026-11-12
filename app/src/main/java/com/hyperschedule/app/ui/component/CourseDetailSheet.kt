@@ -27,8 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.SheetMaxHeight
@@ -161,18 +160,7 @@ private fun CourseDetailCard(item: CourseDetailItem, mark: String?, onEdit: () -
                             InfoField(InfoIconId.SECTION, "节次", course.sectionLabel()),
                         ),
                 )
-                val placeTeacherCredit =
-                    buildList {
-                        if (course.position.isNotBlank()) {
-                            add(InfoField(InfoIconId.POSITION, "地点", course.position))
-                        }
-                        if (course.teacher.isNotBlank()) {
-                            add(InfoField(InfoIconId.TEACHER, "教师", course.teacher))
-                        }
-                        course.credit?.let { credit ->
-                            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(credit)}学分".cjkDigitGap()))
-                        }
-                    }
+                val placeTeacherCredit = course.placeTeacherCredit()
                 if (placeTeacherCredit.isNotEmpty()) CourseInfoFields(fields = placeTeacherCredit)
                 course.remark?.takeIf { it.isNotBlank() }?.let { remark ->
                     Spacer(modifier = Modifier.height(2.dp))

@@ -1,6 +1,6 @@
 package com.hyperschedule.app.data.importer
 
-import com.hyperschedule.app.data.model.TimeSlot
+import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import com.hyperschedule.app.schedule.MAX_TOTAL_WEEKS
 import com.hyperschedule.app.schedule.currentWeekOf
@@ -29,7 +29,7 @@ object IcsImport {
         val startMonday = resolveStartMonday(events)
         val grouped = LinkedHashMap<LessonKey, MutableList<IcsEvent>>()
         events.forEach { event ->
-            // 描述里没有「第N周」时按开学周反推，早于开学的事件会落到第 0 周，下面一并过滤
+            // 没有「第N周」时按开学周反推，早于开学的事件落到第 0 周
             val week = event.week ?: currentWeekOf(startMonday, event.date)
             if (week !in 1..MAX_TOTAL_WEEKS) return@forEach
             val key =
@@ -175,7 +175,7 @@ object IcsImport {
         return result
     }
 
-    /** EXDATE，被排除的日期（假期、调休等），可能有多行，每行逗号分隔，可能只写日期，也可能带时刻 */
+    /** EXDATE，被排除的日期（假期、调休等），可多行、逗号分隔 */
     private fun excludedDates(properties: Map<String, List<Pair<String, String>>>): Set<LocalDate> =
         properties["EXDATE"].orEmpty().flatMap { (head, value) ->
             value.split(',').mapNotNull { token ->

@@ -1,6 +1,7 @@
 package com.hyperschedule.app.ui.component
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -13,21 +14,29 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.local.ScheduleStyle
 import com.hyperschedule.app.schedule.formatMinutes
 import com.hyperschedule.app.schedule.parseMinutes
-import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.theme.TimeLabelFontSize
+import java.time.LocalDateTime
+import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -159,20 +168,23 @@ private fun TimelineDayColumn(
             .groupBy { it.second.first }
             .forEach { (start, group) ->
                 val ranges = group.associate { it.first to it.second }
+                // 自定义时间可能落在作息范围外，先夹进轴内，避免压到星期行或溢出统计行
+                val top = axis.topOf(start).coerceIn(0.dp, (axis.height - MinCardHeight).coerceAtLeast(0.dp))
                 // 和网格视图同一套卡片行，左右留白一致
                 CourseCardRow(
                     items = group.map { it.first },
                     style = style,
                     heightOf = { item ->
                         val range = ranges.getValue(item)
-                        axis.heightOf(range.second - range.first).coerceAtLeast(MinCardHeight)
+                        axis.heightOf(range.second - range.first)
+                            .coerceIn(MinCardHeight, (axis.height - top).coerceAtLeast(MinCardHeight))
                     },
                     isCurrentWeek = { item -> item.active },
                     isHoliday = day.isHoliday,
                     isWorkSwap = day.isWorkSwap,
                     showBadge = { item -> item.hiddenCount > 0 },
                     onClick = { item -> onCourseClick(item.course, day) },
-                    modifier = Modifier.offset(y = axis.topOf(start)),
+                    modifier = Modifier.offset(y = top),
                 )
             }
         if (showNow) {
@@ -189,7 +201,7 @@ private fun TimelineDayColumn(
     }
 }
 
-/** 一节课在当天占的分钟区间，自定义时间课按自身起止，标准课按作息表；解析不出来就不上轴 */
+/** 一节课当天占的分钟区间，自定义时间按自身起止，标准课按作息表 */
 private fun minuteRangeOf(course: Course, sectionTimes: List<Pair<String, String>>): Pair<Int, Int>? {
     if (course.isCustomTime) {
         val start = parseMinutes(course.customStartTime) ?: return null
@@ -270,5 +282,36 @@ private fun DrawScope.drawDayLines(columns: Int, color: Color) {
         // 首列的线落在画布左缘，收半像素才不会被裁掉一半
         val x = (columnWidth * index).coerceIn(0.5f, size.width - 0.5f)
         drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+    }
+}
+
+/** 时间轴视图把当前时刻滚到屏幕中间 */
+@Composable
+internal fun ScrollToNowOnShow(
+    pageScroll: ScrollState,
+    sectionTimes: List<Pair<String, String>>,
+    timelineHourHeight: Int,
+    now: LocalDateTime,
+    topPadding: Dp,
+    pageIsCurrent: Boolean,
+    reselectTick: Int,
+) {
+    val density = LocalDensity.current
+    val axis = remember(sectionTimes, timelineHourHeight) {
+        buildTimelineAxis(sectionTimes, timelineHourHeight)
+    }
+    var wasCurrent by remember { mutableStateOf(pageIsCurrent) }
+    var handledTick by remember { mutableIntStateOf(reselectTick) }
+    LaunchedEffect(pageIsCurrent, reselectTick) {
+        val returning = pageIsCurrent && !wasCurrent
+        val tappedAgain = reselectTick != handledTick
+        wasCurrent = pageIsCurrent
+        handledTick = reselectTick
+        if (!pageIsCurrent || !(returning || tappedAgain)) return@LaunchedEffect
+        val viewport = pageScroll.viewportSize
+        val minute = now.hour * 60 + now.minute
+        if (viewport <= 0 || minute !in axis.startMinute until axis.endMinute) return@LaunchedEffect
+        val contentY = with(density) { topPadding.toPx() + axis.topOf(minute).toPx() }
+        pageScroll.animateScrollTo((contentY - viewport / 2f).roundToInt().coerceIn(0, pageScroll.maxValue))
     }
 }

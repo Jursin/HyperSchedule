@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
-import com.hyperschedule.app.data.model.TimeTableCombo
-import com.hyperschedule.app.data.model.TimeTableComboRule
+import com.hyperschedule.app.data.db.entity.TimeTableCombo
+import com.hyperschedule.app.data.db.entity.TimeTableComboRule
 import kotlinx.coroutines.flow.Flow
 
 private const val SQL_COMBO = "SELECT * FROM time_table_combos WHERE id = :id"

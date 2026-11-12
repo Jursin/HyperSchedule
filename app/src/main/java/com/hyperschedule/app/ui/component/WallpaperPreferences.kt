@@ -7,9 +7,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.hyperschedule.app.data.local.MAX_WALLPAPER_BLUR
+import com.hyperschedule.app.data.local.WALLPAPER_BLUR_STEP
 import com.hyperschedule.app.theme.CardItemPadding
-import com.hyperschedule.app.theme.MAX_WALLPAPER_BLUR
-import com.hyperschedule.app.theme.WALLPAPER_BLUR_STEP
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.basic.BasicComponent
 

@@ -11,7 +11,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlin.math.abs
 
-/** 格子多选手势，周次网格与星期行共用，点按切换按下那一格，按住拖过一串格子时按下格未选就整段选中、已选就整段取消，往回拖会跟着缩短 */
+/** 格子多选手势，单击切换起止格，按住滑动按起始格状态整段选中或取消 */
 @Composable
 internal fun Modifier.cellDragSelect(
     enabled: Boolean,

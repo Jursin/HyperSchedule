@@ -1,16 +1,16 @@
 package com.hyperschedule.app.data.backup
 
 import android.content.SharedPreferences
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseTable
-import com.hyperschedule.app.data.model.CourseTableConfig
-import com.hyperschedule.app.data.model.CourseTimeBinding
-import com.hyperschedule.app.data.model.CourseWeek
-import com.hyperschedule.app.data.model.SpecialTimeBlock
-import com.hyperschedule.app.data.model.TimeSlot
-import com.hyperschedule.app.data.model.TimeTable
-import com.hyperschedule.app.data.model.TimeTableCombo
-import com.hyperschedule.app.data.model.TimeTableComboRule
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseTable
+import com.hyperschedule.app.data.db.entity.CourseTableConfig
+import com.hyperschedule.app.data.db.entity.CourseTimeBinding
+import com.hyperschedule.app.data.db.entity.CourseWeek
+import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
+import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.db.entity.TimeTable
+import com.hyperschedule.app.data.db.entity.TimeTableCombo
+import com.hyperschedule.app.data.db.entity.TimeTableComboRule
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import kotlinx.serialization.Serializable
 
@@ -25,7 +25,6 @@ data class BackupPayload(
     val format: String,
     val formatVersion: Int,
     val appVersion: String = "",
-    val appVersionCode: Long = 0,
     val createdAt: String = "",
     val tables: List<TableRow> = emptyList(),
     val timeTables: List<TimeTableRow> = emptyList(),
@@ -37,7 +36,7 @@ data class BackupPayload(
     val courseCount: Int get() = tables.sumOf { it.courses.size }
 
     /** 指纹只看内容，不看时间与版本号 */
-    fun contentKey(): BackupPayload = copy(appVersion = "", appVersionCode = 0, createdAt = "")
+    fun contentKey(): BackupPayload = copy(appVersion = "", createdAt = "")
 }
 
 /** 课表 */

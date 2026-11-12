@@ -53,6 +53,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -180,7 +181,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
                             // 立刻消费，按下"今"按钮后手指横移不再翻动下层 pager
                             down.consume()
 
-                            // 容差 12dp，按住后小幅移动不算取消，避免误触
+                            // 容差 12dp，按住后小幅移动不算取消
                             val tolerance = 12.dp.toPx()
                             var inside = true
                             pressed = true
@@ -255,16 +256,22 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
     }
 }
 
+/** 宿主摆放按钮时离页面底边的距离 */
+val BackToNowHostInset = 48.dp
+
+/** 光晕外溢区 */
+private val BackToNowGlowPad = 48.dp
+
 private val BackToNowWidth = 80.dp
 private val BackToNowHeight = 44.dp
 private val BackToNowCornerRadius = 80.dp
 
+/** 页面底部为按钮预留的高度 */
+val BackToNowOccupiedHeight: Dp = BackToNowHostInset + BackToNowGlowPad + BackToNowHeight
+
 /** 按钮玻璃的模糊半径 */
 private const val BackToNowBlurRadius = 6f
 private val BackToNowGlowDy = 8.dp
-
-/** 光晕外溢区 = 40dp 模糊空间 + 8dp 下移 */
-private val BackToNowGlowPad = 48.dp
 
 /** 光晕模糊半径（半分辨率位图，换算成全尺寸 σ） */
 private const val BackToNowGlowBlurPx = 40f
@@ -275,7 +282,7 @@ private const val BackToNowPressScale = 0.9f
 private const val BackToNowPressStiffnessDown = 1755f
 private const val BackToNowPressStiffnessUp = 439f
 
-/** 预渲染光晕位图，画下移 [dy] 的胶囊再模糊并用 DST_OUT 挖掉按钮区域，必须用软件 Canvas，硬件 Canvas 不支持 BlurMaskFilter */
+/** 预渲染光晕位图，模糊后挖掉按钮区域，需软件 Canvas */
 private fun buildGlowBitmap(
     btnW: Int,
     btnH: Int,
@@ -322,7 +329,7 @@ val LocalBackToNowHost = compositionLocalOf<BackToNowHostState?> { null }
 /** 当前内容所属的 tab 页码（即 MainScaffold 传入的 page） */
 val LocalTabPageIndex = compositionLocalOf { -1 }
 
-/** 把本页的「今」按钮状态挂到跨页共享的宿主上，[visible] 须是 remember 出来的稳定 State */
+/** 把本页的「今」按钮状态挂到跨页宿主上，[visible] 须是稳定的 State */
 @Composable
 fun ProvideBackToNow(visible: State<Boolean>, onClick: () -> Unit) {
     val host = LocalBackToNowHost.current ?: return

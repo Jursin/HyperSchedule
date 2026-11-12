@@ -3,11 +3,15 @@ package com.hyperschedule.app.ui.component
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,6 +21,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
 import kotlin.math.abs
 import kotlin.math.min
 
@@ -25,6 +30,12 @@ private val MaxStretch = 40.dp
 private const val StretchTracking = 0.3f
 
 private const val MinTrackingRatio = 0.08f
+
+/** 惯性撞边那一帧的余力折算成拉伸的比例 */
+private const val FlingStretchRatio = 0.8f
+
+/** 惯性撞边至少拉伸比例 */
+private const val FlingMinStretch = 0.6f
 
 @Stable
 class StretchOverscrollState(
@@ -62,7 +73,15 @@ class StretchOverscrollState(
             }
         }
 
-    /** 反向拖动时先收掉已有的拉伸，返回被吃掉的位移，同向（还在继续拉）时返回 null */
+    fun flingBy(remainder: Float) {
+        val dir = if (remainder > 0f) -1f else 1f
+        // 同向已经拉着就不再叠加，避免一段惯性反复顶
+        if (stretchPx * dir > 0f) return
+        val pull = (abs(remainder) * FlingStretchRatio).coerceAtLeast(maxStretchPx * FlingMinStretch)
+        stretchPx = pull.coerceAtMost(maxStretchPx) * dir
+    }
+
+    /** 反向拖动先收掉已有拉伸并返回被吃掉的位移，同向返回 null */
     private fun shrink(delta: Float): Offset? {
         if (delta == 0f || stretchPx == 0f) return null
         val dir = if (delta > 0f) 1f else -1f
@@ -100,7 +119,49 @@ fun Modifier.stretchOverscroll(state: StretchOverscrollState): Modifier =
     graphicsLayer {
         val extra = state.stretchPx
         val height = size.height
-        // 两个属性每次都写，图层会沿用上一次的值，只写一半会把拉伸留在身上
         transformOrigin = TransformOrigin(0.5f, if (extra < 0f) 1f else 0f)
         scaleY = if (extra != 0f && height > 0f) (height + abs(extra)) / height else 1f
     }
+
+/** 惯性沿用系统实现，只在真实位置不再前进时收尾，余量交给拉伸 */
+private class StretchFlingBehavior(
+    private val delegate: FlingBehavior,
+    private val stretch: StretchOverscrollState,
+    private val position: () -> Int,
+) : FlingBehavior {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+        val outer = this
+        val start = position()
+        var requested = 0f
+        var prevMoved = 0f
+        val probe =
+            object : ScrollScope {
+                override fun scrollBy(pixels: Float): Float {
+                    val consumed = outer.scrollBy(pixels)
+                    requested += pixels
+                    val total = (position() - start).toFloat()
+                    // 累积差越过取整误差的量级，说明已经滚到头
+                    if (abs(requested - total) > 2f) {
+                        stretch.flingBy(pixels - (total - prevMoved))
+                        // 默认实现内部会接住这个取消，当场结束这段衰减
+                        throw CancellationException("fling reached edge")
+                    }
+                    prevMoved = total
+                    return consumed
+                }
+            }
+        return with(delegate) { probe.performFling(initialVelocity) }
+    }
+}
+
+@Composable
+fun rememberStretchFling(
+    stretch: StretchOverscrollState,
+    position: () -> Int,
+): FlingBehavior {
+    val base = ScrollableDefaults.flingBehavior()
+    val latest = rememberUpdatedState(position)
+    return remember(base, stretch) {
+        StretchFlingBehavior(base, stretch) { latest.value() }
+    }
+}

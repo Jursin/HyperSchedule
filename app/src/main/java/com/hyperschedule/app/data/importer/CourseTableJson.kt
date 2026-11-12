@@ -6,7 +6,7 @@ import com.hyperschedule.app.schedule.parseMinutes
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-/** 课程表单表导出 JSON，courses 必填，timeSlots/config/comboSchedule 可缺省，其余字段解析时忽略 */
+/** 课程表单表导出 JSON，courses 必填，其余字段可缺省 */
 @Serializable
 data class CourseTableJson(
     val courses: List<CourseJson> = emptyList(),
@@ -91,7 +91,7 @@ private val TimePattern = Regex("(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]")
 
 internal fun String.normalizePosition(): String = trim().trimStart('@').trim()
 
-/** 导入前的结构校验，不合法直接抛 [IllegalArgumentException]，由调用方把 message 提示给用户并整个文件拒绝 */
+/** 导入前校验结构，不合法抛 [IllegalArgumentException] */
 fun CourseTableJson.requireValidForImport() {
     courses.forEach {
         it.requireValidPlacement()

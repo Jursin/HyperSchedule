@@ -1,9 +1,9 @@
 package com.hyperschedule.app.data.exporter
 
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.model.HolidayEntry
-import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.schedule.HolidayPlan
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.schedule.weekDatesOf
@@ -19,7 +19,7 @@ private val IcsLocalFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
 private val IcsStampFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
 private val IcsDayFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
-/** 逐周展开成 VEVENT，放假那天不写，节次时间取当天生效的作息，[alarmMinutes] 为空时不加提醒 */
+/** 逐周展开为 VEVENT，放假不写，[alarmMinutes] 为空不加提醒 */
 fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: Int?): String {
     val startDate = data.startDate ?: error("请先在课表设置里填写开学日期")
     val lastWeek = data.lastWeek
@@ -42,10 +42,12 @@ fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: I
         for (week in 1..lastWeek) {
             val dates = weekDatesOf(startDate, week)
             for (day in 1..7) {
-                if (plan.of(week, day).holiday) continue
+                val cell = plan.of(week, day)
+                if (cell.holiday) continue
                 val date = dates[day - 1]
                 val slots = data.slotsFor(date).associateBy { it.number }
-                coursesByCell[week * 10 + day].orEmpty()
+                // 补课列画的是被调那一天的课，跨周调课时连周次一起换
+                coursesByCell[cell.weekOr(week) * 10 + cell.dayOr(day)].orEmpty()
                     .mapNotNull { entry -> entry.course.timeSpanOn(date, slots)?.let { entry.course to it } }
                     // 同一天按实际上课时刻排
                     .sortedBy { it.second.first }

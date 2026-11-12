@@ -32,10 +32,10 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.local.ScheduleStyle
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.theme.CourseTintAlpha
-import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.ui.effect.cardSurface
 import com.hyperschedule.app.ui.effect.wallpaperVisible
 import top.yukonga.miuix.kmp.basic.Card

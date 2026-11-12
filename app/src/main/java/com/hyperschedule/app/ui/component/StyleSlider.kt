@@ -36,7 +36,7 @@ internal fun StyleSlider(
     onValueChangeFinished: () -> Unit,
 ) {
     val haptic = LocalHapticFeedback.current
-    // 手势协程按 valueRange/steps 重启，回调用 rememberUpdatedState 取最新值，避免点到旧样式
+    // 手势协程按 valueRange/steps 重启，回调用 rememberUpdatedState 取最新值
     val currentOnValueChange = rememberUpdatedState(onValueChange)
     val currentOnFinished = rememberUpdatedState(onValueChangeFinished)
     BasicComponent(

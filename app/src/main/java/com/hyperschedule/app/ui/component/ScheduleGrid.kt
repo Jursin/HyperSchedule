@@ -108,7 +108,7 @@ internal fun WeekdayRow(
     }
 }
 
-/** 左侧节次列，序号 + 起止时间三行，特殊节次只显示起止时间，当前节次整列跟随主题色 */
+/** 左侧节次列，特殊节次只显示起止时间，当前节次跟随主题色 */
 @Composable
 internal fun SectionTimesColumn(
     layout: ScheduleLayout,

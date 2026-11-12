@@ -107,10 +107,9 @@ private fun Modifier.bakeSignal(baked: Any?): Modifier = this then BakeSignalEle
 private class BakeSignalElement(
     private val baked: Any?,
 ) : ModifierNodeElement<BakeSignalNode>() {
-    override fun create(): BakeSignalNode = BakeSignalNode(baked)
+    override fun create(): BakeSignalNode = BakeSignalNode()
 
     override fun update(node: BakeSignalNode) {
-        node.token = baked
         node.invalidateDraw()
     }
 
@@ -123,8 +122,6 @@ private class BakeSignalElement(
     override fun hashCode(): Int = System.identityHashCode(baked)
 }
 
-private class BakeSignalNode(
-    var token: Any?,
-) : Modifier.Node(), DrawModifierNode {
+private class BakeSignalNode : Modifier.Node(), DrawModifierNode {
     override fun ContentDrawScope.draw() = drawContent()
 }

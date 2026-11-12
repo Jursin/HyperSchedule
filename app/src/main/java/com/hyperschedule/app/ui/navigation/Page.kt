@@ -26,7 +26,7 @@ sealed class Page : NavKey {
     /** 课程管理，按课名聚合所有时段 */
     @Serializable data object CourseManage : Page()
 
-    /** 课程编辑（同名课程所有时段），name 为空表示新建，day/startSection/endSection 用于预填第一张卡 */
+    /** 课程编辑，name 为空表示新建，day/startSection/endSection 预填第一张卡 */
     @Serializable
     data class CourseEdit(
         val name: String,

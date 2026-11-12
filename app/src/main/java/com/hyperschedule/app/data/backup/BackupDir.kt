@@ -13,7 +13,7 @@ data class BackupEntry(
     val size: Long,
 )
 
-/** 备份文件的存放位置，只走 SAF，文件写进所选目录下的 [BACKUP_FOLDER] 子目录 */
+/** 备份文件位置，只走 SAF，写进所选目录的 [BACKUP_FOLDER] 子目录 */
 interface BackupDir {
     /** 展示给用户的位置说明 */
     val label: String

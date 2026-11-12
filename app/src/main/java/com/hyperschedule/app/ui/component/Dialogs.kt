@@ -1,5 +1,8 @@
 package com.hyperschedule.app.ui.component
 
+import android.content.Context
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -362,4 +365,29 @@ private fun DialogTitleRow(
         }
         Box(modifier = Modifier.align(Alignment.CenterEnd)) { action() }
     }
+}
+
+/** 短提示，[long] 为真时用长时长 */
+fun Context.toast(text: String, long: Boolean = false) =
+    Toast.makeText(this, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+
+/** 编辑页返回守卫，有未保存改动时先确认放弃，返回顶栏与返回键共用的回调 */
+@Composable
+fun rememberEditBackGuard(dirty: Boolean, appBlur: Boolean, onBack: () -> Unit): () -> Unit {
+    var discardDialog by remember { mutableStateOf(false) }
+    val requestBack: () -> Unit = {
+        if (dirty) discardDialog = true else onBack()
+    }
+    BackHandler(enabled = dirty) { discardDialog = true }
+    if (discardDialog) {
+        DiscardChangesDialog(
+            appBlur = appBlur,
+            onDismiss = { discardDialog = false },
+            onDiscard = {
+                discardDialog = false
+                onBack()
+            },
+        )
+    }
+    return requestBack
 }

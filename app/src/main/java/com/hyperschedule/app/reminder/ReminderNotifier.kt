@@ -34,18 +34,13 @@ internal object ReminderNotifier {
     private val lastPosted = ConcurrentHashMap<Int, String>()
 
     fun ensureChannels(context: Context) {
-        val manager = notificationManager(context) ?: return
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL_LIVE, "实时动态", NotificationManager.IMPORTANCE_DEFAULT).apply {
-                description = "课前与课中常驻显示倒计时"
-                setSound(null, null)
-                enableVibration(false)
-                enableLights(false)
-                setShowBadge(false)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                // 上课自动勿扰打开后，用户特意开的提醒不能跟着被一起挡掉
-                setBypassDnd(true)
-            },
+        ensureNotificationChannel(
+            context = context,
+            id = CHANNEL_LIVE,
+            name = "实时动态",
+            importance = NotificationManager.IMPORTANCE_DEFAULT,
+            description = "课前与课中常驻显示倒计时",
+            configure = { asLiveCountdown() },
         )
     }
 
@@ -232,3 +227,32 @@ internal fun openApp(context: Context): PendingIntent {
 
 internal fun notificationManager(context: Context): NotificationManager? =
     context.getSystemService(NotificationManager::class.java)
+
+/** 建 NotificationChannel，同名已存在时以新属性覆盖，[configure] 补场景属性 */
+internal fun ensureNotificationChannel(
+    context: Context,
+    id: String,
+    name: String,
+    importance: Int,
+    description: String,
+    configure: NotificationChannel.() -> Unit = {},
+) {
+    val manager = notificationManager(context) ?: return
+    manager.createNotificationChannel(
+        NotificationChannel(id, name, importance).apply {
+            this.description = description
+            configure()
+        },
+    )
+}
+
+/** 常驻倒计时的公共属性：无声、无振动、无角标，锁屏可见且不被勿扰挡掉 */
+internal fun NotificationChannel.asLiveCountdown() {
+    setSound(null, null)
+    enableVibration(false)
+    enableLights(false)
+    setShowBadge(false)
+    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+    // 用户单独开的提醒不受自动勿扰影响
+    setBypassDnd(true)
+}

@@ -22,6 +22,7 @@ import androidx.compose.ui.node.DrawModifierNode
 import androidx.compose.ui.node.ModifierNodeElement
 import androidx.compose.ui.node.invalidateDraw
 import kotlin.math.floor
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -30,7 +31,6 @@ import top.yukonga.miuix.kmp.blur.RuntimeShader
 import top.yukonga.miuix.kmp.blur.asBrush
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import kotlin.time.Duration.Companion.milliseconds
 
 internal const val OS3_BG_FRAG =
     """

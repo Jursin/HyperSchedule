@@ -13,11 +13,12 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.Density
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.DragVisual
 import com.hyperschedule.app.ui.component.ScheduleLayout
+import com.hyperschedule.app.ui.component.overlappedSections
 import java.util.UUID
 import kotlin.math.floor
 
@@ -55,12 +56,13 @@ internal data class DragSession(
     val released: Boolean = false,
 )
 
-/** 落点冲突，等用户选覆盖还是交换 */
+/** 落点冲突，等用户选覆盖还是交换；换过去会超出节次数时不提供交换 */
 internal data class PendingConflict(
     val week: Int,
     val session: DragSession,
     val moved: Course,
     val conflicts: List<CourseWithWeeks>,
+    val canSwap: Boolean,
 )
 
 private fun Course.sectionRange(): IntRange {
@@ -71,8 +73,17 @@ private fun Course.sectionRange(): IntRange {
 private fun IntRange.overlaps(other: IntRange): Boolean =
     !isEmpty() && !other.isEmpty() && first <= other.last && other.first <= last
 
+/** 这门课是否占用了 [range] 里的节次，自定义时间课按时间重叠算 */
+private fun Course.occupies(range: IntRange, sectionTimes: List<Pair<String, String>>): Boolean =
+    if (isCustomTime) {
+        overlappedSections(this, sectionTimes).any { it in range }
+    } else {
+        sectionRange().overlaps(range)
+    }
+
 internal class ScheduleEditor(
-    private val layout: ScheduleLayout,
+    private val layoutOf: () -> ScheduleLayout,
+    private val sectionTimesOf: () -> List<Pair<String, String>>,
     private val density: Density,
     private val haptic: HapticFeedback,
     // 目标列是不是补课列
@@ -131,9 +142,9 @@ internal class ScheduleEditor(
         val cardOrigin =
             Offset(
                 grid.left + (course.day - 1) * columnWidth,
-                grid.top + with(density) { layout.topOf(range.first).toPx() },
+                grid.top + with(density) { layoutOf().topOf(range.first).toPx() },
             )
-        val pressedSection = with(density) { layout.sectionAt((rootPosition.y - grid.top).toDp()) }
+        val pressedSection = with(density) { layoutOf().sectionAt((rootPosition.y - grid.top).toDp()) }
         fingerState.value = rootPosition
         drag =
             DragSession(
@@ -157,12 +168,12 @@ internal class ScheduleEditor(
         val range = course.sectionRange()
         val columnWidth = grid.width / DAY_NAMES.size
         val day = floor((finger.x - grid.left) / columnWidth).toInt() + 1
-        val section = with(density) { layout.sectionAt((finger.y - grid.top).toDp()) }
+        val section = with(density) { layoutOf().sectionAt((finger.y - grid.top).toDp()) }
         // 按抓取那一节的差量整体平移
         val delta = section - grabSection
         val start = range.first + delta
         val end = range.last + delta
-        val valid = start >= 1 && end <= layout.sectionCount
+        val valid = start >= 1 && end <= layoutOf().sectionCount
         return copy(
             // 横向超出网格贴最近一列，边缘翻周才有落点
             targetDay = if (valid) day.coerceIn(1, DAY_NAMES.size) else 0,
@@ -231,21 +242,28 @@ internal class ScheduleEditor(
             writeMove(session, week, moved, mergeTarget, emptyList())
             return
         }
-        // 只在目标这一周里判冲突
+        // 只在目标这一周里判冲突，自定义时间课按时间重叠算
+        val sectionTimes = sectionTimesOf()
         val conflicts =
             allCourses.filter { item ->
                 item.course.id != old.id &&
                     item.course.day == moved.day &&
-                    !item.course.isCustomTime &&
                     item.weeks.any { it.weekNumber == week } &&
-                    item.course.sectionRange().overlaps(newRange)
+                    item.course.occupies(newRange, sectionTimes)
             }
         if (conflicts.isEmpty()) {
             writeMove(session, week, moved, null, emptyList())
         } else {
             // 弹窗期间网格保持原样
             clearGhost()
-            conflict = PendingConflict(week, session, moved, conflicts)
+            val other = conflicts.singleOrNull()?.course
+            val otherRange = other?.sectionRange() ?: IntRange.EMPTY
+            // 换过去的那门课占回本课原来的位置并保持自己的节数，放不下就只能覆盖或取消
+            val canSwap =
+                old.startSection != null &&
+                    !otherRange.isEmpty() &&
+                    old.startSection + (otherRange.last - otherRange.first) <= layoutOf().sectionCount
+            conflict = PendingConflict(week, session, moved, conflicts, canSwap)
         }
     }
 
@@ -274,11 +292,14 @@ internal class ScheduleEditor(
         val grid = session.gridNow()
         val columnWidth = grid.width / DAY_NAMES.size
         val range = session.course.sectionRange()
+        // 预览按落点算高度，长短节混排时才对得上真正落下的卡片
+        val previewFirst = if (session.targetStart > 0) session.targetStart else range.first
+        val previewLast = previewFirst + (range.last - range.first)
         val previewOrigin =
             if (session.targetDay > 0) {
                 Offset(
                     grid.left + (session.targetDay - 1) * columnWidth,
-                    grid.top + with(density) { layout.topOf(session.targetStart).toPx() },
+                    grid.top + with(density) { layoutOf().topOf(previewFirst).toPx() },
                 ) - layerOrigin
             } else {
                 null
@@ -287,7 +308,7 @@ internal class ScheduleEditor(
             course = session.course,
             previewOrigin = previewOrigin,
             width = with(density) { columnWidth.toDp() },
-            height = layout.heightOf(range.first, range.last),
+            height = layoutOf().heightOf(previewFirst, previewLast),
         )
     }
 
@@ -312,7 +333,7 @@ internal class ScheduleEditor(
 
     fun swapConflict() {
         val pending = conflict ?: return
-        pending.conflicts.singleOrNull()?.let { other -> commitSwap(pending, other) }
+        if (pending.canSwap) pending.conflicts.singleOrNull()?.let { other -> commitSwap(pending, other) }
         conflict = null
     }
 
@@ -387,6 +408,7 @@ internal class ScheduleEditor(
         val targetWeek = pending.week
         val moved = pending.moved
         val old = session.course
+        val targetStart = old.startSection ?: return
         val oldWeeks = session.weeks
         val restWeeks = oldWeeks.filter { it != session.week }
         val movedId = if (restWeeks.isEmpty()) old.id else UUID.randomUUID().toString()
@@ -400,8 +422,8 @@ internal class ScheduleEditor(
             otherOld.copy(
                 id = otherId,
                 day = old.day,
-                startSection = old.startSection,
-                endSection = old.startSection?.let { it + (otherRange.last - otherRange.first) },
+                startSection = targetStart,
+                endSection = targetStart + (otherRange.last - otherRange.first),
             )
 
         val forwardRows = mutableListOf<CourseRow>()
@@ -426,10 +448,11 @@ internal class ScheduleEditor(
     private fun weekOfPage(page: Int): Int = page - EdgePages + 1
 }
 
-/** 拖动与撤销状态 */
+/** 拖动与撤销状态，几何与作息改动只更新引用，免得撤销历史被外观调整清掉 */
 @Composable
 internal fun rememberScheduleEditor(
     layout: ScheduleLayout,
+    sectionTimes: List<Pair<String, String>>,
     isRemapped: (week: Int, day: Int) -> Boolean,
     onSave: (deletedIds: List<String>, rows: List<Pair<Course, List<Int>>>) -> Unit,
 ): ScheduleEditor {
@@ -437,9 +460,12 @@ internal fun rememberScheduleEditor(
     val haptic = LocalHapticFeedback.current
     val saveState = rememberUpdatedState(onSave)
     val remapState = rememberUpdatedState(isRemapped)
-    return remember(layout, density, haptic) {
+    val layoutState = rememberUpdatedState(layout)
+    val sectionTimesState = rememberUpdatedState(sectionTimes)
+    return remember(density, haptic) {
         ScheduleEditor(
-            layout = layout,
+            layoutOf = { layoutState.value },
+            sectionTimesOf = { sectionTimesState.value },
             density = density,
             haptic = haptic,
             isRemapped = { week, day -> remapState.value(week, day) },

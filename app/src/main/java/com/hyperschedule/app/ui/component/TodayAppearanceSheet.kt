@@ -2,7 +2,7 @@ package com.hyperschedule.app.ui.component
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import com.hyperschedule.app.theme.TodayStyle
+import com.hyperschedule.app.data.local.TodayStyle
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 

@@ -51,8 +51,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.PanelCorner
+import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.SheetLargeMaxWidth
 import com.hyperschedule.app.theme.ShortSheetMaxHeight

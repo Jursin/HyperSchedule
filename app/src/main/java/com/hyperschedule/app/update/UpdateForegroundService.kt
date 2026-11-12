@@ -1,7 +1,6 @@
 package com.hyperschedule.app.update
 
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
@@ -16,6 +15,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import com.hyperschedule.app.R
+import com.hyperschedule.app.reminder.ensureNotificationChannel
 import com.hyperschedule.app.reminder.notificationManager
 import com.hyperschedule.app.reminder.openApp
 
@@ -87,13 +87,14 @@ internal object UpdateNotification {
 
     private fun ensureChannel(context: Context) {
         if (channelReady) return
-        val manager = notificationManager(context) ?: return
-        if (manager.getNotificationChannel(CHANNEL) == null) {
-            manager.createNotificationChannel(
-                NotificationChannel(CHANNEL, "应用更新", NotificationManager.IMPORTANCE_LOW).apply {
-                    description = "下载更新期间显示下载进度"
-                    setShowBadge(false)
-                },
+        if (notificationManager(context)?.getNotificationChannel(CHANNEL) == null) {
+            ensureNotificationChannel(
+                context = context,
+                id = CHANNEL,
+                name = "应用更新",
+                importance = NotificationManager.IMPORTANCE_LOW,
+                description = "下载更新期间显示下载进度",
+                configure = { setShowBadge(false) },
             )
         }
         channelReady = true

@@ -2,7 +2,6 @@ package com.hyperschedule.app.reminder
 
 import android.annotation.SuppressLint
 import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import android.graphics.drawable.Icon
@@ -258,7 +257,7 @@ internal object SuperIsland {
             .coerceIn(60L, ISLAND_TIMEOUT_MAX_SECONDS.toLong())
             .toInt()
 
-    /** 发岛，断网绕开系统校验后再 notify；只有真的发出去且绕过校验才算成功，否则调用方要退回普通通知 */
+    /** 发岛，断网绕开系统校验后再 notify，失败时调用方退回普通通知 */
     private fun post(
         context: Context,
         id: Int,
@@ -280,7 +279,7 @@ internal object SuperIsland {
                 .setContentIntent(openApp(context))
                 .setOnlyAlertOnce(true)
                 .setVisibility(Notification.VISIBILITY_PUBLIC)
-                // 不设 category，系统按 miui.focus.param 自己排版，多给一个分类反而会被分到别的渲染分支
+                // 不设 category，系统按 miui.focus.param 自行排版
                 .addExtras(
                     Bundle().apply {
                         putBundle(
@@ -318,18 +317,13 @@ internal object SuperIsland {
     }
 
     private fun ensureChannel(context: Context) {
-        val manager = notificationManager(context) ?: return
-        manager.createNotificationChannel(
-            NotificationChannel(CHANNEL, "超级岛", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "课前与课中常驻显示倒计时"
-                setSound(null, null)
-                enableVibration(false)
-                enableLights(false)
-                setShowBadge(false)
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                // 上课自动勿扰打开后，用户特意开的提醒不能跟着被一起挡掉
-                setBypassDnd(true)
-            },
+        ensureNotificationChannel(
+            context = context,
+            id = CHANNEL,
+            name = "超级岛",
+            importance = NotificationManager.IMPORTANCE_HIGH,
+            description = "课前与课中常驻显示倒计时",
+            configure = { asLiveCountdown() },
         )
     }
 }

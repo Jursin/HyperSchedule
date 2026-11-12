@@ -23,8 +23,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,11 +34,11 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.theme.WidePageContentInset
-import com.hyperschedule.app.theme.panelOutlineColor
 import com.hyperschedule.app.theme.PanelCorner
+import com.hyperschedule.app.theme.WidePageContentInset
 import com.hyperschedule.app.theme.WidePageMaxWidth
 import com.hyperschedule.app.theme.pageWindowColor
+import com.hyperschedule.app.theme.panelOutlineColor
 import com.hyperschedule.app.theme.widePageHeight
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 

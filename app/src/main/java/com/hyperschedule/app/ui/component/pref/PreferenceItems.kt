@@ -22,11 +22,11 @@ import top.yukonga.miuix.kmp.basic.SwitchDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.basic.ArrowRight
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.ArrowPreference as MiuixArrowPreference
 import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference as MiuixOverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference as MiuixSwitchPreference
 import top.yukonga.miuix.kmp.preference.WindowDropdownPreference as MiuixWindowDropdownPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 设置条目，参数与上游同名组件一致，只把默认 insideMargin 换成 [CardItemPadding] */
 @Composable

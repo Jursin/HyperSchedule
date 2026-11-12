@@ -18,22 +18,22 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.R
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.TimeSlot
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.schedule.cjkDigitGap
+import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.File
 import top.yukonga.miuix.kmp.icon.extended.Years
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import java.time.LocalTime
 
 /** 课程信息行的字段图标 id */
 internal object InfoIconId {
@@ -171,6 +171,20 @@ internal fun formatWeeks(weeks: List<Int>): String {
 /** 学分显示，整数不带小数点 */
 internal fun formatCredit(value: Float): String =
     if (value % 1f == 0f) value.toInt().toString() else value.toString()
+
+/** 地点、教师、学分三行，各页按需开关，空值不占位 */
+internal fun Course.placeTeacherCredit(
+    showPosition: Boolean = true,
+    showTeacher: Boolean = true,
+    showCredit: Boolean = true,
+): List<InfoField> =
+    buildList {
+        if (showPosition && position.isNotBlank()) add(InfoField(InfoIconId.POSITION, "地点", position))
+        if (showTeacher && teacher.isNotBlank()) add(InfoField(InfoIconId.TEACHER, "教师", teacher))
+        credit?.takeIf { showCredit }?.let {
+            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(it)}学分".cjkDigitGap()))
+        }
+    }
 
 internal val DAY_NAMES = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 

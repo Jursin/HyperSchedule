@@ -4,12 +4,11 @@ import android.content.Context
 import androidx.core.content.edit
 import androidx.room.withTransaction
 import com.hyperschedule.app.data.db.AppDatabase
+import com.hyperschedule.app.data.db.entity.CourseTimeBinding
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
-import com.hyperschedule.app.data.model.CourseTimeBinding
+import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.getAppVersion
-import com.hyperschedule.app.getAppVersionCode
-import com.hyperschedule.app.theme.SettingsStore
 import java.io.IOException
 import java.security.MessageDigest
 import java.time.LocalDateTime
@@ -97,7 +96,6 @@ class BackupRepository(
                 format = BACKUP_FORMAT,
                 formatVersion = BACKUP_FORMAT_VERSION,
                 appVersion = getAppVersion(appContext),
-                appVersionCode = getAppVersionCode(appContext).toLongOrNull() ?: 0L,
                 createdAt = LocalDateTime.now().format(isoFormatter),
                 tables =
                     dao.tables().map { table ->
@@ -152,9 +150,10 @@ class BackupRepository(
     /** 写一份备份并按保留份数清理，返回文件名 */
     suspend fun save(dir: BackupDir, payload: BackupPayload, keep: Int): String =
         withContext(Dispatchers.IO) {
+            val retained = keep.coerceAtLeast(1)
             val name = fileName(payload)
             dir.write(name, encode(payload))
-            prune(dir, keep)
+            prune(dir, retained)
             name
         }
 
@@ -175,9 +174,11 @@ class BackupRepository(
             parse(text)
         }
 
-    fun delete(dir: BackupDir, name: String) {
-        runCatching { dir.delete(name) }
-    }
+    suspend fun delete(dir: BackupDir, name: String) =
+        withContext(Dispatchers.IO) {
+            runCatching { dir.delete(name) }
+                .getOrElse { throw BackupException("删除备份失败：${it.message ?: "无法访问存储目录"}") }
+        }
 
     /** 换目录时搬运备份，先写新的再删旧的 */
     suspend fun migrate(from: BackupDir, to: BackupDir, keep: Int): Int =
@@ -205,10 +206,19 @@ class BackupRepository(
         keep: Int,
         existing: List<BackupFile>,
     ): String {
+        val retained = keep.coerceAtLeast(1)
         val name = fileName(payload)
         client.upload(name, encode(payload))
         // 新文件最新，旧列表留 keep-1 份就够
-        existing.drop(keep - 1).forEach { runCatching { client.delete(it.name) } }
+        val failures =
+            existing
+                .drop((retained - 1).coerceAtLeast(0))
+                .mapNotNull { file ->
+                    runCatching { client.delete(file.name) }.exceptionOrNull()?.let { file.name to it }
+                }
+        if (failures.isNotEmpty()) {
+            throw BackupException("备份已上传，但清理旧备份失败：${failures.joinToString { it.first }}")
+        }
         return name
     }
 
@@ -315,11 +325,17 @@ class BackupRepository(
 
     /** 只删本应用命名的文件，目录里的其它东西一概不碰 */
     private fun prune(dir: BackupDir, keep: Int) {
-        dir.list()
+        val failures =
+            dir.list()
             .filter { BACKUP_FILE_NAME.matches(it.name) }
             .sortedByDescending { it.name }
-            .drop(keep)
-            .forEach { runCatching { dir.delete(it.name) } }
+            .drop(keep.coerceAtLeast(1))
+            .mapNotNull { entry ->
+                runCatching { dir.delete(entry.name) }.exceptionOrNull()?.let { entry.name to it }
+            }
+        if (failures.isNotEmpty()) {
+            throw BackupException("备份已保存，但清理旧备份失败：${failures.joinToString { it.first }}")
+        }
     }
 
     private fun sha256(text: String): String {

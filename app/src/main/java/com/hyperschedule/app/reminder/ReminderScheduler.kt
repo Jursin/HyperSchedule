@@ -4,10 +4,12 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.content.edit
-import com.hyperschedule.app.theme.ReminderSettings
+import com.hyperschedule.app.data.local.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -18,7 +20,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlin.time.Duration.Companion.milliseconds
 
 internal object ReminderScheduler {
 
@@ -48,7 +49,7 @@ internal object ReminderScheduler {
     private const val ROLLOVER_HOUR = 0
     private const val ROLLOVER_MINUTE = 5
 
-    /** 对账间隔：allow-while-idle 闹钟同一应用约一分钟只放一次，留出余量免得被系统一路推迟 */
+    /** 对账间隔，较系统约一分钟的放行间隔留出余量 */
     private const val LIVE_TICK_INTERVAL_SECONDS = 65L
 
     /** 重排请求合并窗口，连点开关、连续保存课程时只跑最后一次 */
@@ -168,7 +169,7 @@ internal object ReminderScheduler {
         }
     }
 
-    /** 课前提醒的时刻，提前量落在上一节课里就压到上一节下课那一刻，连堂课没有课间就不提醒 */
+    /** 课前提醒时刻，提前量落进上一节时压到上一节下课 */
     private fun preClassTime(course: DayCourse, previousEnd: LocalDateTime?, minutes: Int): LocalDateTime? {
         if (minutes <= 0) return null
         val target = course.start.minusMinutes(minutes.toLong())
@@ -176,7 +177,7 @@ internal object ReminderScheduler {
         return previousEnd.takeIf { it.isBefore(course.start) }
     }
 
-    /** 请求码按「第几天 × 类型 × 序号」编码，登记下来，下次重排只撤真正排过的那些 */
+    /** 请求码按「第几天 × 类型 × 序号」编码，重排时只撤真正排过的 */
     private fun requestCode(dayOffset: Int, type: Int, index: Int): Int =
         dayOffset * 100_000 + type * 1_000 + index
 
@@ -219,7 +220,7 @@ internal object ReminderScheduler {
         saveCodes(context, emptySet())
     }
 
-    /** 取消只针对已经存在的闹钟，FLAG_NO_CREATE 既不会顺路新建，也不会抹掉上一次带上的附加信息 */
+    /** 取消只针对已存在的闹钟，FLAG_NO_CREATE 不会新建，也不会抹掉附加信息 */
     private fun cancel(context: Context, alarmManager: AlarmManager, requestCode: Int) {
         val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_NO_CREATE) ?: return
         alarmManager.cancel(pending)
@@ -243,17 +244,20 @@ internal object ReminderScheduler {
                 .apply { if (course != null) putExtra(EXTRA_COURSE_ID, course.id) }
         val pending = pendingIntent(context, requestCode, PendingIntent.FLAG_UPDATE_CURRENT, intent) ?: return null
         // 没有精确闹钟权限时退回允许休眠的普通闹钟，可能晚几分钟，但不至于完全不响
-        runCatching {
-            if (ReminderPermissions.canScheduleExactAlarms(context)) {
-                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
-            } else {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
-            }
-        }
-        return requestCode
+        val scheduled =
+            runCatching {
+                if (ReminderPermissions.canScheduleExactAlarms(context)) {
+                    alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
+                } else {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
+                }
+            }.onFailure { error ->
+                Log.w("CourseReminder", "注册提醒闹钟失败 requestCode=$requestCode", error)
+            }.isSuccess
+        return requestCode.takeIf { scheduled }
     }
 
-    /** 取消与注册共用同一个 Intent，PendingIntent 只按 action + 目标类匹配，附加信息不参与 */
+    /** 注册与取消共用同一个 Intent，PendingIntent 只按 action 与目标类匹配 */
     private fun reminderIntent(context: Context): Intent =
         Intent(context, ReminderReceiver::class.java).setAction(ACTION_REMINDER)
 

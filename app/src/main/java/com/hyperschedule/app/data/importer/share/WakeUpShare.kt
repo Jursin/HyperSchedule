@@ -126,7 +126,7 @@ internal object WakeUpShare {
         return shareData?.takeIf { it.isNotBlank() } ?: throw IllegalStateException("分享口令无效或已过期")
     }
 
-    /** 课表原文由 5 段 JSON 组成（基础配置、节次时间、界面配置、课程、课程详情），用换行分隔逐段解析 */
+    /** 课表原文由 5 段 JSON 用换行分隔，逐段解析 */
     private fun parseShareData(raw: String): CourseTableJson {
         val parts = raw.trim().lines()
         if (parts.size < 5) throw IllegalStateException("WakeUp 课表数据结构不完整")

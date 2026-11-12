@@ -1,7 +1,7 @@
 package com.hyperschedule.app.ui.component
 
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.schedule.parseMinutes
 
 /** 同一格，同一天且起始节次相同，自定义时间课比对起止时间 */

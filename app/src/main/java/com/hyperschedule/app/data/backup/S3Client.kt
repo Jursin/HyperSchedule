@@ -19,7 +19,7 @@ private class S3Response(val code: Int, val text: String) {
     val isSuccessful: Boolean get() = code in 200..299
 }
 
-/** 区域不对时 S3 会回 301，跟着跳转只会被当成别的错误，所以单独关掉重定向并放宽读超时 */
+/** 区域不对时 S3 回 301，跟进跳转会被当成别的错误，故关掉重定向 */
 private val S3Http: OkHttpClient =
     AppHttp.newBuilder().readTimeout(60, TimeUnit.SECONDS).followRedirects(false).build()
 
@@ -38,7 +38,7 @@ internal fun s3BucketError(bucket: String): String? =
         else -> null
     }
 
-/** 区域校验，随便填会因为签名里的区域不对而 403，这里只挡明显不对的输入 */
+/** 区域校验，只挡明显不对的输入 */
 internal fun s3RegionError(region: String): String? =
     when {
         region.isBlank() -> null

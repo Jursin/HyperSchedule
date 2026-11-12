@@ -17,8 +17,8 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.theme.ScheduleStyle
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.local.ScheduleStyle
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 

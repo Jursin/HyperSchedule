@@ -1,7 +1,7 @@
 package com.hyperschedule.app.reminder
 
 import android.content.Context
-import com.hyperschedule.app.theme.ReminderSettings
+import com.hyperschedule.app.data.local.ReminderSettings
 import java.time.LocalDateTime
 
 /** 按「此刻是否有课」对齐通知、每分钟对账与勿扰 */

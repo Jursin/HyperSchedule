@@ -14,7 +14,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-// 电脑模式下部分教务站点的 WAF 只认桌面浏览器，脚本把 body 登记到原生后由 shouldInterceptRequest 重放
+// 桌面 UA 绕过 WAF，body 由原生登记后重放
 
 /** 请求体登记表，id 由页面 JS 生成，重放时取走 */
 internal object EduPostBodyRegistry {

@@ -37,7 +37,7 @@ fun weekDatesOf(startDate: LocalDate, week: Int): List<LocalDate> {
     return List(7) { monday.plusDays(it.toLong()) }
 }
 
-/** 当前时间落在第几节（1..N），按传入的作息表计算（课表作息可能被导入覆盖），不在任何节次内返回 -1 */
+/** 当前时间落在第几节（1..N），不在任何节次内返回 -1 */
 fun currentSectionAt(times: List<Pair<String, String>>, now: LocalTime): Int {
     val index =
         times.indexOfFirst { (start, end) ->
@@ -60,6 +60,18 @@ fun parseMinutes(time: String?): Int? {
 
 /** 当天第几分钟 → "HH:mm" */
 fun formatMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
+
+/** 排课先后用的开始分钟，自定义取自身起点，标准课取作息节次，缺失时按节次 × 60 推算 */
+fun startMinutesOf(
+    isCustomTime: Boolean,
+    customStartTime: String?,
+    startSection: Int?,
+    sectionStartMinutes: Map<Int, Int>,
+): Int {
+    if (isCustomTime) return parseMinutes(customStartTime) ?: Int.MAX_VALUE
+    val section = startSection ?: return Int.MAX_VALUE
+    return sectionStartMinutes[section] ?: (section * 60)
+}
 
 fun parseDateOrNull(text: String): LocalDate? =
     runCatching { LocalDate.parse(text) }.getOrNull()

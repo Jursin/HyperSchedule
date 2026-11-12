@@ -3,8 +3,8 @@ package com.hyperschedule.app.ui.component
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.SpecialTimeBlock
-import com.hyperschedule.app.data.model.TimeTable
+import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
+import com.hyperschedule.app.data.db.entity.TimeTable
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
 
@@ -36,7 +36,7 @@ internal data class BreakDivider(
 /** 分界线落在第 [afterSection] 节之后，[label] 是这条缝的名字 */
 private data class BreakMark(val afterSection: Int, val label: String)
 
-/** 课表网格的纵向几何，节次顶、分界线、特殊节次横带共用一套坐标，特殊节次插在它压到的第一个节次之前并把后面整体下推；每节高度按它的时长换算，长短节不再等高 */
+/** 课表网格纵向几何，特殊节次插在压到的第一节之前并下推后续 */
 @Immutable
 internal class ScheduleLayout private constructor(
     /** 下标即节次序号（1 起），[topOf] 越界时贴到首/末节 */
@@ -121,7 +121,7 @@ internal class ScheduleLayout private constructor(
             return edge.y + (minute - edge.minute) * rate
         }
 
-        /** 按作息与特殊节次算出整套几何，[morningSplit]/[eveningSplit] 空串或解析失败时用 [TimeTable] 默认值，[showBreakDividers] 关闭时不产生分界线 */
+        /** 按作息与特殊节次算出整套几何，[showBreakDividers] 关闭时不产生分界线 */
         fun build(
             sectionTimes: List<Pair<String, String>>,
             specialBlocks: List<SpecialTimeBlock>,
@@ -325,7 +325,7 @@ private data class MergedBlock(
         get() = names.filter { it.isNotBlank() }.distinct().joinToString("、")
 }
 
-/** 特殊节次合并成横带，时段完全相同的并成一条（上课星期取并集），名称去重后连起来，横带横向铺开，上下相邻的时段各占一条 */
+/** 特殊节次合并成横带，时段相同的并成一条，上课星期取并集 */
 private fun mergeBlocks(blocks: List<SpecialTimeBlock>): List<MergedBlock> {
     val byTime = LinkedHashMap<Pair<Int, Int>, MutableList<SpecialTimeBlock>>()
     blocks.forEach { block ->

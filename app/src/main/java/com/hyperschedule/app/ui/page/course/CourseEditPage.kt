@@ -1,0 +1,406 @@
+package com.hyperschedule.app.ui.page.course
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.changedToDown
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.hyperschedule.app.R
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.repository.ScheduleRepository
+import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
+import com.hyperschedule.app.theme.CardCornerRadius
+import com.hyperschedule.app.theme.PageBottomInset
+import com.hyperschedule.app.theme.PresetColors
+import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.theme.isDarkTheme
+import com.hyperschedule.app.theme.rememberCourseColorOf
+import com.hyperschedule.app.ui.component.AddFab
+import com.hyperschedule.app.ui.component.BlurredTopAppBar
+import com.hyperschedule.app.ui.component.ConfirmDialog
+import com.hyperschedule.app.ui.component.SaveFab
+import com.hyperschedule.app.ui.component.formatCredit
+import com.hyperschedule.app.ui.component.pageContentPadding
+import com.hyperschedule.app.ui.component.pageScroll
+import com.hyperschedule.app.ui.component.rememberEditBackGuard
+import com.hyperschedule.app.ui.component.toast
+import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.state.CourseTableData
+import java.util.UUID
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.ColorPalette
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+
+/** 课程编辑页，改动只在保存时写入，[initialName] 为空表示新建 */
+@Composable
+fun CourseEditPage(
+    initialName: String,
+    prefillDay: Int,
+    prefillStart: Int,
+    prefillEnd: Int,
+    focusId: String,
+    table: CourseTableData?,
+    allCourses: List<CourseWithWeeks>,
+    repository: ScheduleRepository,
+    appBlur: Boolean = false,
+    onBack: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val scrollBehavior = MiuixScrollBehavior()
+    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
+    val tableId = table?.tableId
+    val sectionCount = (table?.slots?.size ?: 0).coerceAtLeast(1)
+    val totalWeeks = (table?.config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
+    val sectionTimes = table?.sectionTimes.orEmpty()
+    val isDark = isDarkTheme()
+
+    // 进入时读一次库，之后全部改内存，初始快照与卡片用同一份顺序
+    val seed = remember { buildSeed(initialName, prefillDay, prefillStart, prefillEnd, allCourses, tableId, totalWeeks) }
+    val seedSorted = remember(seed) { seed.sortedBySchedule(sectionTimes) }
+
+    var name by remember { mutableStateOf(seed.name) }
+    var colorInt by remember { mutableStateOf(seed.colorInt) }
+    var colorArgb by remember { mutableStateOf(seed.colorArgb) }
+    var credit by remember { mutableStateOf(seed.credit) }
+    val groups = remember { mutableStateListOf<GroupDraft>().apply { addAll(seedSorted.groups) } }
+    // 库里已有、当前草稿仍保留的时段 id，保存时用它算出要删除的行
+    var savedIds by remember { mutableStateOf(seed.groups.map { it.id }.toSet()) }
+
+    // 卡片在根坐标里的位置，用来判断这一下是否点在卡片外
+    val cardRects = remember { CardRects() }
+
+    /** 改完星期、节次或周次后卡片跟着挪位置，只在点到卡片外面时执行 */
+    fun sortGroups() {
+        val sorted = groups.sortedBySchedule(sectionTimes)
+        if (sorted == groups.toList()) return
+        groups.clear()
+        groups.addAll(sorted)
+    }
+
+    fun currentState() = EditState(name, colorInt, colorArgb, credit, groups.toList())
+
+    var baseline by remember { mutableStateOf(seedSorted) }
+    // 只在草稿实际变化时重算，避免输入框每次重组都全量比较
+    val dirty by remember { derivedStateOf { currentState() != baseline } }
+
+    // 数据晚于首帧到达时（如进程重建）补一次填充
+    var seeded by remember { mutableStateOf(seed.groups.isNotEmpty() || initialName.isBlank()) }
+    LaunchedEffect(allCourses, tableId) {
+        if (seeded || tableId == null) return@LaunchedEffect
+        val loaded = buildSeed(initialName, prefillDay, prefillStart, prefillEnd, allCourses, tableId, totalWeeks)
+        if (loaded.groups.isEmpty()) return@LaunchedEffect
+        name = loaded.name
+        colorInt = loaded.colorInt
+        colorArgb = loaded.colorArgb
+        credit = loaded.credit
+        groups.clear()
+        groups.addAll(loaded.groups.sortedBySchedule(sectionTimes))
+        savedIds = loaded.groups.map { it.id }.toSet()
+        baseline = loaded.sortedBySchedule(sectionTimes)
+        seeded = true
+    }
+
+    // 从课程详情进来时定位到对应的时段卡片
+    val listState = rememberLazyListState()
+    LaunchedEffect(focusId, seeded) {
+        val index = groups.indexOfFirst { it.id == focusId }
+        if (index >= 0) listState.scrollToItem(index + GroupItemOffset)
+    }
+
+    // 新时段在末尾，计数只增不复位，复位会取消滚动动画
+    var scrollRequest by remember { mutableIntStateOf(0) }
+    LaunchedEffect(scrollRequest) {
+        if (scrollRequest == 0) return@LaunchedEffect
+        val index = groups.lastIndex + GroupItemOffset
+        // 新卡片要先参与组合，列表知道总项数之后才滚得动
+        snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > index }
+        listState.animateScrollToItem(index)
+    }
+
+    var colorDialog by remember { mutableStateOf(false) }
+    var customColor by remember { mutableStateOf(PresetColors.first().color) }
+    var dayDialogIndex by remember { mutableIntStateOf(-1) }
+    var timeDialogIndex by remember { mutableIntStateOf(-1) }
+    var weeksDialogIndex by remember { mutableIntStateOf(-1) }
+
+    // 打开取色盘时的初值，按浅色档取，存下来的就是色板原色
+    val pickedPaletteColor = rememberCourseColorOf(colorInt ?: 0, colorArgb, isDark = false)
+
+    val requestBack = rememberEditBackGuard(dirty, appBlur, onBack)
+
+    fun addGroup() {
+        val last = groups.lastOrNull()
+        groups.add(
+            GroupDraft(
+                id = UUID.randomUUID().toString(),
+                day = last?.day ?: 1,
+                startSection = last?.startSection ?: 1,
+                endSection = maxOf(last?.startSection ?: 1, last?.endSection ?: 1),
+                isCustomTime = last?.isCustomTime ?: false,
+                customStartTime = last?.customStartTime,
+                customEndTime = last?.customEndTime,
+                position = last?.position.orEmpty(),
+                teacher = last?.teacher.orEmpty(),
+                weeks = (1..totalWeeks).toSet(),
+                remark = "",
+            )
+        )
+        // 新卡片先加在最后，添加时不做重排
+        scrollRequest++
+    }
+
+    val onSave: () -> Unit = {
+        val trimmedName = name.trim()
+        val conflict = findConflict(groups.toList(), allCourses, tableId, savedIds, sectionTimes)
+        when {
+            trimmedName.isEmpty() -> context.toast("请填写课程名称")
+            groups.any { it.weeks.isEmpty() } -> context.toast("请选择上课周次")
+            groups.any { it.isCustomTime && (it.customStartTime.isNullOrBlank() || it.customEndTime.isNullOrBlank()) } ->
+                context.toast("请选择上课时间")
+            credit.isNotBlank() && credit.toFloatOrNull() == null -> context.toast("学分格式不正确")
+            conflict != null -> context.toast(conflict)
+            else -> {
+                if (tableId == null) {
+                    context.toast("课表未加载")
+                } else {
+                    // 保存时规整名称与学分，避免回显值与库里的不一致导致立刻又算「未保存」
+                    name = trimmedName
+                    val creditValue = credit.trim().toFloatOrNull()
+                    credit = creditValue?.let(::formatCredit).orEmpty()
+                    val snapshot = currentState()
+                    val colorIndex = colorInt ?: 0
+                    val keepIds = groups.map { it.id }.toSet()
+                    scope.launch {
+                        repository.saveCourseEdits(
+                            deletedIds = (savedIds - keepIds).toList(),
+                            courses =
+                                groups.map { group ->
+                                    group.toCourse(tableId, trimmedName, colorIndex, colorArgb, creditValue) to group.weeks.toList()
+                                },
+                        )
+                        savedIds = keepIds
+                        baseline = snapshot
+                        context.toast("已保存")
+                        onBack()
+                    }
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            BlurredTopAppBar(
+                // 标题固定为进入时的课程名，打字时不跟着变
+                title = initialName.ifBlank { "添加课程" },
+                blurBackdrop = blurBackdrop,
+                scrollBehavior = scrollBehavior,
+                onBack = requestBack,
+            )
+        },
+    ) { paddingValues ->
+        Box(
+            modifier =
+                Modifier.fillMaxSize()
+                    .onGloballyPositioned { cardRects.origin = it.positionInRoot() }
+                    .pointerInput(sectionTimes) {
+                        // 只观察不消费，滚动和输入框都不受影响
+                        awaitPointerEventScope {
+                            while (true) {
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
+                                val down = event.changes.firstOrNull { it.changedToDown() } ?: continue
+                                if (!cardRects.contains(down.position)) sortGroups()
+                            }
+                        }
+                    },
+        ) {
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().pageScroll(blurBackdrop, scrollBehavior),
+                contentPadding = pageContentPadding(paddingValues, bottom = PageBottomInset),
+                verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                overscrollEffect = null,
+            ) {
+                item(key = "basic") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        cornerRadius = CardCornerRadius,
+                    ) {
+                        InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_book), label = "课程名称") {
+                            InlineField(value = name, onValueChange = { name = it }, hint = "必填")
+                        }
+                        ThinDivider()
+                        InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), label = "学分") {
+                            InlineField(
+                                value = credit,
+                                onValueChange = { credit = sanitizeCredit(it) },
+                                hint = "选填",
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            )
+                        }
+                    }
+                }
+
+                item(key = "color") {
+                    ColorCard(
+                        colorInt = colorInt,
+                        colorArgb = colorArgb,
+                        isDark = isDark,
+                        onPick = { index, argb ->
+                            colorInt = index
+                            colorArgb = argb
+                        },
+                        onPickCustom = {
+                            customColor = pickedPaletteColor
+                            colorDialog = true
+                        },
+                    )
+                }
+
+                itemsIndexed(groups, key = { _, group -> group.id }) { index, group ->
+                    Box(modifier = Modifier.onGloballyPositioned { cardRects.cards[group.id] = it.boundsInRoot() }) {
+                        // 卡片被回收或删掉后不再参与「点在卡外」的判断
+                        DisposableEffect(group.id) { onDispose { cardRects.cards.remove(group.id) } }
+                        GroupCard(
+                            group = group,
+                            canDelete = groups.size > 1,
+                            onChange = { groups[index] = it },
+                            onPickDay = { dayDialogIndex = index },
+                            onPickTime = { timeDialogIndex = index },
+                            onPickWeeks = { weeksDialogIndex = index },
+                            onDelete = { if (groups.size > 1) groups.removeAt(index) },
+                        )
+                    }
+                }
+            }
+
+            Column(
+                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                horizontalAlignment = Alignment.End,
+            ) {
+                AddFab(enabled = true, description = "添加时段", onClick = ::addGroup)
+                SaveFab(canSave = true, onClick = onSave)
+            }
+        }
+    }
+
+    if (colorDialog) {
+        ConfirmDialog(
+            title = "选择颜色",
+            appBlur = appBlur,
+            onDismiss = { colorDialog = false },
+            onConfirm = {
+                colorInt = colorInt ?: 0
+                colorArgb = customColor.toArgbInt()
+                colorDialog = false
+            },
+        ) {
+            ColorPalette(
+                color = customColor,
+                onColorChanged = { customColor = it },
+                cornerRadius = 20.dp,
+                indicatorRadius = 12.dp,
+            )
+        }
+    }
+
+    val dayIndex = dayDialogIndex
+    if (dayIndex in groups.indices) {
+        DayPickerDialog(
+            current = groups[dayIndex].day,
+            appBlur = appBlur,
+            onDismiss = { dayDialogIndex = -1 },
+            onConfirm = { day ->
+                groups[dayIndex] = groups[dayIndex].copy(day = day)
+                dayDialogIndex = -1
+            },
+        )
+    }
+
+    val timeIndex = timeDialogIndex
+    if (timeIndex in groups.indices) {
+        TimeDialog(
+            group = groups[timeIndex],
+            sectionCount = sectionCount,
+            sectionTimes = sectionTimes,
+            appBlur = appBlur,
+            onDismiss = { timeDialogIndex = -1 },
+            onConfirm = { custom, start, end, startTime, endTime ->
+                groups[timeIndex] =
+                    groups[timeIndex].copy(
+                        isCustomTime = custom,
+                        startSection = start,
+                        endSection = end,
+                        customStartTime = startTime,
+                        customEndTime = endTime,
+                    )
+                timeDialogIndex = -1
+            },
+        )
+    }
+
+    val weeksIndex = weeksDialogIndex
+    if (weeksIndex in groups.indices) {
+        WeeksDialog(
+            initial = groups[weeksIndex].weeks,
+            totalWeeks = totalWeeks,
+            appBlur = appBlur,
+            onDismiss = { weeksDialogIndex = -1 },
+            onConfirm = { weeks ->
+                groups[weeksIndex] = groups[weeksIndex].copy(weeks = weeks)
+                weeksDialogIndex = -1
+            },
+        )
+    }
+}
+
+/** 列表前两张卡是课程名称与颜色，时段卡从这一项之后开始 */
+private const val GroupItemOffset = 2
+
+/** 记录时段卡片在根坐标里的位置，判断这一下是否点在卡片外 */
+private class CardRects {
+    val cards = mutableMapOf<String, Rect>()
+    var origin: Offset = Offset.Zero
+
+    fun contains(position: Offset): Boolean {
+        val point = position + origin
+        return cards.values.any { it.contains(point) }
+    }
+}

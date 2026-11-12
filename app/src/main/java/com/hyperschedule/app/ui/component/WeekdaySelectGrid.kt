@@ -31,7 +31,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 星期的单字写法，格子窄，只放得下一个字 */
 private val WeekdayShortNames = listOf("一", "二", "三", "四", "五", "六", "日")
 
-/** 星期多选格子，一行七天，点一下切换，按住滑过一串格子时按下格未选就整段选中、已选就整段取消，[selected] 为空时不会有任何格子亮起 */
+/** 星期多选格子，单击切换，按住滑动按起始格状态整段选中或取消 */
 @Composable
 fun WeekdaySelectGrid(
     selected: Set<Int>,

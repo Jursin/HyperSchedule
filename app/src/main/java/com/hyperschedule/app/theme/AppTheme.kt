@@ -9,6 +9,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
+import com.hyperschedule.app.data.local.PaletteStyle
+import com.hyperschedule.app.data.local.SettingsState
+import com.hyperschedule.app.data.local.ThemeMode
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.TextStyles
@@ -41,7 +44,6 @@ private val TabularTextStyles: TextStyles =
             title4 = base.title4.tabular(),
         )
     }
-
 
 @Composable
 fun AppTheme(
@@ -85,19 +87,6 @@ fun AppTheme(
             }
         }
     }
-}
-
-enum class ThemeMode(val title: String) {
-    System("跟随系统"),
-    Light("浅色"),
-    Dark("深色"),
-}
-
-enum class PaletteStyle(val title: String) {
-    TonalSpot("TonalSpot"),
-    Neutral("Neutral"),
-    Vibrant("Vibrant"),
-    Expressive("Expressive"),
 }
 
 fun PaletteStyle.toMiuixStyle(): ThemePaletteStyle = when (this) {

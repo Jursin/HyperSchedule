@@ -30,11 +30,16 @@ internal class PagerSettleSlot {
     var job: Job? = null
 }
 
+private const val PositionalThresholdRatio = 0.25f
+private val PositionalThresholdCap = 120.dp
+private val FlickVelocity = 100.dp
+
 /** 松手后的横向落页 */
 private suspend fun settleSchedulePager(
     pagerState: PagerState,
     velocityX: Float,
     flickPx: Float,
+    thresholdPages: Float,
     startOffset: Float,
     fingerDragPages: Float,
     pages: IntRange,
@@ -56,9 +61,9 @@ private suspend fun settleSchedulePager(
     val fights = flick != 0 && (flick > 0) == (drag > 0)
     val step =
         when {
-            fights -> if (abs(drag) >= 0.15f) (if (drag > 0f) 1 else -1) else 0
-            drag >= 0.25f -> 1
-            drag <= -0.25f -> -1
+            fights -> if (abs(drag) >= thresholdPages * 0.6f) (if (drag > 0f) 1 else -1) else 0
+            drag >= thresholdPages -> 1
+            drag <= -thresholdPages -> -1
             else -> flick
         }
     val from = startOffset.roundToInt().coerceIn(lo, hi)
@@ -70,7 +75,7 @@ private suspend fun settleSchedulePager(
         }.coerceIn(lo, hi)
     pagerState.animateScrollToPage(
         target,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 300f),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 400f),
     )
 }
 
@@ -90,7 +95,8 @@ internal fun Modifier.schedulePagerGesture(
     val scope = rememberCoroutineScope()
     return this.pointerInput(pagerState) {
         val touchSlop = viewConfiguration.touchSlop
-        val flickPx = 100.dp.toPx()
+        val flickPx = FlickVelocity.toPx()
+        val thresholdCapPx = PositionalThresholdCap.toPx()
         awaitEachGesture {
             val viewportPx = size.width.toFloat().coerceAtLeast(1f)
             var down = awaitFirstDown(requireUnconsumed = false)
@@ -126,12 +132,15 @@ internal fun Modifier.schedulePagerGesture(
                 // 先快照，协程跑到时本轮已被清空
                 val from = startOffset
                 val dragPages = -accX / viewportPx
+                val thresholdPages = min(viewportPx * PositionalThresholdRatio, thresholdCapPx) / viewportPx
                 val range = latestPages.value()
                 settleSlot.job?.cancel()
                 settleSlot.job =
                     scope.launch {
                         done.await()
-                        runCatching { settleSchedulePager(pagerState, vx, flickPx, from, dragPages, range) }
+                        runCatching {
+                            settleSchedulePager(pagerState, vx, flickPx, thresholdPages, from, dragPages, range)
+                        }
                     }
             }
 

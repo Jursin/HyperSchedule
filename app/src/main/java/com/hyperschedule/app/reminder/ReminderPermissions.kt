@@ -127,7 +127,7 @@ object ReminderPermissions {
         context.startActivity(intent)
     }
 
-    /** 系统页不存在时 startActivity 会抛 [android.content.ActivityNotFoundException]，这里换成返回值 */
+    /** 系统页不存在时 startActivity 会抛异常，这里换成返回值 */
     private fun tryStart(context: Context, intent: Intent): Boolean =
         runCatching { start(context, intent) }.isSuccess
 }

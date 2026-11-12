@@ -1,10 +1,15 @@
 package com.hyperschedule.app.data.importer.edu
 
 import android.content.Context
+import com.hyperschedule.app.data.importer.ComboScheduleJson
+import com.hyperschedule.app.data.importer.CourseJson
+import com.hyperschedule.app.data.importer.CourseTableConfigJson
+import com.hyperschedule.app.data.importer.TimeSlotJson
 import com.hyperschedule.app.data.remote.httpGetGiteeRaw
 import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
 
 /** 脚本缓存目录，换仓库时整目录清掉 */
 internal const val EduScriptsPath = "$EduRepoRoot/schools/resources"
@@ -46,3 +51,23 @@ private fun isSafeRelative(path: String): Boolean =
         !path.startsWith("/") &&
         !path.startsWith("\\") &&
         path.split('/', '\\').none { it == ".." }
+
+/** 教务脚本回传的四类负载，字段沿用课程表 JSON 导入的 DTO */
+object EduImportJson {
+    private val json =
+        Json {
+            ignoreUnknownKeys = true
+            isLenient = true
+            coerceInputValues = true
+        }
+
+    fun courses(text: String): List<CourseJson> = json.decodeFromString<List<CourseJson>>(text)
+
+    fun timeSlots(text: String): List<TimeSlotJson> = json.decodeFromString<List<TimeSlotJson>>(text)
+
+    fun config(text: String): CourseTableConfigJson = json.decodeFromString<CourseTableConfigJson>(text)
+
+    fun combo(text: String): ComboScheduleJson = json.decodeFromString<ComboScheduleJson>(text)
+
+    fun strings(text: String): List<String> = json.decodeFromString<List<String>>(text)
+}

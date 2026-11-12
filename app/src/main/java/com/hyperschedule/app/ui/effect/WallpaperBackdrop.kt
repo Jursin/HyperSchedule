@@ -25,11 +25,11 @@ import androidx.compose.ui.layout.LayoutCoordinates
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.core.graphics.createBitmap
 import kotlin.math.max
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 import top.yukonga.miuix.kmp.blur.Backdrop
-import androidx.core.graphics.createBitmap
 
 /** 预模糊纹理相对全屏像素的比例 */
 private const val BakeScale = 0.4f
@@ -175,7 +175,7 @@ private fun blurWallpaper(
     return BakedWallpaper(buffer.asImageBitmap(), width.toFloat() / area.width)
 }
 
-/** 三次盒式模糊近似高斯，耗时与半径无关；checkActive 抛异常即中止，缓冲可能被写脏但会被丢弃 */
+/** 三次盒式模糊近似高斯，耗时与半径无关，checkActive 抛异常即中止 */
 private fun boxBlur(bitmap: Bitmap, sigma: Float, checkActive: () -> Unit) {
     val radius = sigma.roundToInt()
     if (radius <= 0) return

@@ -3,7 +3,7 @@ package com.hyperschedule.app.reminder
 import android.app.AlarmManager
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
-import com.hyperschedule.app.theme.ReminderSettings
+import com.hyperschedule.app.data.local.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals

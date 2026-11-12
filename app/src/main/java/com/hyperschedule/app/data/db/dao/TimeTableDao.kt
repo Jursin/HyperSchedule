@@ -5,11 +5,11 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
-import com.hyperschedule.app.data.model.CourseTimeBinding
-import com.hyperschedule.app.data.model.SpecialTimeBlock
-import com.hyperschedule.app.data.model.TimeSlot
-import com.hyperschedule.app.data.model.TimeTable
-import com.hyperschedule.app.data.model.TimeTableSlotCount
+import com.hyperschedule.app.data.db.entity.CourseTimeBinding
+import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
+import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.db.entity.TimeTable
+import com.hyperschedule.app.data.db.entity.TimeTableSlotCount
 import kotlinx.coroutines.flow.Flow
 
 private const val SQL_TIME_TABLE = "SELECT * FROM time_tables WHERE id = :id"

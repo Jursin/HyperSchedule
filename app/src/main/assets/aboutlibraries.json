@@ -77,10 +77,10 @@
         },
         {
             "uniqueId": "androidx.annotation:annotation",
-            "artifactVersion": "1.10.0",
+            "artifactVersion": "1.11.0-alpha01",
             "name": "Annotation",
             "description": "Provides source annotations for tooling and readability.",
-            "website": "https://developer.android.com/jetpack/androidx/releases/annotation#1.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/annotation#1.11.0-alpha01",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -771,6 +771,31 @@
                     "name": "The Android Open Source Project"
                 }
             ],
+            "scm": {
+                "connection": "scm:git:https://android.googlesource.com/platform/frameworks/support",
+                "url": "https://cs.android.com/androidx/platform/frameworks/support"
+            },
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "androidx.exifinterface:exifinterface",
+            "artifactVersion": "1.4.2",
+            "name": "ExifInterface",
+            "description": "Android Support ExifInterface",
+            "website": "https://developer.android.com/jetpack/androidx/releases/exifinterface#1.4.2",
+            "developers": [
+                {
+                    "name": "The Android Open Source Project"
+                }
+            ],
+            "organization": {
+                "name": "The Android Open Source Project"
+            },
             "scm": {
                 "connection": "scm:git:https://android.googlesource.com/platform/frameworks/support",
                 "url": "https://cs.android.com/androidx/platform/frameworks/support"
@@ -1498,6 +1523,98 @@
             ]
         },
         {
+            "uniqueId": "com.hamondev.shevery.api:aidl",
+            "artifactVersion": "14.6.4",
+            "name": "Shevery API - aidl",
+            "description": "Low-level AIDL interfaces for Shevery and Shizuku.",
+            "website": "https://github.com/HmnDev-Tech/shevery-api",
+            "developers": [
+                {
+                    "name": "HmnDev-Tech"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "developerConnection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "url": "https://github.com/HmnDev-Tech/shevery-api"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.hamondev.shevery.api:api",
+            "artifactVersion": "14.6.4",
+            "name": "Shevery API - api",
+            "description": "Client privilege API for Shevery.",
+            "website": "https://github.com/HmnDev-Tech/shevery-api",
+            "developers": [
+                {
+                    "name": "HmnDev-Tech"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "developerConnection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "url": "https://github.com/HmnDev-Tech/shevery-api"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.hamondev.shevery.api:provider",
+            "artifactVersion": "14.6.4",
+            "name": "Shevery API - provider",
+            "description": "ContentProvider integration for Shevery API.",
+            "website": "https://github.com/HmnDev-Tech/shevery-api",
+            "developers": [
+                {
+                    "name": "HmnDev-Tech"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "developerConnection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "url": "https://github.com/HmnDev-Tech/shevery-api"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.hamondev.shevery.api:shared",
+            "artifactVersion": "14.6.4",
+            "name": "Shevery API - shared",
+            "description": "Shared constants and parcel codecs for Shevery API.",
+            "website": "https://github.com/HmnDev-Tech/shevery-api",
+            "developers": [
+                {
+                    "name": "HmnDev-Tech"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "developerConnection": "scm:git@github.com:HmnDev-Tech/shevery-api.git",
+                "url": "https://github.com/HmnDev-Tech/shevery-api"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
             "uniqueId": "com.materialkolor:material-color-utilities",
             "artifactVersion": "5.0.1",
             "name": "MaterialKolor",
@@ -1630,94 +1747,6 @@
             },
             "licenses": [
                 "Apache-2.0"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "dev.rikka.shizuku:aidl",
-            "artifactVersion": "13.1.5",
-            "name": "Shizuku API - aidl",
-            "description": "Low level aidl of Shizuku and Sui.",
-            "website": "https://github.com/RikkaApps/Shizuku-API",
-            "developers": [
-                {
-                    "name": "Rikka"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git@github.com:RikkaApps/Shizuku-API.git",
-                "url": "https://github.com/RikkaApps/Shizuku-API"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "dev.rikka.shizuku:api",
-            "artifactVersion": "13.1.5",
-            "name": "Shizuku API - API",
-            "description": "API of Shizuku and Sui.",
-            "website": "https://github.com/RikkaApps/Shizuku-API",
-            "developers": [
-                {
-                    "name": "Rikka"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git@github.com:RikkaApps/Shizuku-API.git",
-                "url": "https://github.com/RikkaApps/Shizuku-API"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "dev.rikka.shizuku:provider",
-            "artifactVersion": "13.1.5",
-            "name": "Shizuku API - provider",
-            "description": "Content Provider for Shizuku.",
-            "website": "https://github.com/RikkaApps/Shizuku-API",
-            "developers": [
-                {
-                    "name": "Rikka"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git@github.com:RikkaApps/Shizuku-API.git",
-                "url": "https://github.com/RikkaApps/Shizuku-API"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "dev.rikka.shizuku:shared",
-            "artifactVersion": "13.1.5",
-            "name": "Shizuku API - shared",
-            "description": "Shared parts for the API of Shizuku and Sui.",
-            "website": "https://github.com/RikkaApps/Shizuku-API",
-            "developers": [
-                {
-                    "name": "Rikka"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git@github.com:RikkaApps/Shizuku-API.git",
-                "url": "https://github.com/RikkaApps/Shizuku-API"
-            },
-            "licenses": [
-                "MIT"
             ],
             "funding": [
                 

@@ -139,8 +139,7 @@ internal object WakeUpCrypto {
         magic: String,
     ): String = md5Hex("$magic[${md5Hex(token)}]@$base64Params")
 
-    // WakeUp 分享码的 DES 变体，置换表下标从 0 开始，与标准 DES 不同，不能换成 javax.crypto
-
+    /** WakeUp 分享码的 DES 变体，置换表下标从 0 开始 */
     private fun desCipher(
         input: ByteArray,
         key: ByteArray,

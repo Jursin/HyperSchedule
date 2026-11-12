@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Upsert
-import com.hyperschedule.app.data.model.CourseTable
-import com.hyperschedule.app.data.model.CourseTableConfig
+import com.hyperschedule.app.data.db.entity.CourseTable
+import com.hyperschedule.app.data.db.entity.CourseTableConfig
 import kotlinx.coroutines.flow.Flow
 
 private const val SQL_CONFIG = "SELECT * FROM course_table_config WHERE courseTableId = :courseTableId"

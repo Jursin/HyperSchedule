@@ -14,11 +14,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlin.math.abs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
-import kotlin.math.abs
 
 private val MainTabPagerAnimSpec =
     spring<Float>(
@@ -47,7 +47,7 @@ class MainPagerState(
 
     private var navJob: Job? = null
 
-    /** 底栏应跟随的页码，导航中返回目标页，否则返回实际页，包一层 [derivedStateOf] 让读取方只在结果变化时重组 */
+    /** 底栏应跟随的页码，导航中取目标页，否则取实际页 */
     val targetPage: State<Int> =
         derivedStateOf {
             if (isNavigating) selectedPage else pagerState.currentPage
@@ -68,7 +68,7 @@ class MainPagerState(
             coroutineScope.launch {
                 val myJob = coroutineContext.job
                 try {
-                    // PreventUserInput，否则动画途中起手的滑动会把它顶掉，表现为"切一半又弹回去"
+                    // PreventUserInput，避免动画途中起手的滑动把它顶掉
                     pagerState.scroll(MutatePriority.PreventUserInput) {
                         val spec =
                             if (abs(targetIndex - pagerState.currentPage) > 1) {

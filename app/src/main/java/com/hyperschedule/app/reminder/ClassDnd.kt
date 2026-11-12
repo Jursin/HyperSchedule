@@ -7,7 +7,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.widget.Toast
 import androidx.core.content.edit
-import com.hyperschedule.app.theme.SettingsStore
+import com.hyperschedule.app.data.local.SettingsStore
 
 /** 上课自动勿扰 */
 internal object ClassDnd {
@@ -20,8 +20,6 @@ internal object ClassDnd {
     private const val KEY_RINGER = "dnd_original_ringer"
     private const val KEY_APPLIED_RINGER = "dnd_applied_ringer"
     private const val STALE_GRACE_MILLIS = 60_000L
-
-    /** 与 [com.hyperschedule.app.theme.ReminderSettings.DND_MODE_LABELS] 的下标一一对应 */
     private const val MODE_SILENT = 1
     private const val MODE_PRIORITY = 2
 

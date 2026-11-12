@@ -9,29 +9,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.local.ScheduleStyle
 import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.schedule.HolidayPlan
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.currentSectionAt
-import com.hyperschedule.app.theme.PageBottomInset
-import com.hyperschedule.app.theme.ScheduleStyle
 import com.hyperschedule.app.theme.SectionSpacing
-import com.hyperschedule.app.theme.WideLayoutMinWidth
+import com.hyperschedule.app.ui.component.BackToNowOccupiedHeight
 import com.hyperschedule.app.ui.component.BreakDividerRow
 import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.DayGridColumn
@@ -40,15 +39,12 @@ import com.hyperschedule.app.ui.component.ScheduleLayout
 import com.hyperschedule.app.ui.component.SectionPill
 import com.hyperschedule.app.ui.component.SectionTimesColumn
 import com.hyperschedule.app.ui.component.SpecialBlockBands
-import com.hyperschedule.app.ui.component.StretchOverscrollState
 import com.hyperschedule.app.ui.component.TimelineDay
 import com.hyperschedule.app.ui.component.TimelineWeekGrid
 import com.hyperschedule.app.ui.component.WeekCourse
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.resolveWeekCourses
-import com.hyperschedule.app.ui.component.stretchOverscroll
 import com.hyperschedule.app.ui.effect.wallpaperVisible
-import com.hyperschedule.app.ui.navigation.NavBarMetrics
 import java.time.LocalDate
 import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.basic.Text
@@ -70,9 +66,9 @@ internal fun ScheduleWeekPage(
     allCourses: List<CourseWithWeeks>,
     showNonCurrentWeek: Boolean,
     topPadding: Dp,
-    // 纵向滚动与拉伸全周共用一份
+    // 纵向滚动全周共用一份
     pageScroll: ScrollState,
-    stretch: StretchOverscrollState,
+    fling: FlingBehavior,
     pendingCell: PendingCell?,
     onPendingCellChange: (PendingCell?) -> Unit,
     editor: ScheduleEditor,
@@ -122,9 +118,8 @@ internal fun ScheduleWeekPage(
             Modifier
                 .fillMaxSize()
                 .scrollEndHaptic()
-                // 顶端下拉用原地拉伸
-                .nestedScroll(stretch.connection)
-                .verticalScroll(pageScroll, overscrollEffect = null)
+                // 拉伸由外层负责，这里关闭系统 overscroll
+                .verticalScroll(pageScroll, flingBehavior = fling, overscrollEffect = null)
                 // 顶栏高度作为滚动内容的内边距
                 .padding(top = topPadding),
     ) {
@@ -137,17 +132,11 @@ internal fun ScheduleWeekPage(
                 coursesByWeek = coursesByWeek,
                 sectionTimes = sectionTimes,
                 style = style,
-                stretch = stretch,
                 onCourseClick = onCourseClick,
             )
         } else {
             // 网格线铺在时间列之后
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .stretchOverscroll(stretch),
-            ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 if (style.gridLines) {
                     ScheduleGridLines(layout = layout, modifier = Modifier.matchParentSize())
                 }
@@ -225,31 +214,31 @@ internal fun ScheduleWeekPage(
                 }
             }
         }
-        // 学期外的空白周不显示统计
-        if (inSemester) {
-            Spacer(modifier = Modifier.height(SectionSpacing))
-            val countText = "本周共${weekCourseCount}节课".cjkDigitGap()
-            if (hasWallpaper) {
-                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    SectionPill(text = countText, style = MiuixTheme.textStyles.footnote1)
-                }
-            } else {
-                Text(
+        // 学期外的周只隐藏文案，占位高度保持不变
+        Spacer(modifier = Modifier.height(SectionSpacing))
+        val countText = "本周共${weekCourseCount}节课".cjkDigitGap()
+        val countAlpha = if (inSemester) 1f else 0f
+        if (hasWallpaper) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                SectionPill(
                     text = countText,
+                    modifier = Modifier.alpha(countAlpha),
                     style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
+        } else {
+            Text(
+                text = countText,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                textAlign = TextAlign.Center,
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .alpha(countAlpha),
+            )
         }
-        val bottomInset =
-            if (inSemester && LocalWindowInfo.current.containerDpSize.width < WideLayoutMinWidth) {
-                NavBarMetrics.occupiedHeight + SectionSpacing
-            } else {
-                PageBottomInset
-            }
-        Spacer(modifier = Modifier.height(bottomInset))
+        Spacer(modifier = Modifier.height(BackToNowOccupiedHeight + SectionSpacing))
     }
 }
 
@@ -263,7 +252,6 @@ private fun TimelineWeekPage(
     coursesByWeek: Map<Int, List<WeekCourse>>,
     sectionTimes: List<Pair<String, String>>,
     style: ScheduleStyle,
-    stretch: StretchOverscrollState,
     onCourseClick: (Course, Int, String?) -> Unit,
 ) {
     val isThisWeek = week == currentWeek
@@ -293,6 +281,5 @@ private fun TimelineWeekPage(
         nowMinute = if (isThisWeek) now.hour * 60 + now.minute else -1,
         todayColumn = if (isThisWeek && !todayRemapped) todayColumn else 0,
         onCourseClick = { course, day -> onCourseClick(course, day.week, day.mark) },
-        modifier = Modifier.fillMaxWidth().stretchOverscroll(stretch),
     )
 }

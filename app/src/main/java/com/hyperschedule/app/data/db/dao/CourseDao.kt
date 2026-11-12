@@ -7,13 +7,13 @@ import androidx.room.Query
 import androidx.room.RoomWarnings
 import androidx.room.Transaction
 import androidx.room.Upsert
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseTableCourseCount
-import com.hyperschedule.app.data.model.CourseWeek
-import com.hyperschedule.app.data.model.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseTableCourseCount
+import com.hyperschedule.app.data.db.entity.CourseWeek
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import kotlinx.coroutines.flow.Flow
 
-/** 课程与课程周次访问，标准节次与自定义时间混排，按星期 → 节次 → 自定义时间排序 */
+/** 课程与周次访问，按星期 → 节次 → 自定义时间排序 */
 @Dao
 interface CourseDao {
 

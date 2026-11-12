@@ -67,7 +67,7 @@ class ReminderReceiver : BroadcastReceiver() {
     }
 }
 
-/** 系统重排的时机，重启、应用更新会丢掉全部闹钟，改时间/换时区会让已注册的绝对时刻失准 */
+/** 开机与时间、时区变化后重排全部闹钟 */
 class ReminderBootReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {

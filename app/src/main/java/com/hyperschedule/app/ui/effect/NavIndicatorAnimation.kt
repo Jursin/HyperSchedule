@@ -3,17 +3,17 @@ package com.hyperschedule.app.ui.effect
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.spring
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.roundToInt
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 // 弹簧换算，dampingRatio = damping、stiffness = (2π/response)²
 private val SpecTrail = spring<Float>(dampingRatio = 0.75f, stiffness = 157.9f) // N 落后边 0.75, 0.5
 private val SpecAdvance = spring<Float>(dampingRatio = 0.7f, stiffness = 246.7f) // M 领先边 0.7, 0.4
 private val SpecSnap = spring<Float>(dampingRatio = 1f, stiffness = 1755f) // O 主弹簧 1.0, 0.15
 
-/** 底栏指示器的左右边界动画，两条边各自独立，跨项时领先边用 [SpecAdvance]、落后边用 [SpecTrail]，胶囊在途中被拉长再收回，坐标按逻辑 LTR 序 */
+/** 底栏指示器左右边界动画，两条边各自独立，跨项时领先边用 [SpecAdvance]、落后边用 [SpecTrail] */
 class NavIndicatorAnimation(
     private val scope: CoroutineScope,
     initialIndex: Int,
@@ -33,7 +33,7 @@ class NavIndicatorAnimation(
 
     private val lastIndex = (innerWidth / slotWidth).roundToInt() - 1
 
-    // 钳制写在读取值上，弹簧过冲也不会越界，left 不小于首项左边、right 不大于末项右边
+    // 钳制写在读取值上，弹簧过冲也不越界
     val leftPx: Float get() = left.value.coerceAtLeast(-overhang)
 
     val rightPx: Float get() = right.value.coerceAtMost(innerWidth + overhang)
@@ -72,9 +72,9 @@ class NavIndicatorAnimation(
         dragLeft = left.value
     }
 
-    /** 拖动中的一帧，返回应高亮的项，[prevFrameX] 用于算橡皮筋拉伸量（每帧增量 ×4，上限 60px） */
+    /** 拖动中的一帧，返回应高亮的项，[prevFrameX] 用于算橡皮筋拉伸量 */
     fun dragTo(fingerX: Float, prevFrameX: Float): Int {
-        // 钳制到容器内边，上限按指示器自身宽度（槽 + 两侧 overhang）算，否则右端会顶出容器
+        // 钳制到容器内边，上限按指示器宽度（槽 + 两侧 overhang）算
         val target =
             (dragLeft + (fingerX - dragAnchorX))
                 .coerceIn(-overhang, innerWidth - slotWidth - overhang)

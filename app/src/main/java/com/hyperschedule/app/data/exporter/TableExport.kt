@@ -1,5 +1,7 @@
 package com.hyperschedule.app.data.exporter
 
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.importer.ComboScheduleJson
 import com.hyperschedule.app.data.importer.CourseJson
 import com.hyperschedule.app.data.importer.CourseTableConfigJson
@@ -7,10 +9,8 @@ import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.CourseTableJsonParser
 import com.hyperschedule.app.data.importer.PublicScheduleJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
-import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.schedule.parseMinutes
+import com.hyperschedule.app.schedule.startMinutesOf
 import java.time.LocalDate
 
 /** 导出用的整张课表快照，[slotsFor] 给出某一天生效的作息（组合作息按日期切换） */
@@ -24,7 +24,7 @@ data class TableExportData(
     val combo: ComboScheduleExport? = null,
 )
 
-/** 实际要展开的最后一周，课程周次可能超出总周数（导入过长学期后又调小了总周数），多出来的也要导出 */
+/** 实际要展开的最后一周，课程周次可能超出总周数 */
 val TableExportData.lastWeek: Int
     get() = maxOf(totalWeeks, courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0)
 
@@ -106,17 +106,11 @@ private fun TimeSlot.toJson() =
 
 /** 与编辑页一致的先后 */
 internal fun List<CourseWithWeeks>.sortedBySchedule(slots: List<TimeSlot>): List<CourseWithWeeks> {
-    val sectionStart = slots.associate { it.number to parseMinutes(it.startTime) }
-    fun Course.startMinutes(): Int =
-        if (isCustomTime) {
-            parseMinutes(customStartTime) ?: Int.MAX_VALUE
-        } else {
-            sectionStart[startSection] ?: (startSection?.times(60) ?: Int.MAX_VALUE)
-        }
+    val sectionStart = slots.associate { slot -> slot.number to (parseMinutes(slot.startTime) ?: (slot.number * 60)) }
     return sortedWith(
         compareBy(
             { it.course.day },
-            { it.course.startMinutes() },
+            { startMinutesOf(it.course.isCustomTime, it.course.customStartTime, it.course.startSection, sectionStart) },
             { it.weeks.minOfOrNull { week -> week.weekNumber } ?: 0 },
         )
     )

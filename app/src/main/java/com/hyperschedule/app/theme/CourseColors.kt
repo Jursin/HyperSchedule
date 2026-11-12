@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.data.db.entity.Course
 
 /** 默认色板，即 Material 500 原色 */
 private val MaterialLightPalette: List<Color> =

@@ -27,7 +27,7 @@ data class HolidayDay(
     fun weekOr(fallback: Int): Int = if (displayWeek > 0) displayWeek else fallback
 }
 
-/** 整个学期的放假/调休结论，按（周次, 星期）查表，放假落到 [HolidayDay.holiday]，补班日落到 [HolidayDay.workSwap] 并把该列换成被调那一天的课 */
+/** 整个学期的放假/调休结论，按（周次, 星期）查表，补班日换成被调那天的课 */
 @Immutable
 class HolidayPlan private constructor(private val days: Map<Int, HolidayDay>) {
     fun of(week: Int, day: Int): HolidayDay = days[week * 10 + day] ?: HolidayDay()
@@ -82,7 +82,7 @@ class HolidayPlan private constructor(private val days: Map<Int, HolidayDay>) {
     }
 }
 
-/** 假期覆盖的每一个日期（区间展开，最多展开到学期末，防止脏数据把区间拉得很长） */
+/** 假期覆盖的每个日期，最多展开到学期末 */
 private fun holidayDates(entries: List<HolidayEntry>, semesterEnd: LocalDate): Set<LocalDate> =
     buildSet {
         entries.forEach { entry ->
@@ -110,7 +110,7 @@ private fun suggestFollowDates(entries: List<HolidayEntry>, semesterEnd: LocalDa
         entries.filter { it.type == HolidayEntry.TYPE_WORKSWAP && parseDateOrNull(it.followDate) == null }
     if (blocks.isEmpty() || pending.isEmpty()) return emptyMap()
 
-    // 补班日归属哪段假期，先按名字（去掉「补班/调休」后缀）匹配，否则取最近的一段
+    // 补班日归属哪段假期，先按名称匹配，否则取最近的一段
     val grouped = LinkedHashMap<String, MutableList<Pair<String, LocalDate>>>()
     pending.forEach { swap ->
         val date = parseDateOrNull(swap.date) ?: return@forEach

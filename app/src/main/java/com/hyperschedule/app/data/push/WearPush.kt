@@ -2,11 +2,11 @@ package com.hyperschedule.app.data.push
 
 import android.content.Context
 import android.util.Log
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.importer.normalizePosition
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
 import com.hyperschedule.app.data.model.HolidayEntry
-import com.hyperschedule.app.data.model.TimeSlot
 import com.hyperschedule.app.schedule.HolidayPlan
 import com.hyperschedule.app.schedule.formatMinutes
 import com.hyperschedule.app.schedule.parseMinutes
@@ -91,7 +91,7 @@ fun buildWearSchedule(
         } else {
             HolidayPlan.Empty
         }
-    // 被调休占用的格子换成别的星期（甚至别的周）的课，这里先算出「哪个源格子发到哪些目标格子」
+    // 被调休占用的格子换成别的星期甚至别的周的课，先算出源到目标的映射
     val targets = if (plan === HolidayPlan.Empty) null else holidayTargets(plan, lastWeek)
 
     val result = mutableListOf<WearCourse>()
@@ -123,8 +123,7 @@ fun buildWearSchedule(
                 .sortedBy { it.number },
         config =
             WearConfig(
-                // 手表从该日期起每满 7 天算一周，手机端按「开学日期所在周的周一」算，
-                // 开学日期不是周一时两端会差几天，这里归一成周一才对得上
+                // 手表从开学日期起每满 7 天算一周，归一成周一才与手机一致
                 semesterStartDate = startDate?.let { semesterStartMonday(it).toString() },
                 semesterTotalWeeks = lastWeek,
             ),

@@ -32,7 +32,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 周次选择网格，单击切换该周，按住滑动把起止之间的周次并入或移出已选，只是按住不动仍算单击 */
+/** 周次选择网格，单击切换该周，按住滑动把起止之间并入或移出已选 */
 @Composable
 fun WeekRangeSelectGrid(
     totalWeeks: Int,
@@ -49,7 +49,7 @@ fun WeekRangeSelectGrid(
 
     var gridWidth by remember { mutableIntStateOf(0) }
 
-    // 手势协程只按这几个 key 重启，选中集用 rememberUpdatedState 取最新值，避免滑选拿到旧快照
+    // 手势协程只按这几个 key 重启，选中集用 rememberUpdatedState 取最新值
     val selectedWeeksState = rememberUpdatedState(selectedWeeks)
     val onToggleWeekState = rememberUpdatedState(onToggleWeek)
     val onReplaceWeeksState = rememberUpdatedState(onReplaceWeeks)

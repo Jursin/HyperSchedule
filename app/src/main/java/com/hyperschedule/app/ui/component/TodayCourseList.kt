@@ -23,16 +23,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
-import com.hyperschedule.app.data.model.CourseWithWeeks
-import com.hyperschedule.app.data.model.TimeSlot
+import com.hyperschedule.app.data.db.entity.Course
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.local.TodayStyle
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.TimeLabelFontSize
-import com.hyperschedule.app.theme.TodayStyle
 import com.hyperschedule.app.ui.effect.cardSurface
 import com.hyperschedule.app.ui.effect.wallpaperVisible
-import com.hyperschedule.app.ui.rememberToday
+import com.hyperschedule.app.ui.state.rememberToday
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -367,15 +367,7 @@ private fun infoFields(course: Course, style: TodayStyle): List<InfoField> =
         if (!course.isCustomTime) {
             add(InfoField(InfoIconId.SECTION, "节次", course.sectionLabel()))
         }
-        if (style.showPosition && course.position.isNotBlank()) {
-            add(InfoField(InfoIconId.POSITION, "地点", course.position))
-        }
-        if (style.showTeacher && course.teacher.isNotBlank()) {
-            add(InfoField(InfoIconId.TEACHER, "教师", course.teacher))
-        }
-        course.credit?.takeIf { style.showCredit }?.let { credit ->
-            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(credit)}学分".cjkDigitGap()))
-        }
+        addAll(course.placeTeacherCredit(style.showPosition, style.showTeacher, style.showCredit))
         course.remark?.takeIf { style.showRemark && it.isNotBlank() }?.let { remark ->
             add(InfoField(InfoIconId.REMARK, "备注", remark))
         }

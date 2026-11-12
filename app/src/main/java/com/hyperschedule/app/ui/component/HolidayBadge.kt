@@ -11,7 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.data.model.Course
+import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.schedule.HolidayDay
 import com.hyperschedule.app.theme.BadgeFontSize
 import com.hyperschedule.app.theme.isDarkTheme
@@ -35,7 +35,7 @@ internal fun markOf(isHoliday: Boolean, isWorkSwap: Boolean): String? =
 
 internal fun HolidayDay.markOrNull(): String? = markOf(holiday, workSwap)
 
-/** 放假/调休角标，「调」是正常上课的一天用课程色淡底配课程色文字，「假」用中性底避免和灰卡抢眼 */
+/** 放假/调休角标，「调」用课程色，「假」用中性色 */
 @Composable
 internal fun HolidayMarkBadge(
     mark: String,

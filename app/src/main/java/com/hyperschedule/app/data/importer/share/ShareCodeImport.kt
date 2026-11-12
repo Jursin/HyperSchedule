@@ -117,7 +117,7 @@ internal fun continuousSlots(slots: List<TimeSlotJson>): List<TimeSlotJson> {
     return if (sorted.withIndex().all { (index, slot) -> slot.number == index + 1 }) sorted else emptyList()
 }
 
-/** 合并重复课程，去掉首尾空白与前导 @ 后按节次与周次归并，自定义时间的课程原样保留 */
+/** 合并重复课程，清洗名称后按节次与周次归并，自定义时间原样保留 */
 internal fun mergeCourses(courses: List<CourseJson>): List<CourseJson> {
     val normalized =
         courses.map {

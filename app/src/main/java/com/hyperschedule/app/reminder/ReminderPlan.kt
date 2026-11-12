@@ -2,8 +2,10 @@ package com.hyperschedule.app.reminder
 
 import android.content.Context
 import com.hyperschedule.app.data.db.AppDatabase
-import com.hyperschedule.app.data.model.CourseWithWeeks
-import com.hyperschedule.app.data.model.TimeSlot
+import com.hyperschedule.app.data.db.entity.CourseWithWeeks
+import com.hyperschedule.app.data.db.entity.TimeSlot
+import com.hyperschedule.app.data.local.ReminderSettings
+import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.schedule.HolidayPlan
@@ -11,8 +13,6 @@ import com.hyperschedule.app.schedule.currentWeekOf
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.schedule.semesterStartMonday
-import com.hyperschedule.app.theme.ReminderSettings
-import com.hyperschedule.app.theme.SettingsStore
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
