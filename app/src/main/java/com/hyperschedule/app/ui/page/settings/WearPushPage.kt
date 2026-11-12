@@ -69,8 +69,8 @@ import top.yukonga.miuix.kmp.icon.extended.Send
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
-private const val PERMISSION_DENIED_HINT = "穿戴设备未授权"
-private const val WEAR_APP_MISSING_HINT = "穿戴设备未安装快应用"
+private const val PERMISSION_DENIED_HINT = "设备未授权"
+private const val WEAR_APP_MISSING_HINT = "未安装快应用"
 
 // 快应用获取链接
 private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=com.schedule.vela&provider=OfficialV2"
@@ -123,7 +123,7 @@ private suspend fun buildPushPayload(
             entries = entries,
         )
     require(schedule.courses.isNotEmpty()) { if (holidayApplied) "课程都被节假日排除了" else "没有可推送的课程，请检查课程时间" }
-    // 按节次上的课缺了作息时间就排不出来，穿戴设备那边只会显示一片空白
+    // 按节次上的课缺了作息时间就排不出来
     require(schedule.timeSlots.isNotEmpty() || schedule.courses.all { it.isCustomTime }) { "缺少节次时间，请先设置作息" }
     return PushPayload(
         schedule = schedule,
@@ -131,7 +131,7 @@ private suspend fun buildPushPayload(
     )
 }
 
-/** 推送到穿戴设备 */
+/** 推送到手环 */
 @Composable
 fun WearPushPage(
     tables: List<TableSummary>,
@@ -172,7 +172,7 @@ fun WearPushPage(
             .onFailure { toast(describeWearError(it)) }
     }
 
-    // 每秒查一次连接状态，新设备连上时申请一次穿戴设备权限并拉起快应用
+    // 每秒查一次连接状态，新设备连上时申请一次权限并拉起快应用
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(wear, lifecycleOwner) {
         var lastNodeId: String? = null
@@ -193,7 +193,7 @@ fun WearPushPage(
                     runCatching { wear.ensurePermission(node.id) }.fold(
                         onSuccess = { granted ->
                             if (granted) {
-                                toast("已连接${node.name.orEmpty().ifBlank { "穿戴设备" }}".cjkDigitGap())
+                                toast("已连接${node.name.orEmpty().ifBlank { "设备" }}".cjkDigitGap())
                                 openWearAppSafely(node.id)
                             } else {
                                 toast(PERMISSION_DENIED_HINT)
@@ -213,7 +213,7 @@ fun WearPushPage(
     fun push() {
         if (pushing) return
         val tableId = activeId ?: return toast("暂无课表")
-        val device = deviceId ?: return toast("未连接穿戴设备")
+        val device = deviceId ?: return toast("未连接设备")
         pushing = true
         scope.launch {
             // 发送前先落实权限，否则会等到发出去才回一个 permission denied
@@ -247,7 +247,7 @@ fun WearPushPage(
     }
 
     PreferenceScreen(
-        title = "推送到穿戴设备",
+        title = "推送到手环",
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
@@ -310,7 +310,7 @@ fun WearPushPage(
 
         if (deviceId != null && appInstalled == false) {
             Container(
-                text = "通过 AstroBox 获取穿戴设备快应用",
+                text = "通过 AstroBox 获取快应用",
                 onClick = { uriHandler.openUri(WEAR_APP_URL) },
             )
         }
@@ -381,7 +381,7 @@ private fun ConnectionStatusCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     modifier = Modifier.fillMaxWidth(),
-                    text = if (isConnected) deviceName.ifBlank { "穿戴设备" } else "请连接穿戴设备",
+                    text = if (isConnected) deviceName.ifBlank { "设备" } else "请连接设备",
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
                     color = textColor.copy(alpha = 0.8f),

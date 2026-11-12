@@ -29,7 +29,7 @@ import kotlinx.serialization.json.Json
 
 private const val TAG = "WearPush"
 
-/** 穿戴设备可识别的课表结构，字段即发送白名单 */
+/** 设备可识别的课表结构，字段即发送白名单 */
 @Serializable
 data class WearSchedule(
     val courses: List<WearCourse>,
@@ -67,7 +67,7 @@ data class WearConfig(
     val afternoonEveningSplit: String? = null,
 )
 
-/** 空字段不写进 JSON，穿戴设备按缺失处理 */
+/** 空字段不写进 JSON，设备按缺失处理 */
 private val WearJson =
     Json {
         encodeDefaults = false
@@ -103,7 +103,7 @@ fun buildWearSchedule(
     courses.forEach { group ->
         val weeks = group.weeks.map { it.weekNumber }.filter { it > 0 }
         if (weeks.isEmpty()) return@forEach
-        // 同一门课被调休拆到多个星期时，按星期分组各发一条，减少穿戴设备的分组压力
+        // 同一门课被调休拆到多个星期时，按星期分组各发一条
         val byDay = LinkedHashMap<Int, MutableSet<Int>>()
         weeks.forEach { week ->
             val cells = targets?.get(week * 10 + group.course.day) ?: listOf(week to group.course.day)
@@ -161,7 +161,7 @@ private fun holidayTargets(
     return targets
 }
 
-/** 星期或上课时间不完整的课程不发给穿戴设备 */
+/** 星期或上课时间不完整的课程不发 */
 private fun Course.toWearCourse(
     day: Int,
     weeks: List<Int>,
@@ -201,7 +201,7 @@ private fun Course.toWearCourse(
     )
 }
 
-/** 小米穿戴设备的连接查询、权限申请与消息发送 */
+/** 连接查询、权限申请与消息发送 */
 class WearSync(context: Context) {
     private val appContext = context.applicationContext
     private val nodeApi by lazy { Wearable.getNodeApi(appContext) }
@@ -217,10 +217,10 @@ class WearSync(context: Context) {
             .getOrDefault(false) ||
             authApi.requestPermission(nodeId, Permission.DEVICE_MANAGER).await().orEmpty().isNotEmpty()
 
-    /** 穿戴设备是否装了对应快应用 */
+    /** 设备是否装了对应快应用 */
     suspend fun isWearAppInstalled(nodeId: String): Boolean = nodeApi.isWearAppInstalled(nodeId).await() == true
 
-    /** 拉起穿戴设备快应用，uri 对应快应用 router 里的页面 */
+    /** 拉起快应用，uri 对应快应用 router 里的页面 */
     suspend fun launchWearApp(
         nodeId: String,
         uri: String = "pages/index",
@@ -228,7 +228,7 @@ class WearSync(context: Context) {
         nodeApi.launchWearApp(nodeId, uri).await()
     }
 
-    /** 把穿戴设备 JSON 发给穿戴设备快应用，失败抛异常 */
+    /** 把 JSON 发给设备，失败抛异常 */
     suspend fun send(
         nodeId: String,
         payload: String,
@@ -250,9 +250,9 @@ fun describeWearError(error: Throwable): String {
     Log.w(TAG, "穿戴接口失败：${error.javaClass.simpleName} ${error.message}", error)
     return when (error) {
         is SignatureVerifyFailedException -> "快应用签名与本应用不一致"
-        is AppNotInstalledException -> "穿戴设备未安装快应用"
-        is DeviceDisconnectedException -> "穿戴设备已断开连接"
-        is PermissionDeniedException -> "穿戴设备未授权本应用"
+        is AppNotInstalledException -> "未安装快应用"
+        is DeviceDisconnectedException -> "已断开连接"
+        is PermissionDeniedException -> "未授权本应用"
         // 超时、中断等状态没有专属异常类，SDK 会原样抛回英文文案
         else -> error.message?.takeIf { it.isNotBlank() } ?: "未知错误（${error.javaClass.simpleName}）"
     }

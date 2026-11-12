@@ -243,7 +243,7 @@ class ScheduleRepository(
     internal suspend fun effectiveScheduleIdOnce(courseTableId: String): String =
         effectiveScheduleIdOf(courseTableId).first()
 
-    /** 当前生效的作息表，推送穿戴设备时取时段分隔 */
+    /** 当前生效的作息表，推送时取时段分隔 */
     suspend fun effectiveTimeTableOnce(courseTableId: String): TimeTable? =
         effectiveTimeTableOf(courseTableId).first()
 
