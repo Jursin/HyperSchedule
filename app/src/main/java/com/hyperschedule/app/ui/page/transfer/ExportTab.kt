@@ -21,7 +21,6 @@ import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
 import com.hyperschedule.app.schedule.semesterStartMonday
-import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
@@ -45,14 +44,12 @@ private val UnsupportedFileNameChars = Regex("""[\\/:*?"<>|]""")
 
 /** 课表导出，选择课表与格式，JSON 存课表结构，ICS 按实际日期展开日历事件 */
 @Composable
-fun ScheduleExportPage(
+internal fun ExportTab(
     tables: List<TableSummary>,
     repository: ScheduleRepository,
     holidayRepository: HolidayRepository,
     currentTableId: String?,
-    reminder: ReminderSettings = ReminderSettings.Default,
-    appBlur: Boolean = false,
-    onBack: () -> Unit,
+    reminder: ReminderSettings,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -130,36 +127,34 @@ fun ScheduleExportPage(
         }
     }
 
-    PreferenceScreen(title = "课表导出", appBlur = appBlur, onBack = onBack) {
-        PreferenceSection("导出课表") {
-            if (tables.isEmpty()) {
-                Text(
-                    text = "暂无课表，请先创建或导入后再导出",
-                    modifier = Modifier.padding(16.dp),
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            } else {
-                OverlayDropdownPreference(
-                    title = "选择课表",
-                    items = tables.map { it.table.name.ifBlank { "未命名" } },
-                    selectedIndex = selectedIndex,
-                    onSelectedIndexChange = { selectedId = ids[it] },
-                )
-            }
+    PreferenceSection("导出课表") {
+        if (tables.isEmpty()) {
+            Text(
+                text = "暂无课表，请先创建或导入后再导出",
+                modifier = Modifier.padding(16.dp),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        } else {
+            OverlayDropdownPreference(
+                title = "选择课表",
+                items = tables.map { it.table.name.ifBlank { "未命名" } },
+                selectedIndex = selectedIndex,
+                onSelectedIndexChange = { selectedId = ids[it] },
+            )
         }
+    }
 
-        PreferenceSection("导出格式") {
-            ArrowPreference(
-                title = "JSON 文件导出",
-                summary = "导出课表为 JSON 文件",
-                onClick = { export(ExportFormat.JSON) },
-            )
-            ArrowPreference(
-                title = "ICS 文件导出",
-                summary = "导出课表为 ICS 日历文件",
-                onClick = { export(ExportFormat.ICS) },
-            )
-        }
+    PreferenceSection("导出格式") {
+        ArrowPreference(
+            title = "JSON 文件导出",
+            summary = "导出课表为 JSON 文件",
+            onClick = { export(ExportFormat.JSON) },
+        )
+        ArrowPreference(
+            title = "ICS 文件导出",
+            summary = "导出课表为 ICS 日历文件",
+            onClick = { export(ExportFormat.ICS) },
+        )
     }
 }
 

@@ -21,7 +21,6 @@ import com.hyperschedule.app.data.repository.importShareCode
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.CreateTableDialog
 import com.hyperschedule.app.ui.component.ImportTablePickerDialog
-import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.ShareCodeDialog
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
@@ -46,14 +45,13 @@ private sealed interface PendingImport {
 
 /** 课表导入，选好文件后先选目标课表，可直接新建一张再导入 */
 @Composable
-fun ScheduleImportPage(
+internal fun ImportTab(
     tables: List<TableSummary>,
     table: CourseTableData?,
     repository: ScheduleRepository,
-    appBlur: Boolean = false,
-    onSwitchTable: (String) -> Unit = {},
-    onOpenEduImport: () -> Unit = {},
-    onBack: () -> Unit,
+    appBlur: Boolean,
+    onSwitchTable: (String) -> Unit,
+    onOpenEduImport: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
@@ -151,45 +149,43 @@ fun ScheduleImportPage(
             }
         }
 
-    PreferenceScreen(title = "课表导入", appBlur = appBlur, onBack = onBack) {
-        PreferenceSection {
-            ArrowPreference(
-                title = "教务系统导入",
-                summary = "从学校教务系统抓取课表导入",
-                onClick = onOpenEduImport,
-            )
-        }
+    PreferenceSection {
+        ArrowPreference(
+            title = "教务系统导入",
+            summary = "从学校教务系统抓取课表导入",
+            onClick = onOpenEduImport,
+        )
+    }
 
-        PreferenceSection("文件") {
+    PreferenceSection("文件") {
+        ArrowPreference(
+            title = "JSON 文件导入",
+            summary = "从本应用/拾光课程表 JSON 文件导入",
+            onClick = {
+                launching = ImportSource.JSON
+                filePicker.launch(arrayOf("*/*"))
+            },
+        )
+        ArrowPreference(
+            title = "ICS 文件导入",
+            summary = "从 ICS 日历文件导入",
+            onClick = {
+                launching = ImportSource.ICS
+                filePicker.launch(arrayOf("*/*"))
+            },
+        )
+    }
+
+    PreferenceSection("口令") {
+        ShareCodeSource.entries.forEach { source ->
             ArrowPreference(
-                title = "JSON 文件导入",
-                summary = "从本应用/拾光课程表 JSON 文件导入",
+                title = "${source.label}${source.codeName}导入",
+                summary = source.hint,
                 onClick = {
-                    launching = ImportSource.JSON
-                    filePicker.launch(arrayOf("*/*"))
+                    shareError = null
+                    shareSource = source
                 },
             )
-            ArrowPreference(
-                title = "ICS 文件导入",
-                summary = "从 ICS 日历文件导入",
-                onClick = {
-                    launching = ImportSource.ICS
-                    filePicker.launch(arrayOf("*/*"))
-                },
-            )
-        }
-
-        PreferenceSection("口令") {
-            ShareCodeSource.entries.forEach { source ->
-                ArrowPreference(
-                    title = "${source.label}${source.codeName}导入",
-                    summary = source.hint,
-                    onClick = {
-                        shareError = null
-                        shareSource = source
-                    },
-                )
-            }
         }
     }
 

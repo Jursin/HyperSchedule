@@ -40,8 +40,7 @@ fun SettingsPage(
     onManageCourses: () -> Unit = {},
     onManageTables: () -> Unit = {},
     onManageTimeTables: () -> Unit = {},
-    onOpenImport: () -> Unit = {},
-    onOpenExport: () -> Unit = {},
+    onOpenTransfer: () -> Unit = {},
     onOpenBackup: () -> Unit = {},
     onOpenHoliday: () -> Unit = {},
     onOpenReminder: () -> Unit = {},
@@ -132,8 +131,7 @@ fun SettingsPage(
             ArrowPreference("作息管理", onClick = onManageTimeTables)
             ArrowPreference("课表管理", onClick = onManageTables)
             ArrowPreference("课程管理", onClick = onManageCourses)
-            ArrowPreference("课表导入", onClick = onOpenImport)
-            ArrowPreference("课表导出", onClick = onOpenExport)
+            ArrowPreference("导入与导出", onClick = onOpenTransfer)
         }
 
         PreferenceSection("高级功能") {

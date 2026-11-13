@@ -42,8 +42,8 @@ sealed class Page : NavKey {
     /** 课表管理，切换当前课表 */
     @Serializable data object CourseTableManage : Page()
 
-    /** 课表导入 */
-    @Serializable data object ScheduleImport : Page()
+    /** 导入与导出 */
+    @Serializable data object ScheduleTransfer : Page()
 
     /** 教务系统导入，选择学校 */
     @Serializable data object EduImport : Page()
@@ -55,9 +55,6 @@ sealed class Page : NavKey {
         val adapterId: String,
         val url: String = "",
     ) : Page()
-
-    /** 课表导出 */
-    @Serializable data object ScheduleExport : Page()
 
     /** 备份与恢复 */
     @Serializable data object Backup : Page()

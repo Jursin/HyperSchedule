@@ -56,8 +56,7 @@ import com.hyperschedule.app.ui.page.table.TimeTableManagePage
 import com.hyperschedule.app.ui.page.today.TodayPage
 import com.hyperschedule.app.ui.page.transfer.EduImportPage
 import com.hyperschedule.app.ui.page.transfer.EduImportWebPage
-import com.hyperschedule.app.ui.page.transfer.ScheduleExportPage
-import com.hyperschedule.app.ui.page.transfer.ScheduleImportPage
+import com.hyperschedule.app.ui.page.transfer.ScheduleTransferPage
 import com.hyperschedule.app.ui.state.rememberCourseTableData
 import com.hyperschedule.app.ui.state.rememberCoursesWithWeeks
 import com.hyperschedule.app.ui.state.rememberScheduleOverview
@@ -166,8 +165,7 @@ class MainActivity : ComponentActivity() {
                             onManageCourses = { navigate(Page.CourseManage) },
                             onManageTables = { navigate(Page.CourseTableManage) },
                             onManageTimeTables = { navigate(Page.TimeTableManage) },
-                            onOpenImport = { navigate(Page.ScheduleImport) },
-                            onOpenExport = { navigate(Page.ScheduleExport) },
+                            onOpenTransfer = { navigate(Page.ScheduleTransfer) },
                             onOpenBackup = { navigate(Page.Backup) },
                             onOpenHoliday = { navigate(Page.Holiday) },
                             onOpenReminder = { navigate(Page.Reminder) },
@@ -286,11 +284,14 @@ class MainActivity : ComponentActivity() {
                             onBack = onBack,
                         )
                     },
-                    scheduleImportPage = { navigate, onBack ->
-                        ScheduleImportPage(
+                    scheduleTransferPage = { navigate, onBack ->
+                        ScheduleTransferPage(
                             tables = rememberTableSummaries(repository),
                             table = table,
                             repository = repository,
+                            holidayRepository = holidayRepository,
+                            reminder = settings.reminder,
+                            currentTableId = settingsStore.state.currentTableId,
                             appBlur = settings.blur,
                             onSwitchTable = { tableId ->
                                 settingsStore.update { it.copy(currentTableId = tableId) }
@@ -328,22 +329,10 @@ class MainActivity : ComponentActivity() {
                             },
                         )
                     },
-                    scheduleExportPage = { onBack ->
-                        ScheduleExportPage(
-                            tables = rememberTableSummaries(repository),
-                            repository = repository,
-                            holidayRepository = holidayRepository,
-                            currentTableId = settingsStore.state.currentTableId,
-                            reminder = settings.reminder,
-                            appBlur = settings.blur,
-                            onBack = onBack,
-                        )
-                    },
                     backupPage = { onBack -> BackupPage(settingsStore, appBlur = settings.blur, onBack = onBack) },
                     holidayPage = { onBack ->
                         HolidayPage(
                             repository = holidayRepository,
-                            table = table,
                             appBlur = settings.blur,
                             onBack = onBack,
                         )
@@ -361,6 +350,7 @@ class MainActivity : ComponentActivity() {
                             currentTableId = settingsStore.state.currentTableId,
                             setting = settings.wearPush,
                             onSettingChange = { next -> settingsStore.update { it.copy(wearPush = next) } },
+                            reminder = settings.reminder,
                             repository = repository,
                             holidayRepository = holidayRepository,
                             appBlur = settings.blur,

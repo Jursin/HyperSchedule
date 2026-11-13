@@ -29,6 +29,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.hyperschedule.app.R
+import com.hyperschedule.app.data.local.ReminderSettings
 import com.hyperschedule.app.data.local.WearPushSettings
 import com.hyperschedule.app.data.push.WearSchedule
 import com.hyperschedule.app.data.push.WearSync
@@ -92,6 +93,7 @@ private class PushPayload(
 private suspend fun buildPushPayload(
     tableId: String,
     excludeHoliday: Boolean,
+    preClassMinutes: Int,
     repository: ScheduleRepository,
     holidayRepository: HolidayRepository,
 ): PushPayload {
@@ -120,6 +122,7 @@ private suspend fun buildPushPayload(
             timeTable = repository.effectiveTimeTableOnce(tableId),
             startDate = startDate,
             lastWeek = lastWeek,
+            preClassMinutes = preClassMinutes,
             entries = entries,
         )
     require(schedule.courses.isNotEmpty()) { if (holidayApplied) "课程都被节假日排除了" else "没有可推送的课程，请检查课程时间" }
@@ -138,6 +141,7 @@ fun WearPushPage(
     currentTableId: String?,
     setting: WearPushSettings,
     onSettingChange: (WearPushSettings) -> Unit,
+    reminder: ReminderSettings,
     repository: ScheduleRepository,
     holidayRepository: HolidayRepository,
     appBlur: Boolean = false,
@@ -157,6 +161,8 @@ fun WearPushPage(
     val ids = tables.map { it.table.id }
     val activeId = setting.tableId?.takeIf { it in ids } ?: currentTableId?.takeIf { it in ids } ?: ids.firstOrNull()
     val selectedIndex = ids.indexOf(activeId).coerceAtLeast(0)
+    // 提醒没开时按默认提前量推
+    val preClassMinutes = if (reminder.enabled) reminder.preMinutes else ReminderSettings.Default.preMinutes
 
     fun toast(text: String) {
         Toast.makeText(context, text, Toast.LENGTH_LONG).show()
@@ -228,7 +234,9 @@ fun WearPushPage(
             }
             // 课表内容不满足推送条件时抛的是本地异常
             val payload =
-                runCatching { buildPushPayload(tableId, setting.excludeHoliday, repository, holidayRepository) }
+                runCatching {
+                    buildPushPayload(tableId, setting.excludeHoliday, preClassMinutes, repository, holidayRepository)
+                }
                     .getOrElse {
                         pushing = false
                         return@launch toast(it.message ?: "读取课表失败")

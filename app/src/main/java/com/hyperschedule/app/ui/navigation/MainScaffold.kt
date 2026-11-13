@@ -99,7 +99,7 @@ fun MainScaffold(
         ) -> Unit = { _, _, _, _, _, _ -> },
     timeTableManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     courseTableManagePage: @Composable (onBack: () -> Unit) -> Unit = {},
-    scheduleImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
+    scheduleTransferPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     eduImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
     eduImportWebPage:
         @Composable
@@ -110,7 +110,6 @@ fun MainScaffold(
             onBack: () -> Unit,
             onImported: () -> Unit,
         ) -> Unit = { _, _, _, _, _ -> },
-    scheduleExportPage: @Composable (onBack: () -> Unit) -> Unit = {},
     backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
     holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
     reminderPage: @Composable (onBack: () -> Unit) -> Unit = {},
@@ -184,12 +183,12 @@ fun MainScaffold(
             }
         }
 
-    // 教务导入完成后直接回到「课表导入」页
-    val backToScheduleImport: () -> Unit =
+    // 教务导入完成后直接回到「导入与导出」页
+    val backToScheduleTransfer: () -> Unit =
         remember(backStack) {
             {
                 navLevel.intValue = 2
-                while (backStack.size > 1 && backStack.lastOrNull() != Page.ScheduleImport) {
+                while (backStack.size > 1 && backStack.lastOrNull() != Page.ScheduleTransfer) {
                     backStack.removeLastOrNull()
                 }
             }
@@ -413,9 +412,9 @@ fun MainScaffold(
                         courseTableManagePage(onBack)
                     }
                 }
-                entry<Page.ScheduleImport> {
+                entry<Page.ScheduleTransfer> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        scheduleImportPage(navigate, onBack)
+                        scheduleTransferPage(navigate, onBack)
                     }
                 }
                 entry<Page.EduImport> {
@@ -425,12 +424,7 @@ fun MainScaffold(
                 }
                 entry<Page.EduImportWeb> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        eduImportWebPage(key.schoolId, key.adapterId, key.url, onBack, backToScheduleImport)
-                    }
-                }
-                entry<Page.ScheduleExport> {
-                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        scheduleExportPage(onBack)
+                        eduImportWebPage(key.schoolId, key.adapterId, key.url, onBack, backToScheduleTransfer)
                     }
                 }
                 entry<Page.Backup> {

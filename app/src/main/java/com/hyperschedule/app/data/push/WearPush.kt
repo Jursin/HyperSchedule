@@ -65,6 +65,7 @@ data class WearConfig(
     val semesterTotalWeeks: Int? = null,
     val morningAfternoonSplit: String? = null,
     val afternoonEveningSplit: String? = null,
+    val preClassMinutes: Int? = null,
 )
 
 /** 空字段不写进 JSON，设备按缺失处理 */
@@ -88,6 +89,7 @@ fun buildWearSchedule(
     timeTable: TimeTable?,
     startDate: LocalDate?,
     lastWeek: Int,
+    preClassMinutes: Int,
     entries: List<HolidayEntry> = emptyList(),
 ): WearSchedule {
     val plan =
@@ -136,6 +138,8 @@ fun buildWearSchedule(
                     timeTable?.morningAfternoonSplit.normalizedClock() ?: TimeTable.DEFAULT_MORNING_SPLIT,
                 afternoonEveningSplit =
                     timeTable?.afternoonEveningSplit.normalizedClock() ?: TimeTable.DEFAULT_EVENING_SPLIT,
+                // 课前倒计时的窗口随提醒设置下发
+                preClassMinutes = preClassMinutes.coerceAtLeast(0),
             ),
     )
 }

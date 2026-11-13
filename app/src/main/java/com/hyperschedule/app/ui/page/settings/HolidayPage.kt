@@ -2,9 +2,8 @@ package com.hyperschedule.app.ui.page.settings
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -13,42 +12,34 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.model.HolidayEntry
 import com.hyperschedule.app.data.repository.HolidayRepository
-import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
-import com.hyperschedule.app.schedule.adjustDate
 import com.hyperschedule.app.schedule.cjkDigitGap
-import com.hyperschedule.app.schedule.currentWeekOf
 import com.hyperschedule.app.schedule.formatDate
 import com.hyperschedule.app.schedule.parseDateOrNull
-import com.hyperschedule.app.schedule.weekDatesOf
 import com.hyperschedule.app.theme.CardCornerRadius
-import com.hyperschedule.app.theme.CardInsidePadding
 import com.hyperschedule.app.ui.component.ConfirmDialog
-import com.hyperschedule.app.ui.component.DAY_NAMES
-import com.hyperschedule.app.ui.component.DatePickerRow
+import com.hyperschedule.app.ui.component.DateRangeCalendar
 import com.hyperschedule.app.ui.component.DialogDeleteAction
-import com.hyperschedule.app.ui.component.NumberWheelRow
+import com.hyperschedule.app.ui.component.DualDateCalendar
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.SectionTitle
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
-import com.hyperschedule.app.ui.state.CourseTableData
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
@@ -61,16 +52,11 @@ private val HolidayYears = 2024..2035
 @Composable
 fun HolidayPage(
     repository: HolidayRepository,
-    table: CourseTableData?,
     appBlur: Boolean = false,
     onBack: () -> Unit,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    val config = table?.config
-    val startDateText = config?.semesterStartDate.orEmpty()
-    val semesterStart = remember(startDateText) { parseDateOrNull(startDateText) }
-    val totalWeeks = (config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS).coerceAtLeast(1)
 
     var year by remember { mutableIntStateOf(LocalDate.now().year.coerceIn(HolidayYears)) }
     val entries by remember(year) { repository.observe(year) }.collectAsState(emptyList())
@@ -169,8 +155,6 @@ fun HolidayPage(
             entry = editing,
             type = dialogType,
             year = year,
-            semesterStart = semesterStart,
-            totalWeeks = totalWeeks,
             appBlur = appBlur,
             onDismiss = { showDialog = false },
             onSave = { updated ->
@@ -232,8 +216,6 @@ private fun HolidayEditDialog(
     entry: HolidayEntry?,
     type: Int,
     year: Int,
-    semesterStart: LocalDate?,
-    totalWeeks: Int,
     appBlur: Boolean,
     onDismiss: () -> Unit,
     onSave: (HolidayEntry) -> Unit,
@@ -249,18 +231,8 @@ private fun HolidayEditDialog(
     var name by remember { mutableStateOf(entry?.name.orEmpty()) }
     var startDate by remember { mutableStateOf(parseDateOrNull(entry?.date.orEmpty()) ?: fallbackDate) }
     var endDate by remember { mutableStateOf(parseDateOrNull(entry?.endDate.orEmpty()) ?: startDate) }
-    val savedFollowDate = parseDateOrNull(entry?.followDate.orEmpty())
-    // 跟随课程按「第 X 周 星期 Y」编辑，落库存绝对日期
-    var followWeek by remember {
-        mutableIntStateOf(
-            (semesterStart?.let { currentWeekOf(it, savedFollowDate ?: startDate) } ?: 1).coerceIn(1, totalWeeks),
-        )
-    }
-    var followWeekday by remember { mutableIntStateOf(savedFollowDate?.dayOfWeek?.value ?: 1) }
-    val followTarget =
-        remember(semesterStart, followWeek, followWeekday) {
-            semesterStart?.let { weekDatesOf(it, followWeek).getOrNull(followWeekday - 1) }
-        }
+    // 调休补哪一天的课，按绝对日期选，未设置时为空
+    var followDate by remember { mutableStateOf(parseDateOrNull(entry?.followDate.orEmpty())) }
 
     val canSave = name.isNotBlank() && (isHoliday.not() || endDate >= startDate)
     val title =
@@ -292,7 +264,7 @@ private fun HolidayEditDialog(
                     name = name.trim().ifBlank { if (isHoliday) "节假日" else "调休工作日" },
                     type = type,
                     endDate = if (isHoliday) endDate.toString() else "",
-                    followDate = if (isHoliday) "" else followTarget?.toString().orEmpty(),
+                    followDate = if (isHoliday) "" else followDate?.toString().orEmpty(),
                     custom = true,
                 ),
             )
@@ -306,111 +278,45 @@ private fun HolidayEditDialog(
             modifier = Modifier.fillMaxWidth(),
         )
 
-        DateField(
-            label = if (isHoliday) "开始日期" else "调休日期",
-            date = startDate,
-            onDateChange = { startDate = it },
-        )
-
         if (isHoliday) {
-            DateField(label = "结束日期", date = endDate, onDateChange = { endDate = it })
-        } else {
-            FollowCourseField(
-                semesterStart = semesterStart,
-                followWeek = followWeek,
-                followWeekday = followWeekday,
-                followTarget = followTarget,
-                totalWeeks = totalWeeks,
-                onWeekChange = { followWeek = it },
-                onWeekdayChange = { followWeekday = it },
-            )
-        }
-    }
-}
-
-/** 调休「跟随课程」，小标题右侧显示推算出的日期，下面是周次与星期两个滚轮 */
-@Composable
-private fun FollowCourseField(
-    semesterStart: LocalDate?,
-    followWeek: Int,
-    followWeekday: Int,
-    followTarget: LocalDate?,
-    totalWeeks: Int,
-    onWeekChange: (Int) -> Unit,
-    onWeekdayChange: (Int) -> Unit,
-) {
-    Column {
-        if (semesterStart == null) {
-            SectionTitle("跟随课程")
-            Text(
-                text = "请先在设置中填写「开始上课日期」",
-                modifier = Modifier.fillMaxWidth().padding(horizontal = CardInsidePadding),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                style = MiuixTheme.textStyles.body2,
-            )
-        } else {
-            // 推算出的日期右对齐在小标题旁，方便核对「补的是哪一天」
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                SectionTitle("跟随课程", modifier = Modifier.weight(1f))
-                if (followTarget != null) {
-                    Text(
-                        text = formatDate(followTarget),
-                        modifier = Modifier.padding(end = 16.dp),
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        style = MiuixTheme.textStyles.body2,
-                    )
-                }
+            CalendarField(title = "假期日期") {
+                DateRangeCalendar(
+                    startDate = startDate,
+                    endDate = endDate,
+                    onRangeChange = { start, end ->
+                        startDate = start
+                        endDate = end
+                    },
+                )
             }
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = CardCornerRadius,
-            ) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    NumberWheelRow(
-                        value = followWeek,
-                        range = 1..totalWeeks,
-                        label = { "第${it}周".cjkDigitGap() },
-                        onValueChange = onWeekChange,
-                        modifier = Modifier.weight(1f),
-                    )
-                    NumberWheelRow(
-                        value = followWeekday,
-                        range = 1..7,
-                        label = { DAY_NAMES[it - 1] },
-                        onValueChange = onWeekdayChange,
-                        modifier = Modifier.weight(1f),
-                        wrapAround = true,
-                    )
-                }
+        } else {
+            CalendarField(title = "调休日与补课日") {
+                DualDateCalendar(
+                    primaryDate = startDate,
+                    secondaryDate = followDate,
+                    onPrimaryChange = { startDate = it },
+                    onSecondaryChange = { followDate = it },
+                    startWithSecondary = !isNewEntry,
+                )
             }
         }
     }
 }
 
-/** 一行日期选择，小标题 + 一张卡片 */
 @Composable
-private fun DateField(
-    label: String,
-    date: LocalDate,
-    onDateChange: (LocalDate) -> Unit,
+private fun CalendarField(
+    title: String,
+    content: @Composable () -> Unit,
 ) {
     Column {
-        SectionTitle(label)
+        SectionTitle(title)
         Card(
             modifier = Modifier.fillMaxWidth(),
             cornerRadius = CardCornerRadius,
+            insideMargin = PaddingValues(0.dp),
+            colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.secondaryContainer),
         ) {
-            DatePickerRow(
-                year = date.year,
-                onYearChange = { onDateChange(adjustDate(date, year = it)) },
-                month = date.monthValue,
-                onMonthChange = { onDateChange(adjustDate(date, month = it)) },
-                day = date.dayOfMonth,
-                onDayChange = { onDateChange(adjustDate(date, day = it)) },
-            )
+            content()
         }
     }
 }
