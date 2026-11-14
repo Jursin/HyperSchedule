@@ -19,6 +19,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
+import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.WeekdayRow
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Icon
@@ -67,16 +68,16 @@ internal fun ScheduleTopBar(
             blurBackdrop = blurBackdrop,
             scrollBehavior = scrollBehavior,
             leading = {
-                IconButton(onClick = onManageTables) {
+                TopBarIconButton(onClick = onManageTables) {
                     Icon(MiuixIcons.ConvertFile, contentDescription = "课表切换")
                 }
             },
             actions = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    IconButton(onClick = onManageCourses) {
+                    TopBarIconButton(onClick = onManageCourses) {
                         Icon(MiuixIcons.Backup, contentDescription = "课程管理")
                     }
-                    IconButton(onClick = onAppearanceClick) {
+                    TopBarIconButton(onClick = onAppearanceClick) {
                         Icon(MiuixIcons.Background, contentDescription = "课表外观")
                     }
                 }

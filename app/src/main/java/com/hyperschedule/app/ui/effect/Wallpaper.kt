@@ -30,6 +30,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
+import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -45,8 +46,10 @@ private val WallpaperCache = LruCache<String, ImageBitmap>(2)
 /** 壁纸状态 */
 @Stable
 class WallpaperState internal constructor(
-    /** 壁纸采样源，运行时不支持模糊时为 null */
+    /** 玻璃采样源（预糊纹理），运行时不支持模糊时为 null */
     val backdrop: WallpaperBackdrop?,
+    /** 壁纸层按屏幕显示效果录下来的采样源（含用户设的壁纸模糊），顶栏糊带用它 */
+    val sample: LayerBackdrop?,
     glassEnabled: Boolean,
 ) {
     var bitmap by mutableStateOf<ImageBitmap?>(null)
@@ -54,6 +57,14 @@ class WallpaperState internal constructor(
 
     var glassEnabled by mutableStateOf(glassEnabled)
         internal set
+
+    /** 玻璃面可用的预糊纹理：没壁纸或关了模糊时为 null */
+    val glassBackdrop: WallpaperBackdrop?
+        get() = if (glassEnabled && bitmap != null) backdrop else null
+
+    /** 顶栏可用的壁纸层采样源，条件同上 */
+    val glassSample: LayerBackdrop?
+        get() = if (glassEnabled && bitmap != null) sample else null
 }
 
 /** 当前页面上的壁纸状态 */
@@ -65,10 +76,12 @@ fun wallpaperVisible(): Boolean = LocalWallpaper.current?.bitmap != null
 /** 建壁纸状态并加载图片，采样源只建一次 */
 @Composable
 fun rememberWallpaperState(wallpaper: String, blurEnabled: Boolean): WallpaperState {
-    val backdrop = if (isRuntimeShaderSupported()) remember { WallpaperBackdrop() } else null
+    val supported = isRuntimeShaderSupported()
+    val backdrop = if (supported) remember { WallpaperBackdrop() } else null
+    val sample = if (supported) rememberLayerBackdrop() else null
     val state =
-        remember(backdrop) {
-            WallpaperState(backdrop, blurEnabled).apply {
+        remember(backdrop, sample) {
+            WallpaperState(backdrop, sample, blurEnabled).apply {
                 // 先用会话缓存
                 bitmap = wallpaper.takeIf { it.isNotEmpty() }?.let { WallpaperCache.get(it) }
             }
@@ -141,6 +154,8 @@ fun WallpaperBackground(
         modifier =
             modifier
                 .fillMaxSize()
+                // 挂在最外层：录进去的是屏幕上真正显示的样子（含壁纸自身那档模糊）
+                .then(state.glassSample?.let { Modifier.layerBackdrop(it) } ?: Modifier)
                 .onGloballyPositioned { coordinates ->
                     backdrop.canvasSize = coordinates.size
                     backdrop.anchor = coordinates

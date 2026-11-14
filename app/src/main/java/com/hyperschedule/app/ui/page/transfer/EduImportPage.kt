@@ -39,6 +39,7 @@ import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.EduRepoSheet
+import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.bouncyScroll
 import com.hyperschedule.app.ui.component.toast
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
@@ -49,7 +50,6 @@ import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
@@ -217,7 +217,7 @@ fun EduImportPage(
                     scrollBehavior = scrollBehavior,
                     onBack = onBack,
                     actions = {
-                        IconButton(onClick = { moreVisible = true }) {
+                        TopBarIconButton(onClick = { moreVisible = true }) {
                             Icon(imageVector = MiuixIcons.More, contentDescription = "更多")
                         }
                     },

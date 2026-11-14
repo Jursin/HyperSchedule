@@ -52,7 +52,6 @@ import com.hyperschedule.app.ui.component.stretchOverscroll
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
-import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.LocalPageReselect
@@ -67,6 +66,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import kotlin.time.Duration.Companion.milliseconds
 
 /** 空格「+」出现后自动收起的时长 */
 private const val PendingCellLifeMs = 3_000L
@@ -95,9 +95,8 @@ fun SchedulePage(
     onSaveCourses: (deletedIds: List<String>, rows: List<Pair<Course, List<Int>>>) -> Unit = { _, _ -> },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val hasWallpaper = wallpaperVisible()
-    // 顶栏不铺底色时不用再录采样层
-    val blurBackdrop = rememberAppBlurBackdrop(appBlur && !hasWallpaper)
+    // 顶栏糊带采的是这一层内容，滚到栏下的课表要从这里取
+    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
 
     // 每分钟走一格
@@ -198,11 +197,16 @@ fun SchedulePage(
     }
     // 与系统同一套衰减，撞边即刻交给拉伸
     val fling = rememberStretchFling(stretch) { pageScroll.value }
+    // 顶栏按钮的底色跟着课表滚动浮现，滚回顶部就消失
+    LaunchedEffect(pageScroll, scrollBehavior) {
+        snapshotFlow { pageScroll.value }
+            .collect { scrollBehavior.state.contentOffset = -it.toFloat() }
+    }
 
     // 「+」停 3 秒自动收起，重复点同一格也会重新计时
     LaunchedEffect(pendingCell) {
         if (pendingCell != null) {
-            delay(PendingCellLifeMs)
+            delay(PendingCellLifeMs.milliseconds)
             pendingCell = null
         }
     }

@@ -110,14 +110,15 @@ class WallpaperBackdrop : Backdrop {
         coordinates: LayoutCoordinates?,
         layerBlock: (GraphicsLayerScope.() -> Unit)?,
         downscaleFactor: Int,
-    ) = drawTexture(baked, anchor, coordinates)
+    ) = drawTexture(baked, anchor, coordinates, downscaleFactor)
 }
 
-/** 纹理按壁纸层坐标贴回去 */
+/** 纹理按壁纸层坐标贴回去，downscaleFactor > 1 时跟着缩放（渐进模糊的分级层会用到） */
 private fun DrawScope.drawTexture(
     texture: BakedWallpaper?,
     anchor: LayoutCoordinates?,
     coordinates: LayoutCoordinates?,
+    downscaleFactor: Int,
 ) {
     // 状态必须最早读，纹理换新靠它通知每个玻璃面重画
     if (texture == null) return
@@ -127,10 +128,11 @@ private fun DrawScope.drawTexture(
     val scale = texture.scale
     if (scale <= 0f) return
     val image = texture.image
+    val inv = if (downscaleFactor > 1) 1f / downscaleFactor else 1f
     withTransform({
         // 先平移到壁纸层原点，再按 1/scale 放大回窗口坐标
-        translate(-offset.x, -offset.y)
-        scale(1f / scale, 1f / scale, Offset.Zero)
+        translate(-offset.x * inv, -offset.y * inv)
+        scale(inv / scale, inv / scale, Offset.Zero)
     }) {
         drawImage(
             image = image,

@@ -135,6 +135,8 @@ fun WallpaperCropPage(
                 blurBackdrop = blurBackdrop,
                 scrollBehavior = scrollBehavior,
                 pinnedTitle = true,
+                // 裁剪区一直压在栏下且不滚动，按钮底色得常驻
+                materialPinned = true,
                 onBack = if (saving) null else onBack,
             )
         },

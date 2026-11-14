@@ -62,13 +62,13 @@ import com.hyperschedule.app.ui.component.EduSelectionState
 import com.hyperschedule.app.ui.component.EduSslState
 import com.hyperschedule.app.ui.component.EduWebBridge
 import com.hyperschedule.app.ui.component.ImportTablePickerDialog
+import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.interceptPostRequest
 import com.hyperschedule.app.ui.component.toast
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -300,7 +300,7 @@ fun EduImportWebPage(
                 scrollBehavior = scrollBehavior,
                 onBack = ::goBack,
                 actions = {
-                    IconButton(onClick = { if (!rendererGone) webView.reload() }) {
+                    TopBarIconButton(onClick = { if (!rendererGone) webView.reload() }) {
                         Icon(imageVector = MiuixIcons.Refresh, contentDescription = "刷新")
                     }
                 },

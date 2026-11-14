@@ -3,14 +3,17 @@ package com.hyperschedule.app.ui.page.today
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -20,6 +23,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,12 +50,12 @@ import com.hyperschedule.app.ui.component.ProvideBackToNow
 import com.hyperschedule.app.ui.component.SectionPill
 import com.hyperschedule.app.ui.component.TodayAppearanceSheet
 import com.hyperschedule.app.ui.component.TodayCourseList
+import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
-import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
@@ -62,7 +67,6 @@ import java.time.LocalDate
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
@@ -89,11 +93,15 @@ fun TodayPage(
     onCourseClick: (name: String, week: Int) -> Unit = { _, _ -> },
 ) {
     val scrollBehavior = MiuixScrollBehavior()
-    val hasWallpaper = wallpaperVisible()
-    // 顶栏不铺底色时不用再录采样层
-    val blurBackdrop = rememberAppBlurBackdrop(appBlur && !hasWallpaper)
+    // 顶栏糊带采的是这一层内容，滚到栏下的课程要从这里取
+    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
     val dateState = rememberDatePagerState()
+    val density = LocalDensity.current
+    // 空状态居中的文案有多高：内容被拉上来时，文案顶端到栏底还有一段看不到的距离
+    var hintHeight by remember { mutableStateOf(0.dp) }
+    // 当前这一页的内容顶端离栏底多远才算出材质的起点
+    var materialStart by remember { mutableStateOf(TodayContentStart) }
 
     val tableId = table?.tableId
     val slots = table?.slots.orEmpty()
@@ -153,7 +161,7 @@ fun TodayPage(
                 blurBackdrop = blurBackdrop,
                 scrollBehavior = scrollBehavior,
                 actions = {
-                    IconButton(
+                    TopBarIconButton(
                         onClick = {
                             appearanceVisible = true
                             appearanceMounted = true
@@ -173,48 +181,63 @@ fun TodayPage(
                     )
                 },
                 pinnedTitle = true,
+                // 内容顶端贴着栏底，只有列表自己那段留白要先滚过去（空状态另算，见下）
+                materialStart = materialStart,
             )
         },
     ) { paddingValues ->
-        DatePager(
-            dateState = dateState,
-            // 采集点放在 pager 整体上，翻页或滚动时始终只录一份
-            modifier = Modifier.fillMaxSize().captureForBlur(blurBackdrop),
-            // 底部导航切页动画期间禁用手势，避免和过渡动画互抢
-            userScrollEnabled = !tabNavigating,
-        ) { date ->
-            val week = startDate?.let { currentWeekOf(it, date) }
-            val day = date.dayOfWeek.value
-            // 这一天在放假/调休规则下的结论，补课时要看的可能是被调那一天的课（甚至别的周）
-            val dayPlan =
-                remember(holidayPlan, week, day) {
-                    week?.let { holidayPlan.of(it, day) } ?: HolidayDay()
-                }
-            // 没设开学日期就没有周次，课程查询直接跳过
-            val shownWeek = if (dayPlan.displayWeek > 0) dayPlan.displayWeek else week
-            val shownDay = dayPlan.dayOr(day)
-            val coursesFlow =
-                remember(tableId, shownDay, shownWeek) {
-                    if (tableId == null || shownWeek == null) {
-                        flowOf(emptyList())
-                    } else {
-                        repository.coursesOfDay(tableId, shownDay, shownWeek)
+        val topInset = paddingValues.calculateTopPadding()
+        // 采样点包住整个翻页容器，否则每页各自往同一层采样会采到被换走的邻页
+        BoxWithConstraints(modifier = Modifier.fillMaxSize().captureForBlur(blurBackdrop)) {
+            // 栏下真正露出来的内容区高度：空状态要正好铺满它，居中的文案才和以前一样在正中
+            val contentHeight = (maxHeight - topInset - PageBottomInset).coerceAtLeast(0.dp)
+            DatePager(
+                dateState = dateState,
+                modifier = Modifier.fillMaxSize(),
+                // 底部导航切页动画期间禁用手势，避免和过渡动画互抢
+                userScrollEnabled = !tabNavigating,
+            ) { date ->
+                val week = startDate?.let { currentWeekOf(it, date) }
+                val day = date.dayOfWeek.value
+                // 这一天在放假/调休规则下的结论，补课时要看的可能是被调那一天的课（甚至别的周）
+                val dayPlan =
+                    remember(holidayPlan, week, day) {
+                        week?.let { holidayPlan.of(it, day) } ?: HolidayDay()
+                    }
+                // 没设开学日期就没有周次，课程查询直接跳过
+                val shownWeek = if (dayPlan.displayWeek > 0) dayPlan.displayWeek else week
+                val shownDay = dayPlan.dayOr(day)
+                val coursesFlow =
+                    remember(tableId, shownDay, shownWeek) {
+                        if (tableId == null || shownWeek == null) {
+                            flowOf(emptyList())
+                        } else {
+                            repository.coursesOfDay(tableId, shownDay, shownWeek)
+                        }
+                    }
+                val courses by coursesFlow.collectAsState(emptyList())
+                val mark = dayPlan.markOrNull()
+                val emptyDay = courses.isEmpty() || dayPlan.holiday
+                // 文案在内容区正中，上面那半截是空的：拉伸到文案之前不该出材质
+                val emptyStart =
+                    if (hintHeight > 0.dp) ((contentHeight - hintHeight) / 2).coerceAtLeast(0.dp) else 0.dp
+                SideEffect {
+                    if (date == dateState.date) {
+                        materialStart = if (emptyDay) emptyStart else TodayContentStart
                     }
                 }
-            val courses by coursesFlow.collectAsState(emptyList())
-            val mark = dayPlan.markOrNull()
 
-            Box(modifier = Modifier.fillMaxSize()) {
                 PageScrollColumn(
-                    // 采集点在外层，每页不再各自录制
+                    // 采样点在外层，每页不再各自录制
                     blurBackdrop = null,
                     scrollBehavior = scrollBehavior,
                     // 顶栏高度作为内容上内边距，内容才能滚到它下方
-                    topInset = paddingValues.calculateTopPadding(),
+                    topInset = topInset,
                     topPadding = 0.dp,
+                    // 每页的滚动位置要互不影响，只有当前页决定顶栏按钮底色
+                    syncMaterial = date == dateState.date,
                 ) {
-                    // 放假这天不上课，不列课程，直接走下面的空状态
-                    if (courses.isNotEmpty() && !dayPlan.holiday) {
+                    if (!emptyDay) {
                         TodayCourseList(
                             courses = courses,
                             slots = slots,
@@ -222,28 +245,25 @@ fun TodayPage(
                             style = style,
                             mark = mark,
                             preClassMinutes = preClassMinutes,
-                            modifier = Modifier.padding(top = 8.dp),
+                            modifier = Modifier.padding(top = TodayContentStart),
                             onCourseClick = { course -> shownWeek?.let { onCourseClick(course.name, it) } },
                         )
-                    }
-                }
-
-                if (courses.isEmpty() || dayPlan.holiday) {
-                    Box(
-                        modifier =
-                            Modifier
-                                .fillMaxSize()
-                                .padding(
-                                    top = paddingValues.calculateTopPadding(),
-                                    bottom = PageBottomInset,
-                                ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        EmptyCourseHint(
-                            isToday = date == dateState.today,
-                            isHoliday = dayPlan.holiday,
-                            noStartDate = startDate == null,
-                        )
+                    } else {
+                        // 空状态也是滚动内容：能被拖动、钻到栏下被糊住；横屏文案更高时用 min 让它可滚
+                        Box(
+                            modifier = Modifier.fillMaxWidth().heightIn(min = contentHeight),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            EmptyCourseHint(
+                                isToday = date == dateState.today,
+                                isHoliday = dayPlan.holiday,
+                                noStartDate = startDate == null,
+                                modifier =
+                                    Modifier.onSizeChanged {
+                                        hintHeight = with(density) { it.height.toDp() }
+                                    },
+                            )
+                        }
                     }
                 }
             }
@@ -303,11 +323,11 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
             // 日期太长时省略，别把后面的按钮和角标挤走
             modifier = Modifier.weight(1f, fill = false),
         )
-        IconButton(
+        TopBarIconButton(
             onClick = onJumpClick,
             modifier = Modifier.padding(start = 6.dp),
-            minWidth = 32.dp,
-            minHeight = 32.dp,
+            minWidth = 34.dp,
+            minHeight = 34.dp,
         ) {
             Icon(
                 imageVector = MiuixIcons.Basic.ArrowUpDown,
@@ -344,9 +364,17 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
     }
 }
 
+/** 课程列表自带的顶留白：内容要滚过这一段才真正压到栏下 */
+private val TodayContentStart = 8.dp
+
 /** 空状态文案，垂直位置由调用方的剩余区域居中决定 */
 @Composable
-private fun EmptyCourseHint(isToday: Boolean, isHoliday: Boolean, noStartDate: Boolean) {
+private fun EmptyCourseHint(
+    isToday: Boolean,
+    isHoliday: Boolean,
+    noStartDate: Boolean,
+    modifier: Modifier = Modifier,
+) {
     val text =
         when {
             noStartDate -> "未设置开学日期"
@@ -356,7 +384,7 @@ private fun EmptyCourseHint(isToday: Boolean, isHoliday: Boolean, noStartDate: B
         }
     SectionPill(
         text = text,
-        modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        modifier = modifier.padding(horizontal = 24.dp, vertical = 8.dp),
         textAlign = TextAlign.Center,
     )
 }
