@@ -25,12 +25,10 @@ import com.hyperschedule.app.ui.component.MarkdownText
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import com.hyperschedule.app.update.ChangelogEntry
 import com.hyperschedule.app.update.UpdateController
 import com.hyperschedule.app.update.UpdateDialogState
-import com.hyperschedule.app.update.UpdateSource
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
@@ -56,20 +54,12 @@ fun UpdatePage(
                 onClick = {
                     // 手动检查也记一次日期，避免重启后再静默查一遍
                     store.update { it.copy(lastUpdateCheck = LocalDate.now().toString()) }
-                    controller.checkForUpdate(state.updateSource, state.acceptPrerelease, state.githubProxyUrl)
+                    controller.checkForUpdate(state.acceptPrerelease, state.githubProxyUrl)
                 },
             )
             ArrowPreference(
                 title = "更新日志",
                 onClick = onOpenLog,
-            )
-            OverlayDropdownPreference(
-                title = "更新源",
-                items = UpdateSource.entries.map { it.label },
-                selectedIndex = UpdateSource.entries.indexOf(state.updateSource),
-                onSelectedIndexChange = { index ->
-                    store.update { it.copy(updateSource = UpdateSource.entries[index]) }
-                },
             )
             SwitchPreference(
                 checked = state.acceptPrerelease,

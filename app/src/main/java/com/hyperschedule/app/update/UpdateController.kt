@@ -62,7 +62,6 @@ class UpdateController private constructor(private val context: Context) {
     }
 
     fun checkForUpdate(
-        source: UpdateSource,
         acceptPrerelease: Boolean,
         proxy: String,
         silent: Boolean = false,
@@ -79,7 +78,7 @@ class UpdateController private constructor(private val context: Context) {
                 val currentVersion = getAppVersion(context)
                 val release =
                     withContext(Dispatchers.IO) {
-                        AppUpdate.fetchRelease(source, acceptPrerelease, proxy, currentVersion)
+                        AppUpdate.fetchRelease(acceptPrerelease, proxy, currentVersion)
                     }
                 if (AppUpdate.compareVersions(release.version, currentVersion) <= 0) {
                     if (!silent) toast("已是最新版")

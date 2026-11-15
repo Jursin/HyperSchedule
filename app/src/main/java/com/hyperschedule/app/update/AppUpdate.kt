@@ -5,9 +5,12 @@ import com.hyperschedule.app.data.remote.proxiedUrl
 import org.json.JSONArray
 import org.json.JSONObject
 
-enum class UpdateSource(val label: String, val api: String, val repo: String) {
-    GitHub("GitHub", api = "https://api.github.com", repo = "Jursin/HyperSchedule"),
-}
+private const val GITHUB_API = "https://api.github.com"
+private const val GITHUB_REPO = "Jursin/HyperSchedule"
+
+/** Release 列表接口，按 tag 倒序 */
+internal fun releasesUrl(perPage: Int): String =
+    "$GITHUB_API/repos/$GITHUB_REPO/releases?per_page=$perPage&direction=desc"
 
 data class ReleaseAsset(
     val name: String,
@@ -24,17 +27,12 @@ data class ReleaseInfo(
 
 object AppUpdate {
     fun fetchRelease(
-        source: UpdateSource,
         acceptPrerelease: Boolean,
         proxy: String,
         currentVersion: String,
     ): ReleaseInfo {
         // 统一拉列表再本地挑选，只按版本号取出最大的一条
-        val body =
-            httpGet(
-                "${source.api}/repos/${source.repo}/releases?per_page=30&direction=desc",
-                accept = "application/vnd.github+json",
-            )
+        val body = httpGet(releasesUrl(perPage = 30), accept = "application/vnd.github+json")
         val array = JSONArray(body.trimStart())
         val releases =
             (0 until array.length())

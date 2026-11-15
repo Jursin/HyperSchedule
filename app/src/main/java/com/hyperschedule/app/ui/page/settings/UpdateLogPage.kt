@@ -33,7 +33,6 @@ import com.hyperschedule.app.ui.component.pageScroll
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.update.ChangelogEntry
 import com.hyperschedule.app.update.ReleaseMeta
-import com.hyperschedule.app.update.UpdateSource
 import com.hyperschedule.app.update.fetchReleaseMeta
 import com.hyperschedule.app.update.loadChangelog
 import kotlinx.coroutines.CancellationException
@@ -57,7 +56,7 @@ fun UpdateLogPage(appBlur: Boolean = false, onBack: () -> Unit) {
 
     LaunchedEffect(Unit) {
         try {
-            releases = withContext(Dispatchers.IO) { fetchReleaseMeta(UpdateSource.GitHub) }
+            releases = withContext(Dispatchers.IO) { fetchReleaseMeta() }
         } catch (e: CancellationException) {
             throw e
         } catch (_: Exception) {

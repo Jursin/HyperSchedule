@@ -124,7 +124,6 @@ class MainActivity : ComponentActivity() {
                 // 静默检查每天最多一次，手动检查不受限制
                 settingsStore.update { it.copy(lastUpdateCheck = today) }
                 updateController.checkForUpdate(
-                    settings.updateSource,
                     settings.acceptPrerelease,
                     settings.githubProxyUrl,
                     silent = true,

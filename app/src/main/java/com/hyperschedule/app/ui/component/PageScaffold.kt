@@ -258,7 +258,7 @@ private const val StretchFadeMillis = 120
 val LocalTopBarBanded = staticCompositionLocalOf { false }
 
 /** 顶栏材质强度（0..1）：内容滚到栏下才浮现，绘制期读取 */
-val LocalTopBarMaterialAlpha = staticCompositionLocalOf<() -> Float> { { 0f } }
+val LocalTopBarMaterialAlpha = staticCompositionLocalOf { { 0f } }
 
 /** 顶栏图标按钮：内容滚到栏下时图标才垫上一层容器色，回到顶部跟着消失 */
 @Composable

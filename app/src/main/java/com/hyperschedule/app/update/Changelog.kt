@@ -36,8 +36,8 @@ fun loadChangelog(context: Context): List<ChangelogEntry> {
 }
 
 /** 发布日期与预发布标记 */
-fun fetchReleaseMeta(source: UpdateSource): Map<String, ReleaseMeta> {
-    val body = httpGet("${source.api}/repos/${source.repo}/releases?per_page=100", accept = "application/vnd.github+json")
+fun fetchReleaseMeta(): Map<String, ReleaseMeta> {
+    val body = httpGet(releasesUrl(perPage = 100), accept = "application/vnd.github+json")
     val array = JSONArray(body.trimStart())
     return buildMap {
         (0 until array.length()).mapNotNull { array.optJSONObject(it) }.forEach { node ->

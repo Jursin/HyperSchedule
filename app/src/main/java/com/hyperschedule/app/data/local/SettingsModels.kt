@@ -3,7 +3,6 @@ package com.hyperschedule.app.data.local
 import com.hyperschedule.app.data.backup.BACKUP_FOLDER
 import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.schedule.cjkDigitGap
-import com.hyperschedule.app.update.UpdateSource
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -18,7 +17,6 @@ data class SettingsState(
     val floatingNav: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
-    val updateSource: UpdateSource = UpdateSource.GitHub,
     val acceptPrerelease: Boolean = false,
     val lastUpdateCheck: String = "",
     val githubProxyUrl: String = "",

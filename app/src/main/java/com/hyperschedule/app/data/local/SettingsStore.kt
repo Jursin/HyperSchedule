@@ -99,7 +99,6 @@ private val Prefs =
         },
         intSetting("seedColor", { it.seedColor }) { s, v -> s.copy(seedColor = v) },
         boolSetting("checkUpdateOnStart", { it.checkUpdateOnStart }) { s, v -> s.copy(checkUpdateOnStart = v) },
-        enumSetting("updateSource", { it.updateSource }) { s, v -> s.copy(updateSource = v) },
         boolSetting("acceptPrerelease", { it.acceptPrerelease }) { s, v -> s.copy(acceptPrerelease = v) },
         stringSetting("lastUpdateCheck", { it.lastUpdateCheck }, backedUp = false) { s, v ->
             s.copy(lastUpdateCheck = v.orEmpty())

@@ -21,7 +21,7 @@ class ClassDndTest {
     private val notificationManager: NotificationManager = context.getSystemService(NotificationManager::class.java)
     private val audioManager: AudioManager = context.getSystemService(AudioManager::class.java)
 
-    /** 与 [com.hyperschedule.app.theme.ReminderSettings.DND_MODE_LABELS] 的下标对应 */
+    /** 与 [com.hyperschedule.app.data.local.ReminderSettings.DND_MODE_LABELS] 的下标对应 */
     private val silentMode = 1
     private val priorityMode = 2
 
