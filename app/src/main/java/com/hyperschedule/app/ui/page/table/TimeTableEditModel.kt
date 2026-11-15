@@ -4,6 +4,7 @@ import com.hyperschedule.app.data.repository.PlanDetail
 import com.hyperschedule.app.schedule.SECTION_COUNT_RANGE
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
+import com.hyperschedule.app.schedule.sectionPeriodOf
 
 /** 编辑页里的一个节次草稿，起止时间为空串表示未设置 */
 internal data class SlotDraft(val start: String, val end: String)
@@ -77,20 +78,12 @@ internal fun groupSections(slots: List<SlotDraft>, splitAM: Int, splitAE: Int): 
     val groups = mutableListOf<SectionGroup>()
     var last = SectionPeriod.MORNING
     slots.forEachIndexed { index, slot ->
-        val start = parseMinutes(slot.start)
-        val period =
-            when {
-                start == null -> last
-                start < splitAM -> SectionPeriod.MORNING
-                start < splitAE -> SectionPeriod.AFTERNOON
-                else -> SectionPeriod.EVENING
-            }
-        last = period
+        last = sectionPeriodOf(parseMinutes(slot.start), splitAM, splitAE, last)
         val tail = groups.lastOrNull()
-        if (tail != null && tail.period == period) {
+        if (tail != null && tail.period == last) {
             groups[groups.lastIndex] = tail.copy(indices = tail.indices + index)
         } else {
-            groups += SectionGroup(period, listOf(index))
+            groups += SectionGroup(last, listOf(index))
         }
     }
     return groups

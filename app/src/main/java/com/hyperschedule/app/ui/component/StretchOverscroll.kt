@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CancellationException
 import kotlin.math.abs
@@ -115,12 +116,20 @@ fun rememberStretchOverscrollState(): StretchOverscrollState {
     }
 }
 
-fun Modifier.stretchOverscroll(state: StretchOverscrollState): Modifier =
+fun Modifier.stretchOverscroll(
+    state: StretchOverscrollState,
+    topInset: Dp = 0.dp,
+): Modifier =
     graphicsLayer {
         val extra = state.stretchPx
         val height = size.height
-        transformOrigin = TransformOrigin(0.5f, if (extra < 0f) 1f else 0f)
-        scaleY = if (extra != 0f && height > 0f) (height + abs(extra)) / height else 1f
+        // 向下拉以内容起点为锚
+        val anchor =
+            if (extra < 0f) 1f else if (height > 0f) (topInset.toPx() / height).coerceIn(0f, 1f) else 0f
+        // 只拉锚点内侧那一段
+        val span = if (extra < 0f) height else height * (1f - anchor)
+        transformOrigin = TransformOrigin(0.5f, anchor)
+        scaleY = if (extra != 0f && span > 0f) (span + abs(extra)) / span else 1f
     }
 
 /** 惯性沿用系统实现，只在真实位置不再前进时收尾，余量交给拉伸 */

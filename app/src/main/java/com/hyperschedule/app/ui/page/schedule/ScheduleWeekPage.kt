@@ -31,7 +31,8 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.currentSectionAt
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.component.BackToNowOccupiedHeight
-import com.hyperschedule.app.ui.component.BreakDividerRow
+import com.hyperschedule.app.ui.component.BreakDividerOverlay
+import com.hyperschedule.app.ui.component.BreakMark
 import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.DayGridColumn
 import com.hyperschedule.app.ui.component.ScheduleGridLines
@@ -58,6 +59,7 @@ internal fun ScheduleWeekPage(
     layout: ScheduleLayout,
     sectionTimes: List<Pair<String, String>>,
     style: ScheduleStyle,
+    breaks: List<BreakMark>,
     startDate: LocalDate?,
     totalWeeks: Int,
     currentWeek: Int?,
@@ -132,6 +134,7 @@ internal fun ScheduleWeekPage(
                 coursesByWeek = coursesByWeek,
                 sectionTimes = sectionTimes,
                 style = style,
+                breaks = breaks,
                 onCourseClick = onCourseClick,
             )
         } else {
@@ -139,6 +142,10 @@ internal fun ScheduleWeekPage(
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (style.gridLines) {
                     ScheduleGridLines(layout = layout, modifier = Modifier.matchParentSize())
+                }
+                // 午休/晚休横线跨整行，压在最底层，课程卡盖在上面
+                breaks.forEach { mark ->
+                    BreakDividerOverlay(top = layout.minuteToY(mark.minute), label = mark.label)
                 }
                 Row(modifier = Modifier.fillMaxWidth()) {
                     SectionTimesColumn(
@@ -159,10 +166,6 @@ internal fun ScheduleWeekPage(
                             margin = style.cardMargin.dp,
                             modifier = Modifier.matchParentSize(),
                         )
-                        // 午休/晚休分界线也压在最底层，课程卡盖在上面
-                        layout.dividers.forEach { divider ->
-                            BreakDividerRow(divider = divider, margin = style.cardMargin.dp)
-                        }
                         Row {
                             for (day in 1..DAY_NAMES.size) {
                                 val plan = dayPlans[day - 1]
@@ -252,6 +255,7 @@ private fun TimelineWeekPage(
     coursesByWeek: Map<Int, List<WeekCourse>>,
     sectionTimes: List<Pair<String, String>>,
     style: ScheduleStyle,
+    breaks: List<BreakMark>,
     onCourseClick: (Course, Int, String?) -> Unit,
 ) {
     val isThisWeek = week == currentWeek
@@ -278,6 +282,7 @@ private fun TimelineWeekPage(
         days = days,
         sectionTimes = sectionTimes,
         style = style,
+        breaks = breaks,
         nowMinute = if (isThisWeek) now.hour * 60 + now.minute else -1,
         todayColumn = if (isThisWeek && !todayRemapped) todayColumn else 0,
         onCourseClick = { course, day -> onCourseClick(course, day.week, day.mark) },

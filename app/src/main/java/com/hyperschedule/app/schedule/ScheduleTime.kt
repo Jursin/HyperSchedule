@@ -48,6 +48,20 @@ fun currentSectionAt(times: List<Pair<String, String>>, now: LocalTime): Int {
     return if (index >= 0) index + 1 else -1
 }
 
+/** 节次按开始时间落到上午/下午/晚上，未设置时间的跟随上一节 */
+fun sectionPeriodOf(
+    start: Int?,
+    morningAt: Int,
+    eveningAt: Int,
+    fallback: SectionPeriod,
+): SectionPeriod =
+    when {
+        start == null -> fallback
+        start < morningAt -> SectionPeriod.MORNING
+        start < eveningAt -> SectionPeriod.AFTERNOON
+        else -> SectionPeriod.EVENING
+    }
+
 /** "HH:mm" → 当天第几分钟，格式不合法返回 null */
 fun parseMinutes(time: String?): Int? {
     if (time.isNullOrBlank()) return null

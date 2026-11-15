@@ -45,6 +45,7 @@ import com.hyperschedule.app.ui.component.ScheduleAppearanceSheet
 import com.hyperschedule.app.ui.component.ScheduleDragLayer
 import com.hyperschedule.app.ui.component.ScheduleLayout
 import com.hyperschedule.app.ui.component.ScrollToNowOnShow
+import com.hyperschedule.app.ui.component.breakMarks
 import com.hyperschedule.app.ui.component.isSameSlotAs
 import com.hyperschedule.app.ui.component.rememberStretchFling
 import com.hyperschedule.app.ui.component.rememberStretchOverscrollState
@@ -66,7 +67,6 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
-import kotlin.time.Duration.Companion.milliseconds
 
 /** 空格「+」出现后自动收起的时长 */
 private const val PendingCellLifeMs = 3_000L
@@ -117,15 +117,17 @@ fun SchedulePage(
     val specialBlocks = table?.specialBlocks.orEmpty()
     val morningSplit = table?.morningAfternoonSplit.orEmpty()
     val eveningSplit = table?.afternoonEveningSplit.orEmpty()
+    // 午休/晚休的分界，网格与时间轴共用一份
+    val breaks =
+        remember(sectionTimes, morningSplit, eveningSplit, style.breakDividers) {
+            if (style.breakDividers) breakMarks(sectionTimes, morningSplit, eveningSplit) else emptyList()
+        }
     val layout =
-        remember(sectionTimes, specialBlocks, morningSplit, eveningSplit, style.hourHeight, style.breakDividers) {
+        remember(sectionTimes, specialBlocks, style.hourHeight) {
             ScheduleLayout.build(
                 sectionTimes = sectionTimes,
                 specialBlocks = specialBlocks,
-                morningSplit = morningSplit,
-                eveningSplit = eveningSplit,
                 hourHeight = style.hourHeight.dp,
-                showBreakDividers = style.breakDividers,
             )
         }
 
@@ -319,7 +321,7 @@ fun SchedulePage(
                     // 采集整块内容，顶栏模糊才带得上页面内容
                     .captureForBlur(blurBackdrop)
                     // 拉伸落在顶栏之下
-                    .stretchOverscroll(stretch),
+                    .stretchOverscroll(stretch, topInset = paddingValues.calculateTopPadding()),
         ) {
             HorizontalPager(
                 state = pagerState,
@@ -368,6 +370,7 @@ fun SchedulePage(
                     layout = layout,
                     sectionTimes = sectionTimes,
                     style = style,
+                    breaks = breaks,
                     startDate = startDate,
                     totalWeeks = totalWeeks,
                     currentWeek = nowWeek,

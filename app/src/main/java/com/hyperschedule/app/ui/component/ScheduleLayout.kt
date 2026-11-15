@@ -7,8 +7,7 @@ import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
 import com.hyperschedule.app.data.db.entity.TimeTable
 import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
-
-internal val DividerHeight = 24.dp
+import com.hyperschedule.app.schedule.sectionPeriodOf
 
 /** 特殊节次横带的最小高度，太短的时段也要放得下两行时间 */
 private val MinBandHeight = 32.dp
@@ -27,14 +26,8 @@ internal data class SpecialBand(
     val height: Dp,
 )
 
-@Immutable
-internal data class BreakDivider(
-    val top: Dp,
-    val label: String,
-)
-
-/** 分界线落在第 [afterSection] 节之后，[label] 是这条缝的名字 */
-private data class BreakMark(val afterSection: Int, val label: String)
+/** 午休/晚休的分界 */
+internal data class BreakMark(val label: String, val minute: Int)
 
 /** 课表网格纵向几何，特殊节次插在压到的第一节之前并下推后续 */
 @Immutable
@@ -44,7 +37,6 @@ internal class ScheduleLayout private constructor(
     /** 下标 0 对应第 1 节，节次的时长越长越高 */
     private val sectionHeights: List<Dp>,
     val height: Dp,
-    val dividers: List<BreakDivider>,
     val bands: List<SpecialBand>,
     /** 时间锚点，分钟 → 纵向位置，用于自定义时间课与横带插值 */
     private val anchors: List<Anchor>,
@@ -62,14 +54,14 @@ internal class ScheduleLayout private constructor(
         return sectionHeights[section.coerceIn(1, sectionCount) - 1]
     }
 
-    /** 跨 [first]..[last] 节的卡片高度，含中间的横带与分界线 */
+    /** 跨 [first]..[last] 节的卡片高度，含中间的横带 */
     fun heightOf(first: Int, last: Int): Dp {
         val safeLast = last.coerceAtLeast(first)
         return (topOf(safeLast) + sectionHeightOf(safeLast) - topOf(first))
             .coerceAtLeast(sectionHeightOf(first))
     }
 
-    /** 纵坐标落在第几节，落在分界线/横带上时归到下面那一节 */
+    /** 纵坐标落在第几节，落在横带上时归到下面那一节 */
     fun sectionAt(y: Dp): Int {
         for (section in 1..sectionCount) {
             if (y < topOf(section) + sectionHeightOf(section)) return section
@@ -89,7 +81,6 @@ internal class ScheduleLayout private constructor(
                 sectionTops = listOf(0.dp),
                 sectionHeights = emptyList(),
                 height = 0.dp,
-                dividers = emptyList(),
                 bands = emptyList(),
                 anchors = emptyList(),
             )
@@ -121,20 +112,14 @@ internal class ScheduleLayout private constructor(
             return edge.y + (minute - edge.minute) * rate
         }
 
-        /** 按作息与特殊节次算出整套几何，[showBreakDividers] 关闭时不产生分界线 */
+        /** 按作息与特殊节次算出整套几何 */
         fun build(
             sectionTimes: List<Pair<String, String>>,
             specialBlocks: List<SpecialTimeBlock>,
-            morningSplit: String,
-            eveningSplit: String,
             hourHeight: Dp,
-            showBreakDividers: Boolean = true,
         ): ScheduleLayout {
             val count = sectionTimes.size
             if (count == 0) return Empty
-
-            val breaks = if (showBreakDividers) breakMarks(sectionTimes, morningSplit, eveningSplit) else emptyList()
-            val dividerAfter = breaks.mapTo(mutableSetOf()) { it.afterSection }
 
             // 0. 取一段能算出分钟的作息作兜底，再按每节自己的时长换算高度
             val referenceMinutes =
@@ -155,20 +140,19 @@ internal class ScheduleLayout private constructor(
                     }
                 }
 
-            // 1. 不含横带时各节次的顶，分界缝按 24dp 撑开
+            // 不含横带时各节次的顶，课间不占高度
             val baseTops = FloatArray(count + 1)
             var cursor = 0f
             for (section in 1..count) {
                 baseTops[section] = cursor
                 cursor += sectionDp[section]
-                if (section in dividerAfter) cursor += DividerHeight.value
             }
 
-            // 2. 节次起止时间作锚点，课间与课外时间按时长比例延伸
+            // 节次起止时间作锚点，课间与课外时间按时长比例延伸
             val baseAnchors = buildAnchors(sectionTimes, baseTops, sectionDp)
             val unique = baseAnchors.distinctBy { it.minute }
 
-            // 3. 横带，顶落在哪一节的卡片区间内，就插到那一节前面
+            // 横带，顶落在哪一节的卡片区间内，就插到那一节前面
             fun anchorSectionOf(rawTop: Float): Int {
                 for (section in 1..count) {
                     if (rawTop < baseTops[section] + sectionDp[section]) return section
@@ -189,7 +173,7 @@ internal class ScheduleLayout private constructor(
                     }
                     .sortedBy { it.rawTop }
 
-            // 4. 从上到下扫一遍，节次与横带依次落位
+            // 从上到下扫一遍，节次与横带依次落位
             val sectionTops = FloatArray(count + 1)
             val bandTops = HashMap<Int, Float>()
             var y = 0f
@@ -202,24 +186,15 @@ internal class ScheduleLayout private constructor(
                 }
                 sectionTops[section] = y
                 y += sectionDp[section]
-                if (section in dividerAfter) y += DividerHeight.value
             }
-            // 末尾不留悬空的分界缝，否则贴底的横带会凭空上移一截
-            val baseTotal = if (count in dividerAfter) y - DividerHeight.value else y
             // 锚点落在最后一节之后（count + 1），贴表底依次往下堆
-            var tailY = baseTotal
+            var tailY = y
             rawBands.forEach { band ->
                 if (band.anchorSection == count + 1) {
                     bandTops[band.index] = tailY
                     tailY += band.height
                 }
             }
-
-            val dividers =
-                breaks.map { mark ->
-                    val section = mark.afterSection
-                    BreakDivider(top = (sectionTops[section] + sectionDp[section]).dp, label = mark.label)
-                }
 
             val bands =
                 rawBands.map { band ->
@@ -240,50 +215,10 @@ internal class ScheduleLayout private constructor(
             return ScheduleLayout(
                 sectionTops = (0..count).map { sectionTops[it].dp },
                 sectionHeights = (1..count).map { sectionDp[it].dp },
-                height = maxOf(baseTotal, tailY).dp,
-                dividers = dividers,
+                height = tailY.dp,
                 bands = bands,
                 anchors = finalAnchors.map { Anchor(it.minute, it.y) },
             )
-        }
-
-        /** 午休/晚休落在哪两节之间，两侧都得有节次 */
-        private fun breakMarks(
-            sectionTimes: List<Pair<String, String>>,
-            morningSplit: String,
-            eveningSplit: String,
-        ): List<BreakMark> {
-            val count = sectionTimes.size
-            val periods = classifyPeriods(sectionTimes, morningSplit, eveningSplit)
-            val morningCount = periods.count { it == SectionPeriod.MORNING }
-            val afternoonEnd = periods.count { it == SectionPeriod.MORNING || it == SectionPeriod.AFTERNOON }
-            return buildList {
-                if (morningCount in 1 until count) add(BreakMark(morningCount, "午休"))
-                if (afternoonEnd in (morningCount + 1) until count) add(BreakMark(afternoonEnd, "晚休"))
-            }
-        }
-
-        /** 节次按开始时间落到上午/下午/晚上，未设置时间的节次跟随上一节 */
-        private fun classifyPeriods(
-            sectionTimes: List<Pair<String, String>>,
-            morningSplit: String,
-            eveningSplit: String,
-        ): List<SectionPeriod> {
-            val morningAt = parseMinutes(morningSplit) ?: parseMinutes(TimeTable.DEFAULT_MORNING_SPLIT) ?: 0
-            val eveningAt = parseMinutes(eveningSplit) ?: parseMinutes(TimeTable.DEFAULT_EVENING_SPLIT) ?: 0
-            var previous = SectionPeriod.MORNING
-            return sectionTimes.map { (start, _) ->
-                val minute = parseMinutes(start)
-                val period =
-                    when {
-                        minute == null -> previous
-                        minute < morningAt -> SectionPeriod.MORNING
-                        minute < eveningAt -> SectionPeriod.AFTERNOON
-                        else -> SectionPeriod.EVENING
-                    }
-                previous = period
-                period
-            }
         }
 
         private fun buildAnchors(
@@ -303,6 +238,34 @@ internal class ScheduleLayout private constructor(
             }
             return anchors.sortedBy { it.minute }
         }
+    }
+}
+
+internal fun breakMarks(
+    sectionTimes: List<Pair<String, String>>,
+    morningSplit: String,
+    eveningSplit: String,
+): List<BreakMark> {
+    val morningAt = parseMinutes(morningSplit) ?: parseMinutes(TimeTable.DEFAULT_MORNING_SPLIT) ?: 0
+    val eveningAt = parseMinutes(eveningSplit) ?: parseMinutes(TimeTable.DEFAULT_EVENING_SPLIT) ?: 0
+    val count = sectionTimes.size
+    var period = SectionPeriod.MORNING
+    var morningCount = 0
+    var afternoonEnd = 0
+    sectionTimes.forEach { (start, _) ->
+        period = sectionPeriodOf(parseMinutes(start), morningAt, eveningAt, period)
+        when (period) {
+            SectionPeriod.MORNING -> {
+                morningCount++
+                afternoonEnd++
+            }
+            SectionPeriod.AFTERNOON -> afternoonEnd++
+            SectionPeriod.EVENING -> Unit
+        }
+    }
+    return buildList {
+        if (morningCount in 1 until count) add(BreakMark("午休", morningAt))
+        if (afternoonEnd in (morningCount + 1) until count) add(BreakMark("晚休", eveningAt))
     }
 }
 

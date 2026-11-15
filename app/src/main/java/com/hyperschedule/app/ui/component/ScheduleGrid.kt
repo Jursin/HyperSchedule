@@ -31,8 +31,6 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.schedule.weekDatesOf
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.theme.isDarkTheme
-import com.hyperschedule.app.ui.effect.cardSurface
-import com.hyperschedule.app.ui.effect.wallpaperVisible
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -40,6 +38,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 左侧节次/刻度列宽 */
 internal val SectionColumnWidth = 36.dp
 private val WeekdayRowHeight = 40.dp
+
+/** 线条宽度 */
+internal val GridLineWidth = 0.6.dp
+
+/** 强调线宽度 */
+internal val AccentLineHeight = 1.5.dp
+
+/** 分界线名称的高度 */
+private val BreakLabelSlot = 14.dp
 
 /** 低于这个高度就不排起止两行 */
 private val TimeLabelMinSectionHeight = 44.dp
@@ -180,9 +187,10 @@ internal fun gridLineColor(): Color {
 private fun DrawScope.drawDayColumnLines(color: Color) {
     val start = SectionColumnWidth.toPx()
     val columnWidth = (size.width - start) / DAY_NAMES.size
+    val stroke = GridLineWidth.toPx()
     for (day in DAY_NAMES.indices) {
         val x = start + columnWidth * day
-        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = stroke)
     }
 }
 
@@ -190,14 +198,15 @@ private fun DrawScope.drawDayColumnLines(color: Color) {
 internal fun ScheduleGridLines(layout: ScheduleLayout, modifier: Modifier = Modifier) {
     val color = gridLineColor()
     Canvas(modifier = modifier.fillMaxSize()) {
+        val stroke = GridLineWidth.toPx()
         drawDayColumnLines(color)
         for (section in 1..layout.sectionCount) {
             val top = layout.topOf(section).toPx()
-            drawLine(color, Offset(0f, top), Offset(size.width, top), strokeWidth = 1f)
+            drawLine(color, Offset(0f, top), Offset(size.width, top), strokeWidth = stroke)
             // 末节把底边补上，整张表才封口
             if (section == layout.sectionCount) {
                 val bottom = top + layout.sectionHeightOf(section).toPx()
-                drawLine(color, Offset(0f, bottom), Offset(size.width, bottom), strokeWidth = 1f)
+                drawLine(color, Offset(0f, bottom), Offset(size.width, bottom), strokeWidth = stroke)
             }
         }
     }
@@ -263,41 +272,48 @@ private fun consecutiveDays(days: Set<Int>): List<IntRange> {
     return runs
 }
 
-/** 午休/晚休分界线，铺满日期列的一条圆角条，文字居中 */
+/** 主题色横线 */
 @Composable
-internal fun BreakDividerRow(
-    divider: BreakDivider,
-    margin: Dp,
+internal fun AccentLine(
+    top: Dp,
+    color: Color,
     modifier: Modifier = Modifier,
+    start: Dp = 0.dp,
 ) {
     Box(
         modifier =
             modifier
                 .fillMaxWidth()
-                .height(DividerHeight)
-                .offset(y = divider.top)
-                // 课程卡外圈同样的间距，左右才对齐
-                .padding(horizontal = margin, vertical = 2.dp),
-        contentAlignment = Alignment.Center,
-    ) {
+                .offset(y = top - AccentLineHeight / 2)
+                .height(AccentLineHeight)
+                .padding(start = start)
+                .background(color),
+    )
+}
+
+/** 午休/晚休分界线 */
+@Composable
+internal fun BreakDividerOverlay(
+    top: Dp,
+    label: String,
+    modifier: Modifier = Modifier,
+) {
+    val accent = MiuixTheme.colorScheme.primary
+    Box(modifier = modifier.fillMaxWidth()) {
+        AccentLine(top = top, color = accent, start = SectionColumnWidth)
         Box(
             modifier =
                 Modifier
-                    .fillMaxSize()
-                    // 有壁纸时与课程卡用同一套毛玻璃，没壁纸退回实心
-                    .then(
-                        if (wallpaperVisible()) {
-                            Modifier.cardSurface(RoundedCornerShape(12.dp))
-                        } else {
-                            Modifier.clip(RoundedCornerShape(12.dp)).background(MiuixTheme.colorScheme.surfaceContainerHigh)
-                        },
-                    ),
+                    .width(SectionColumnWidth)
+                    .offset(y = top - BreakLabelSlot / 2)
+                    .height(BreakLabelSlot),
             contentAlignment = Alignment.Center,
         ) {
             Text(
-                text = divider.label,
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                text = label,
+                style = MiuixTheme.textStyles.footnote2.copy(fontSize = TimeLabelFontSize),
+                color = accent,
+                maxLines = 1,
             )
         }
     }

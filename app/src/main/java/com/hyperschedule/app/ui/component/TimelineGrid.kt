@@ -2,7 +2,6 @@ package com.hyperschedule.app.ui.component
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ScrollState
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -22,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -62,6 +59,8 @@ internal fun TimelineWeekGrid(
     days: List<TimelineDay>,
     sectionTimes: List<Pair<String, String>>,
     style: ScheduleStyle,
+    /** 午休/晚休分界，只画落在轴内的 */
+    breaks: List<BreakMark>,
     /** 当前时刻，不在窗口内就不画那条线 */
     nowMinute: Int,
     /** 画当前时刻线的列（1..7），0 表示不画 */
@@ -79,6 +78,7 @@ internal fun TimelineWeekGrid(
     // 正好整点时直接给那个刻度着色，不再另画一条当前时刻
     val nowAtHour = showNow && nowMinute % 60 == 0
     val accent = MiuixTheme.colorScheme.primary
+    val breakLines = breaks.filter { it.minute in axis.startMinute..axis.endMinute }
 
     Row(modifier = modifier.fillMaxWidth()) {
         // 整点刻度
@@ -96,7 +96,15 @@ internal fun TimelineWeekGrid(
             if (showNow && !nowAtHour) {
                 HourLabel(
                     text = formatMinutes(nowMinute),
-                    slotTop = axis.nowSlotTop(nowMinute),
+                    slotTop = axis.accentSlotTop(nowMinute),
+                    style = tickStyle,
+                    color = accent,
+                )
+            }
+            breakLines.forEach { mark ->
+                HourLabel(
+                    text = mark.label,
+                    slotTop = axis.accentSlotTop(mark.minute),
                     style = tickStyle,
                     color = accent,
                 )
@@ -109,6 +117,10 @@ internal fun TimelineWeekGrid(
                     drawHourLines(axis, lineColor)
                     drawDayLines(days.size, lineColor)
                 }
+            }
+            // 分界线压在网格线上、课程卡下面
+            breakLines.forEach { mark ->
+                AccentLine(top = axis.topOf(mark.minute), color = accent)
             }
             Row(modifier = Modifier.fillMaxSize()) {
                 days.forEach { day ->
@@ -188,14 +200,9 @@ private fun TimelineDayColumn(
                 )
             }
         if (showNow) {
-            Box(
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .offset(y = axis.topOf(nowMinute))
-                        .height(1.5.dp)
-                        .clip(RoundedCornerShape(percent = 50))
-                        .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.85f)),
+            AccentLine(
+                top = axis.topOf(nowMinute),
+                color = MiuixTheme.colorScheme.primary.copy(alpha = 0.85f),
             )
         }
     }
@@ -234,15 +241,15 @@ internal class TimelineAxis(
         return if (top < HourLabelSlot / 2) top else top - HourLabelSlot / 2
     }
 
-    /** 当前时刻的刻度槽，离整点太近就紧贴整点文字的上/下方，两者不覆盖 */
-    fun nowSlotTop(now: Int): Dp {
-        val above = now / 60 * 60
+    /** 强调刻度槽位 */
+    fun accentSlotTop(minute: Int): Dp {
+        val above = minute / 60 * 60
         val below = above + 60
         return when {
-            heightOf(now - above) < HourLabelSlot -> slotTopOf(above) + HourLabelSlot
+            heightOf(minute - above) < HourLabelSlot -> slotTopOf(above) + HourLabelSlot
             // 末端那个整点没画时不用避让
-            below <= endMinute && heightOf(below - now) < HourLabelSlot -> slotTopOf(below) - HourLabelSlot
-            else -> topOf(now) - HourLabelSlot / 2
+            below <= endMinute && heightOf(below - minute) < HourLabelSlot -> slotTopOf(below) - HourLabelSlot
+            else -> topOf(minute) - HourLabelSlot / 2
         }
     }
 }
@@ -266,11 +273,12 @@ internal fun buildTimelineAxis(sectionTimes: List<Pair<String, String>>, hourHei
 
 /** 整点横线 */
 private fun DrawScope.drawHourLines(axis: TimelineAxis, color: Color) {
+    val stroke = GridLineWidth.toPx()
     for (hour in axis.startMinute / 60..axis.endMinute / 60) {
         val minute = hour * 60
         if (minute > axis.endMinute) break
         val y = axis.topOf(minute).toPx().coerceIn(0.5f, size.height - 0.5f)
-        drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = 1f)
+        drawLine(color, Offset(0f, y), Offset(size.width, y), strokeWidth = stroke)
     }
 }
 
@@ -278,10 +286,11 @@ private fun DrawScope.drawHourLines(axis: TimelineAxis, color: Color) {
 private fun DrawScope.drawDayLines(columns: Int, color: Color) {
     if (columns <= 0) return
     val columnWidth = size.width / columns
+    val stroke = GridLineWidth.toPx()
     for (index in 0 until columns) {
         // 首列的线落在画布左缘，收半像素才不会被裁掉一半
         val x = (columnWidth * index).coerceIn(0.5f, size.width - 0.5f)
-        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = 1f)
+        drawLine(color, Offset(x, 0f), Offset(x, size.height), strokeWidth = stroke)
     }
 }
 

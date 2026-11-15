@@ -48,14 +48,11 @@ fun ScheduleAppearanceSheet(
                     onCheckedChange = { applyStyle(style.copy(gridLines = it)) },
                     title = "显示网格线",
                 )
-                // 时间轴按整点铺开，没有节次之间的分界缝
-                if (!style.timeline) {
-                    SwitchPreference(
-                        checked = style.breakDividers,
-                        onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
-                        title = "显示午休、晚休分界线",
-                    )
-                }
+                SwitchPreference(
+                    checked = style.breakDividers,
+                    onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
+                    title = "显示午休、晚休分界线",
+                )
                 WallpaperPreferences(
                     wallpaper = wallpaper,
                     blur = wallpaperBlur,
