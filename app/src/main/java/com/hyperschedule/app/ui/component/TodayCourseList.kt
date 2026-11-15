@@ -28,6 +28,7 @@ import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.local.TodayStyle
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.schedule.timeRangeText
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.ui.effect.cardSurface
@@ -173,7 +174,7 @@ private fun TodayCourseRow(
     val endClock = endTime?.let(::parseTime)
     val timeRange =
         if (startTime != null && endTime != null) {
-            "$startTime - $endTime"
+            timeRangeText(startTime, endTime)
         } else {
             course.sectionLabel()
         }

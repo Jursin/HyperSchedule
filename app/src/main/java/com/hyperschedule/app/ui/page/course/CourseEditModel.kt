@@ -6,6 +6,7 @@ import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.schedule.startMinutesOf
+import com.hyperschedule.app.schedule.timeRangeText
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatCredit
 import java.util.UUID
@@ -231,7 +232,7 @@ internal fun timeText(group: GroupDraft): String =
     if (group.isCustomTime) {
         val from = group.customStartTime.orEmpty()
         val to = group.customEndTime.orEmpty()
-        if (from.isBlank() || to.isBlank()) "" else "$from - $to"
+        if (from.isBlank() || to.isBlank()) "" else timeRangeText(from, to)
     } else {
         val start = group.startSection
         val end = group.endSection

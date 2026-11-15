@@ -26,6 +26,7 @@ import com.hyperschedule.app.data.repository.saveSingleSchedule
 import com.hyperschedule.app.schedule.SECTION_COUNT_RANGE
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.parseMinutes
+import com.hyperschedule.app.schedule.timeRangeText
 import com.hyperschedule.app.ui.component.NumberPickerDialog
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
@@ -363,7 +364,7 @@ private fun SectionTimeSections(
                         if (slot.start.isBlank() || slot.end.isBlank()) {
                             ValueLabel("未设置", placeholder = true)
                         } else {
-                            ValueLabel("${slot.start} – ${slot.end}")
+                            ValueLabel(timeRangeText(slot.start, slot.end))
                         }
                     },
                     onClick = { onPick(slotIndex) },
@@ -385,7 +386,7 @@ private fun SpecialCourseSection(
             ArrowPreference(
                 title = special.name,
                 summary = formatWeekdays(special.days),
-                endActions = { ValueLabel("${special.start} – ${special.end}") },
+                endActions = { ValueLabel(timeRangeText(special.start, special.end)) },
                 onClick = { onEdit(special) },
             )
         }

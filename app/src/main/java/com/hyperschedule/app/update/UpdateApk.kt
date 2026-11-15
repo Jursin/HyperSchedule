@@ -131,7 +131,7 @@ internal object UpdateApk {
         val target = signatures(archive)
         if (current.none { it in target }) return "安装包签名与已安装应用不一致"
         if (!isNewerThanInstalled(manager, context.packageName, archive)) {
-            return "安装包版本(${archive.code()})不高于当前(${installed.code()})"
+            return "安装包版本（${archive.code()}）不高于当前版本（${installed.code()}）"
         }
         if (!sha256.isNullOrBlank()) {
             val actual = sha256(file) ?: return "安装包摘要计算失败"

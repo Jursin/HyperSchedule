@@ -154,7 +154,7 @@ fun CourseManagePage(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "点右下角添加课程",
+                    text = "点击右下角添加课程",
                     style = MiuixTheme.textStyles.body2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -192,7 +192,7 @@ fun CourseManagePage(
         ConfirmDialog(
             title = "删除课程",
             appBlur = appBlur,
-            message = "确定要删除选中的${selected.size}门课程吗？".cjkDigitGap(),
+            message = "选中的${selected.size}门课程删除后无法恢复，确定删除？".cjkDigitGap(),
             confirmText = "删除",
             destructive = true,
             onDismiss = { deleteConfirm = false },

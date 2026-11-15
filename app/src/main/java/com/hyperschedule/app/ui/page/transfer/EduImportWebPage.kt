@@ -288,7 +288,6 @@ fun EduImportWebPage(
             }
             // 脚本契约里通过 window.currentTableId 拿目标课表
             webView.evaluateJavascript("window.currentTableId = ${JSONObject.quote(tableId)};\n$js", null)
-            context.toast("正在执行导入脚本")
         }
     }
 

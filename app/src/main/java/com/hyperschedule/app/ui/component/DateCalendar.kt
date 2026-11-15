@@ -240,7 +240,7 @@ private fun DualDateRoleRow(
             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         DateRoleChip(
-            label = secondaryDate?.let(::formatDate) ?: "选择补课日",
+            label = secondaryDate?.let(::formatDate) ?: "选择补课日期",
             color = secondaryColor,
             containerColor = successContainerColor(),
             active = !editingPrimary,

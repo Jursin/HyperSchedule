@@ -102,7 +102,7 @@ fun ImportTablePickerDialog(
                     title = summary.table.name.ifBlank { "未命名" },
                     summary =
                         if (summary.courseCount > 0) {
-                            "共${summary.courseCount}门课程，导入后将被覆盖".cjkDigitGap()
+                            "共${summary.courseCount}门课程，导入后将覆盖".cjkDigitGap()
                         } else {
                             "暂无课程"
                         },

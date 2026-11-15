@@ -191,8 +191,6 @@ fun CourseEditPage(
         when {
             trimmedName.isEmpty() -> context.toast("请填写课程名称")
             groups.any { it.weeks.isEmpty() } -> context.toast("请选择上课周次")
-            groups.any { it.isCustomTime && (it.customStartTime.isNullOrBlank() || it.customEndTime.isNullOrBlank()) } ->
-                context.toast("请选择上课时间")
             credit.isNotBlank() && credit.toFloatOrNull() == null -> context.toast("学分格式不正确")
             conflict != null -> context.toast(conflict)
             else -> {

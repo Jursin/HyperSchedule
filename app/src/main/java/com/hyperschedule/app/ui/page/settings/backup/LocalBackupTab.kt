@@ -3,6 +3,7 @@ package com.hyperschedule.app.ui.page.settings.backup
 import androidx.compose.runtime.Composable
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.local.BackupSettings
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.MultilineArrowPreference
@@ -35,7 +36,7 @@ internal fun LocalBackupTab(
                     busy -> "正在处理"
                     dirUsable == false -> "备份路径已失效，请重新选择"
                     backup.lastError.isNotBlank() -> backup.lastError
-                    backup.lastTime.isNotBlank() -> "上次备份 ${backup.lastTime}"
+                    backup.lastTime.isNotBlank() -> "上次备份${backup.lastTime}".cjkDigitGap()
                     else -> null
                 },
             enabled = !busy,
@@ -49,7 +50,7 @@ internal fun LocalBackupTab(
         )
         OverlayDropdownPreference(
             title = "备份保留数量",
-            items = BackupSettings.KEEP_OPTIONS.map { "$it 份" },
+            items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },
             selectedIndex = BackupSettings.keepIndexOf(backup.keepCount),
             summary = "超出后删除最旧的一份",
             onSelectedIndexChange = onKeepChange,

@@ -83,26 +83,20 @@ private suspend fun WearSync.openWearApp(nodeId: String): Boolean {
     return true
 }
 
-/** 组装好的推送内容 */
-private class PushPayload(
-    val schedule: WearSchedule,
-    val holidayApplied: Boolean,
-)
-
 /** 读取课表并按放假调休调整后组装推送内容 */
-private suspend fun buildPushPayload(
+private suspend fun loadWearSchedule(
     tableId: String,
     excludeHoliday: Boolean,
     preClassMinutes: Int,
     repository: ScheduleRepository,
     holidayRepository: HolidayRepository,
-): PushPayload {
+): WearSchedule {
     val config = repository.configOnce(tableId)
     val courses = repository.coursesOnce(tableId)
     val startDate = parseDateOrNull(config?.semesterStartDate.orEmpty())
     require(startDate != null) { "请先设置开学日期" }
     val configuredWeeks = config?.semesterTotalWeeks ?: DEFAULT_TOTAL_WEEKS
-    require(configuredWeeks in 1..MAX_TOTAL_WEEKS) { "请先设置学期周数" }
+    require(configuredWeeks in 1..MAX_TOTAL_WEEKS) { "请先设置本学期总周数" }
     // 课表里有课的最大周次也参与
     val courseWeeks = courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0
     val lastWeek = maxOf(configuredWeeks, courseWeeks).coerceIn(1, MAX_TOTAL_WEEKS)
@@ -128,10 +122,7 @@ private suspend fun buildPushPayload(
     require(schedule.courses.isNotEmpty()) { if (holidayApplied) "课程都被节假日排除了" else "没有可推送的课程，请检查课程时间" }
     // 按节次上的课缺了作息时间就排不出来
     require(schedule.timeSlots.isNotEmpty() || schedule.courses.all { it.isCustomTime }) { "缺少节次时间，请先设置作息" }
-    return PushPayload(
-        schedule = schedule,
-        holidayApplied = holidayApplied,
-    )
+    return schedule
 }
 
 /** 推送到手环 */
@@ -195,7 +186,6 @@ fun WearPushPage(
                     appInstalled = null
                 } else if (node.id != lastNodeId) {
                     lastNodeId = node.id
-                    // 权限通过才去拉起快应用；签名不一致时申请权限就会失败，这里已经不重复提示
                     runCatching { wear.ensurePermission(node.id) }.fold(
                         onSuccess = { granted ->
                             if (granted) {
@@ -233,21 +223,20 @@ fun WearPushPage(
                 return@launch toast(PERMISSION_DENIED_HINT)
             }
             // 课表内容不满足推送条件时抛的是本地异常
-            val payload =
+            val schedule =
                 runCatching {
-                    buildPushPayload(tableId, setting.excludeHoliday, preClassMinutes, repository, holidayRepository)
+                    loadWearSchedule(tableId, setting.excludeHoliday, preClassMinutes, repository, holidayRepository)
                 }
                     .getOrElse {
                         pushing = false
                         return@launch toast(it.message ?: "读取课表失败")
                     }
-            val result = runCatching { wear.send(device, encodeWearSchedule(payload.schedule)) }
+            val result = runCatching { wear.send(device, encodeWearSchedule(schedule)) }
             pushing = false
             result.fold(
                 onSuccess = {
-                    val count = payload.schedule.courses.map { it.name }.distinct().size
-                    val suffix = if (payload.holidayApplied) "（已排除节假日与调休）" else ""
-                    toast("已推送${count}门课程$suffix".cjkDigitGap())
+                    val count = schedule.courses.map { it.name }.distinct().size
+                    toast("已推送${count}门课程".cjkDigitGap())
                 },
                 onFailure = { toast("推送失败：${describeWearError(it)}") },
             )
@@ -312,7 +301,7 @@ fun WearPushPage(
                 checked = setting.excludeHoliday,
                 onCheckedChange = { checked -> onSettingChange(setting.copy(excludeHoliday = checked)) },
                 title = "推送调整后课表",
-                summary = "推送排除假期与调休后课表",
+                summary = "推送排除假期与调休后的课表",
             )
         }
 

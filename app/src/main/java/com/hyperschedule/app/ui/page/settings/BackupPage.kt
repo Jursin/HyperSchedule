@@ -15,6 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.hyperschedule.app.data.backup.BackupCleanupException
 import com.hyperschedule.app.data.backup.BackupDir
 import com.hyperschedule.app.data.backup.BackupDirs
 import com.hyperschedule.app.data.backup.BackupFile
@@ -28,6 +29,7 @@ import com.hyperschedule.app.data.local.BackupSettings
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.local.WebDavSettings
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.toast
 import com.hyperschedule.app.ui.page.settings.backup.BackupSource
@@ -133,9 +135,15 @@ fun BackupPage(
             val result = runCatching { repository.migrate(old, target, store.state.backup.keepCount) }
             busy = false
             // 备份真的搬过去了，内容指纹依然有效，新目录是空的才清掉，让下次备份补一份
-            applyDir(target, keepHash = result.getOrDefault(0) > 0)
+            applyDir(target, keepHash = (result.getOrNull()?.moved ?: 0) > 0)
             result.fold(
-                onSuccess = { if (it > 0) context.toast("已迁移 $it 份备份") },
+                onSuccess = { migrated ->
+                    when {
+                        migrated.failed > 0 -> context.toast("已迁移${migrated.moved}份备份，${migrated.failed}份未能迁移".cjkDigitGap())
+                        migrated.moved > 0 -> context.toast("已迁移${migrated.moved}份备份".cjkDigitGap())
+                        else -> Unit
+                    }
+                },
                 onFailure = { context.toast("原路径读取失败，备份未迁移") },
             )
         }
@@ -170,9 +178,12 @@ fun BackupPage(
             reload(target)
             saved.fold(
                 onSuccess = { name ->
-                    if (name == null) context.toast("内容没有变化，未新增备份") else context.toast("已备份 $name")
+                    if (name == null) context.toast("内容与上次相同，未新增备份") else context.toast("已备份：$name")
                 },
-                onFailure = { context.toast("备份失败：${it.message ?: "无法写入文件"}") },
+                onFailure = {
+                    val error = it.message ?: "无法写入文件"
+                    context.toast(if (it is BackupCleanupException) error else "备份失败：$error")
+                },
             )
         }
     }
@@ -242,7 +253,7 @@ fun BackupPage(
                     }
                     .getOrDefault(false)
             if (!granted) {
-                context.toast("无法长期使用该文件夹，请换一个位置")
+                context.toast("无法长期访问该文件夹，请换一个位置")
                 resumeAfterPick = false
                 return@rememberLauncherForActivityResult
             }
@@ -366,10 +377,15 @@ fun BackupPage(
                 BackupSource.Local -> if (dirNow != null) reload(dirNow)
             }
             result.fold(
-                onSuccess = { result ->
-                    context.toast("已恢复 ${result.tableCount} 张课表、${result.courseCount} 门课程")
+                onSuccess = { restored ->
+                    context.toast(
+                        "已恢复${restored.tableCount}张课表、${restored.courseCount}门课程".cjkDigitGap(),
+                    )
                 },
-                onFailure = { context.toast("恢复失败：${it.message ?: "数据未改动"}") },
+                onFailure = { error ->
+                    val reason = error.message
+                    if (reason.isNullOrBlank()) context.toast("数据未改动") else context.toast("恢复失败：$reason")
+                },
             )
         }
     }
@@ -383,7 +399,7 @@ fun BackupPage(
                 val dir = currentDir() ?: return
                 scope.launch {
                     runCatching { repository.delete(dir, target.file.name) }
-                        .onFailure { context.toast("删除失败：${it.message ?: "无法访问存储目录"}") }
+                        .onFailure { context.toast(it.message ?: "删除失败") }
                     reload(dir)
                 }
             }

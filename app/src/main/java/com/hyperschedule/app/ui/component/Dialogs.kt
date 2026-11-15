@@ -203,7 +203,7 @@ fun ConflictDialog(
         title = "位置冲突",
         appBlur = appBlur,
         onDismiss = onDismiss,
-        message = "待移动课程与目标课程冲突，请选择操作",
+        message = "目标位置已有课程，请选择操作",
         choices =
             listOf(
                 DialogChoice(text = "交换", onClick = onSwap, enabled = canSwap),
@@ -252,7 +252,7 @@ fun CreateTableDialog(
     val scope = rememberCoroutineScope()
     var creating by remember { mutableStateOf(false) }
     TableNameDialog(
-        title = "新建课表",
+        title = "添加课表",
         appBlur = appBlur,
         onDismiss = { if (!creating) onDismiss() },
         onConfirm = { name ->
@@ -263,7 +263,7 @@ fun CreateTableDialog(
                     .onSuccess(onCreated)
                     .onFailure {
                         creating = false
-                        context.toast("新建课表失败：${it.message ?: "未知错误"}")
+                        context.toast("添加课表失败：${it.message ?: "未知错误"}")
                         onFailed()
                     }
             }

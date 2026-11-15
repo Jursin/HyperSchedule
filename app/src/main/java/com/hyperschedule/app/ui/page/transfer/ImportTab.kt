@@ -119,7 +119,7 @@ internal fun ImportTab(
                     shareSource = null
                     askTargetTable(PendingImport.Share(payload))
                 },
-                onFailure = { shareError = it.message ?: "没有取到课表数据" },
+                onFailure = { shareError = it.message ?: "没有获取到课表数据" },
             )
         }
     }
@@ -139,7 +139,7 @@ internal fun ImportTab(
                 }.fold(
                     onSuccess = { text ->
                         if (text.isBlank()) {
-                            context.toast("文件是空的", long = true)
+                            context.toast("文件为空", long = true)
                         } else {
                             askTargetTable(PendingImport.File(source, text))
                         }

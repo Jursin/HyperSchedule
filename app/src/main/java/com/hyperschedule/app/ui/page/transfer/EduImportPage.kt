@@ -137,10 +137,10 @@ fun EduImportPage(
                             it.added > 0 && announceAdded -> "新增${it.added}所学校适配".cjkDigitGap()
                             silent -> null
                             it.changed -> "学校列表已更新"
-                            else -> "已是最新版本"
+                            else -> "已是最新版"
                         }
                     },
-                    onFailure = { if (silent) null else "更新失败，${it.message ?: "网络不可用"}" },
+                    onFailure = { if (silent) null else "更新失败：${it.message ?: "网络不可用"}" },
                 )
             text?.let { context.toast(it) }
         }

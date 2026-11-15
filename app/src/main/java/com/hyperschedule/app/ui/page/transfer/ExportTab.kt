@@ -103,7 +103,7 @@ internal fun ExportTab(
                         when (format) {
                             ExportFormat.JSON -> buildTableJson(data)
                             ExportFormat.ICS -> {
-                                val start = data.startDate ?: error("请先在课表设置里填写开学日期")
+                                val start = data.startDate ?: error("请先设置开学日期")
                                 // 假期查到最后实际导出的一周，超出总周数的周也按放假规则过滤
                                 val end = semesterStartMonday(start).plusWeeks(data.lastWeek.toLong()).minusDays(1)
                                 buildIcs(data, holidayRepository.entriesIn(start, end), reminder.icsAlarmMinutes)

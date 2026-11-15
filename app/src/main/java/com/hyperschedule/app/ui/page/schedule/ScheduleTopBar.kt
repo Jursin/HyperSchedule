@@ -78,7 +78,7 @@ internal fun ScheduleTopBar(
                         Icon(MiuixIcons.Backup, contentDescription = "课程管理")
                     }
                     TopBarIconButton(onClick = onAppearanceClick) {
-                        Icon(MiuixIcons.Background, contentDescription = "课表外观")
+                        Icon(MiuixIcons.Background, contentDescription = "课程表外观")
                     }
                 }
             },

@@ -74,7 +74,6 @@ class UpdateController private constructor(private val context: Context) {
         }
         if (checking) return
         checking = true
-        if (!silent) toast("正在检查更新")
         scope.launch {
             try {
                 val currentVersion = getAppVersion(context)
@@ -88,7 +87,7 @@ class UpdateController private constructor(private val context: Context) {
                 }
                 val asset = AppUpdate.selectAsset(release.assets, Build.SUPPORTED_ABIS.toList())
                 if (asset == null) {
-                    if (!silent) toast("暂无本设备安装包")
+                    if (!silent) toast("没有适用于本设备的安装包")
                     return@launch
                 }
                 pending = asset
@@ -207,7 +206,7 @@ class UpdateController private constructor(private val context: Context) {
             if (!UpdateApk.openPermissionSettings(context)) toast("请在系统设置中允许安装应用")
             return
         }
-        if (!UpdateApk.install(context, file)) toast("无法启动安装器")
+        if (!UpdateApk.install(context, file)) toast("没有可用的安装程序")
         dialog = UpdateDialogState.None
     }
 

@@ -111,7 +111,7 @@ private suspend fun ScheduleRepository.importParsed(
     data: CourseTableJson,
     tableId: String,
 ): Int {
-    require(data.courses.isNotEmpty()) { "文件里没有课程，空课表不导入" }
+    require(data.courses.isNotEmpty()) { "文件里没有课程" }
     db.withTransaction {
         ensureSideTables(tableId)
         importSlots(tableId, data)

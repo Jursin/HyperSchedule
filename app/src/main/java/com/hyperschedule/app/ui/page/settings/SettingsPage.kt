@@ -67,7 +67,7 @@ fun SettingsPage(
 
     // 空串 = 未设置
     val startDate = remember(config?.semesterStartDate) { parseDateOrNull(config?.semesterStartDate.orEmpty()) }
-    // 当前周数由开学日期推算，与开始上课日期互推，改一边会同步另一边
+    // 当前周数由开学日期推算，两者互推，改一边会同步另一边
     val today = rememberToday()
     val currentWeek = remember(startDate, today) { startDate?.let { currentWeekOf(it, today) } }
     val currentWeekLabel =
@@ -85,7 +85,7 @@ fun SettingsPage(
     ) {
         PreferenceSection("基本设置") {
             ArrowPreference(
-                "开始上课日期",
+                "开学日期",
                 endActions = {
                     startDate?.let {
                         ValueLabel(formatDate(it))
@@ -150,7 +150,7 @@ fun SettingsPage(
 
     if (showStartDateDialog) {
         DatePickerDialog(
-            title = "开始上课日期",
+            title = "开学日期",
             date = dateDraft,
             onDateChange = { dateDraft = it },
             appBlur = state.blur,

@@ -167,7 +167,7 @@ private fun ComboEditContent(
     val onSave: () -> Unit = {
         if (canSave) {
             if (rulesOverlap(rules)) {
-                context.toast("存在重叠规则")
+                context.toast("有规则日期重叠，请调整")
             } else {
                 val sorted = rules.sortedBy { it.startDate }
                 scope.launch {

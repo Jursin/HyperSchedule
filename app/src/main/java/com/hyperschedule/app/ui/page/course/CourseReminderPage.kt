@@ -197,7 +197,7 @@ fun CourseReminderPage(
             ArrowPreference(
                 title = "电池优化",
                 summary = "关闭电池优化以确保提醒准时送达",
-                endActions = { GrantedLabel(perms.batteryUnrestricted, grantedText = "已关闭", deniedText = "未关闭") },
+                endActions = { GrantedLabel(perms.batteryUnrestricted, grantedText = "无限制", deniedText = "受限制") },
                 onClick = {
                     if (!perms.batteryUnrestricted) ReminderPermissions.openBatteryOptimizationSettings(context)
                 },

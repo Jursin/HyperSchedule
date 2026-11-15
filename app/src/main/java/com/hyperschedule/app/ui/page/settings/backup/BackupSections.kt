@@ -7,6 +7,7 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.sizeLabel
 import com.hyperschedule.app.data.backup.title
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.Container
 import com.hyperschedule.app.ui.component.PreferenceSection
@@ -68,7 +69,7 @@ internal fun RestoreConfirmDialog(
             append("${target.file.title()} · ${target.file.sizeLabel()}")
             if (target.payload.appVersion.isNotBlank()) append(" · v${target.payload.appVersion}")
             append("\n")
-            append("${target.payload.tableCount} 张课表 · ${target.payload.courseCount} 门课程")
+            append("${target.payload.tableCount}张课表 · ${target.payload.courseCount}门课程".cjkDigitGap())
         }
     ConfirmDialog(
         title = "恢复备份",

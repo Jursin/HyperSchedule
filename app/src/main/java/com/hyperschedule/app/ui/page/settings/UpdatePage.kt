@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.getAppVersion
 import com.hyperschedule.app.getAppVersionCode
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.MarkdownText
 import com.hyperschedule.app.ui.component.PreferenceScreen
@@ -142,7 +143,7 @@ fun UpdateDialogs(controller: UpdateController, appBlur: Boolean) {
                 LinearProgressIndicator(progress = dialog.progress, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "已下载 ${(dialog.progress * 100).toInt()}%",
+                    text = "已下载${(dialog.progress * 100).toInt()}%".cjkDigitGap(),
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                 )

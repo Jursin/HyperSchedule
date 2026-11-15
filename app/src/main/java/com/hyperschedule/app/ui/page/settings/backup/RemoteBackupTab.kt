@@ -30,6 +30,7 @@ import com.hyperschedule.app.data.backup.s3RegionError
 import com.hyperschedule.app.data.local.BackupSettings
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.WebDavSettings
+import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
@@ -209,7 +210,7 @@ private fun RemoteBackupTab(
                 when {
                     busy -> "正在处理"
                     summary.lastError.isNotBlank() -> summary.lastError
-                    summary.lastTime.isNotBlank() -> "上次备份 ${summary.lastTime}"
+                    summary.lastTime.isNotBlank() -> "上次备份${summary.lastTime}".cjkDigitGap()
                     else -> null
                 },
             enabled = !busy,
@@ -224,7 +225,7 @@ private fun RemoteBackupTab(
         OverlayDropdownPreference(
             title = "备份保留数量",
             summary = "超出后删除最旧的一份",
-            items = BackupSettings.KEEP_OPTIONS.map { "$it 份" },
+            items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },
             selectedIndex = BackupSettings.keepIndexOf(summary.keepCount),
             onSelectedIndexChange = onKeepChange,
         )

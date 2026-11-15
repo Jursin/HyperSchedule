@@ -28,6 +28,7 @@ import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.parseDateOrNull
+import com.hyperschedule.app.schedule.timeRangeText
 import com.hyperschedule.app.schedule.weekDatesOf
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SectionSpacing
@@ -145,7 +146,7 @@ fun CourseWeeksPage(
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(
-                            text = "没有周次数据",
+                            text = "暂无周次数据",
                             style = MiuixTheme.textStyles.body1,
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
@@ -191,7 +192,7 @@ private data class WeekRowData(
 private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot>, mark: String?) {
     val start = startTimeOf(course, slotMap)
     val end = endTimeOf(course, slotMap)
-    val timeRange = if (start != null && end != null) "$start - $end" else ""
+    val timeRange = if (start != null && end != null) timeRangeText(start, end) else ""
     val info = infoFields(course)
     val header =
         listOfNotNull(
@@ -218,7 +219,7 @@ private fun WeekRow(course: Course, date: LocalDate?, slotMap: Map<Int, TimeSlot
                     modifier =
                         Modifier
                             .weight(1f, fill = false)
-                            .copyOnClick("日期节次", header),
+                            .copyOnClick("日期与节次", header),
                 )
                 if (mark != null) {
                     HolidayMarkBadge(

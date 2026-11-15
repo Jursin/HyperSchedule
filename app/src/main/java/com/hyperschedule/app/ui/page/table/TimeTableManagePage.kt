@@ -110,7 +110,7 @@ fun TimeTableManagePage(
 
     if (showAddDialog) {
         ChoiceDialog(
-            title = "新增作息",
+            title = "添加作息",
             appBlur = appBlur,
             onDismiss = { showAddDialog = false },
             choices =

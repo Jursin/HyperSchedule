@@ -27,6 +27,7 @@ import com.hyperschedule.app.R
 import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.schedule.timeRangeText
 import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
@@ -125,7 +126,7 @@ internal fun CourseInfoFields(
 /** 标准课显示「第X-Y节」，自定义时间课显示起止时间 */
 internal fun Course.sectionLabel(): String {
     if (isCustomTime) {
-        return customStartTime?.let { start -> customEndTime?.let { end -> "$start-$end" } } ?: "自定义时间"
+        return customStartTime?.let { start -> customEndTime?.let { end -> timeRangeText(start, end) } } ?: "自定义时间"
     }
     val start = startSection ?: return "未设置节次"
     val end = endSection ?: start
@@ -148,7 +149,7 @@ internal fun endTimeOf(course: Course, slotMap: Map<Int, TimeSlot>): String? =
 
 internal fun parseTime(text: String): LocalTime? = runCatching { LocalTime.parse(text) }.getOrNull()
 
-/** 周次压缩，1-8, 10, 12-16 */
+/** 周次压缩，1-8、10、12-16 */
 internal fun formatWeeks(weeks: List<Int>): String {
     if (weeks.isEmpty()) return "无周次"
     val sorted = weeks.distinct().sorted()
@@ -165,7 +166,7 @@ internal fun formatWeeks(weeks: List<Int>): String {
         prev = week
     }
     parts += if (start == prev) "$start" else "$start-$prev"
-    return "第${parts.joinToString(", ")}周".cjkDigitGap()
+    return "第${parts.joinToString("、")}周".cjkDigitGap()
 }
 
 /** 学分显示，整数不带小数点 */

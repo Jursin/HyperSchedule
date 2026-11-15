@@ -2,6 +2,7 @@ package com.hyperschedule.app.ui.page.settings.backup
 
 import android.content.Context
 import androidx.compose.runtime.MutableState
+import com.hyperschedule.app.data.backup.BackupCleanupException
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.BackupRepository
 import com.hyperschedule.app.ui.component.toast
@@ -79,16 +80,16 @@ internal fun RemoteAccount.upload(
         saved.fold(
             onSuccess = { fileName ->
                 if (fileName == null) {
-                    context.toast("内容没有变化，未新增备份")
+                    context.toast("内容与上次相同，未新增备份")
                 } else {
-                    context.toast("已备份到${name} $fileName")
+                    context.toast("已备份到${name}：$fileName")
                     reload()
                 }
             },
             onFailure = {
                 val error = it.message ?: "无法上传"
                 mark(null, error)
-                context.toast("备份失败：$error")
+                context.toast(if (it is BackupCleanupException) error else "备份失败：$error")
             },
         )
     }

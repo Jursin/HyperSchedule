@@ -21,7 +21,7 @@ private val IcsDayFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
 /** 逐周展开为 VEVENT，放假不写，[alarmMinutes] 为空不加提醒 */
 fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: Int?): String {
-    val startDate = data.startDate ?: error("请先在课表设置里填写开学日期")
+    val startDate = data.startDate ?: error("请先设置开学日期")
     val lastWeek = data.lastWeek
     val plan = HolidayPlan.build(startDate, lastWeek, entries)
     val coursesByCell = HashMap<Int, MutableList<CourseWithWeeks>>()

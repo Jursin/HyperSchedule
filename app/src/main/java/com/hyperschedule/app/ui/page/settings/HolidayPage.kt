@@ -82,7 +82,7 @@ fun HolidayPage(
                             loading = false
                             Toast.makeText(
                                 context,
-                                result.fold({ "已更新${it}条${year}年数据".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
+                                result.fold({ "已更新${it}条".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
                                 Toast.LENGTH_LONG,
                             ).show()
                         }
@@ -171,8 +171,8 @@ fun HolidayPage(
     val deleteTarget = pendingDelete
     if (deleteTarget != null) {
         ConfirmDialog(
-            title = "删除记录",
-            message = "确定要删除这条${if (deleteTarget.type == HolidayEntry.TYPE_HOLIDAY) "节假日" else "调休工作日"}记录吗？\n此操作不可撤销。",
+            title = if (deleteTarget.type == HolidayEntry.TYPE_HOLIDAY) "删除节假日" else "删除调休工作日",
+            message = "「${deleteTarget.name}」删除后无法恢复，确定删除？",
             appBlur = appBlur,
             destructive = true,
             confirmText = "删除",
@@ -290,7 +290,7 @@ private fun HolidayEditDialog(
                 )
             }
         } else {
-            CalendarField(title = "调休日与补课日") {
+            CalendarField(title = "调休日期与补课日期") {
                 DualDateCalendar(
                     primaryDate = startDate,
                     secondaryDate = followDate,
@@ -330,6 +330,6 @@ private fun entrySummary(entry: HolidayEntry): String {
         return if (entry.endDate.isBlank()) start else "${start}至${displayDate(entry.endDate)}".cjkDigitGap()
     }
     val follow = parseDateOrNull(entry.followDate)
-    val tail = if (follow == null) "未设置跟随课程" else "上${follow.monthValue}月${follow.dayOfMonth}日的课".cjkDigitGap()
+    val tail = if (follow == null) "未设置补课日期" else "上${follow.monthValue}月${follow.dayOfMonth}日的课".cjkDigitGap()
     return "$start · $tail"
 }

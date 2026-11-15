@@ -97,7 +97,7 @@ class EduWebBridge(
     @JavascriptInterface
     fun savePresetTimeSlots(json: String, promiseId: String) {
         if (comboImported) {
-            fail(promiseId, IllegalStateException("已导入作息方案，不能再导入基础时间"))
+            fail(promiseId, IllegalStateException("已导入作息方案，无法再导入节次时间"))
             return
         }
         val slots =

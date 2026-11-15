@@ -31,7 +31,10 @@ private const val PREFS_HOLIDAY = "holiday_settings"
 private const val PREFS_EDU = "edu_repo"
 
 /** 备份/恢复失败，message 直接给用户看 */
-class BackupException(message: String) : Exception(message)
+open class BackupException(message: String) : Exception(message)
+
+/** 备份已经写完，只是收尾清理失败 */
+class BackupCleanupException(message: String) : BackupException(message)
 
 data class BackupFile(
     val name: String,
@@ -43,6 +46,12 @@ data class BackupFile(
 data class RestoreResult(
     val tableCount: Int,
     val courseCount: Int,
+)
+
+/** 换目录搬运结果 */
+data class MigrateResult(
+    val moved: Int,
+    val failed: Int,
 )
 
 /** 网络异常转成能直接显示的提示 */
@@ -170,7 +179,7 @@ class BackupRepository(
     suspend fun read(dir: BackupDir, name: String): BackupPayload =
         withContext(Dispatchers.IO) {
             val text =
-                runCatching { dir.read(name) }.getOrElse { throw BackupException("读取备份失败：${it.message}") }
+                runCatching { dir.read(name) }.getOrElse { throw BackupException("读取备份失败：${it.message ?: "无法读取文件"}") }
             parse(text)
         }
 
@@ -181,20 +190,20 @@ class BackupRepository(
         }
 
     /** 换目录时搬运备份，先写新的再删旧的 */
-    suspend fun migrate(from: BackupDir, to: BackupDir, keep: Int): Int =
+    suspend fun migrate(from: BackupDir, to: BackupDir, keep: Int): MigrateResult =
         withContext(Dispatchers.IO) {
-            if (from.location == to.location) return@withContext 0
+            if (from.location == to.location) return@withContext MigrateResult(0, 0)
             val files = from.list().filter { BACKUP_FILE_NAME.matches(it.name) }
-            val moved =
-                files.count { entry ->
-                    runCatching {
-                            to.write(entry.name, from.read(entry.name))
-                            from.delete(entry.name)
-                        }
-                        .isSuccess
-                }
+            var moved = 0
+            var failed = 0
+            files.forEach { entry ->
+                runCatching {
+                    to.write(entry.name, from.read(entry.name))
+                    from.delete(entry.name)
+                }.fold(onSuccess = { moved++ }, onFailure = { failed++ })
+            }
             if (moved > 0) prune(to, keep)
-            moved
+            MigrateResult(moved, failed)
         }
 
     // 云端
@@ -217,7 +226,7 @@ class BackupRepository(
                     runCatching { client.delete(file.name) }.exceptionOrNull()?.let { file.name to it }
                 }
         if (failures.isNotEmpty()) {
-            throw BackupException("备份已上传，但清理旧备份失败：${failures.joinToString { it.first }}")
+            throw BackupCleanupException("备份已上传，但清理旧备份失败：${failures.joinToString { it.first }}")
         }
         return name
     }
@@ -334,7 +343,7 @@ class BackupRepository(
                 runCatching { dir.delete(entry.name) }.exceptionOrNull()?.let { entry.name to it }
             }
         if (failures.isNotEmpty()) {
-            throw BackupException("备份已保存，但清理旧备份失败：${failures.joinToString { it.first }}")
+            throw BackupCleanupException("备份已保存，但清理旧备份失败：${failures.joinToString { it.first }}")
         }
     }
 

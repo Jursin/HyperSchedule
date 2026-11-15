@@ -75,6 +75,9 @@ fun parseMinutes(time: String?): Int? {
 /** 当天第几分钟 → "HH:mm" */
 fun formatMinutes(minutes: Int): String = "%02d:%02d".format(minutes / 60, minutes % 60)
 
+/** 时间区间 */
+fun timeRangeText(start: String, end: String): String = "$start – $end"
+
 /** 排课先后用的开始分钟，自定义取自身起点，标准课取作息节次，缺失时按节次 × 60 推算 */
 fun startMinutesOf(
     isCustomTime: Boolean,
