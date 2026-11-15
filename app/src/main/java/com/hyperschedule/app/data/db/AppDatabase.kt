@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import com.hyperschedule.app.data.db.dao.BackupDao
 import com.hyperschedule.app.data.db.dao.CourseDao
 import com.hyperschedule.app.data.db.dao.CourseTableDao
@@ -56,8 +57,11 @@ abstract class AppDatabase : RoomDatabase() {
             instance ?: synchronized(this) {
                 instance
                     ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)
+                        .addMigrations(*ALL_MIGRATIONS)
                         .build()
                         .also { instance = it }
             }
     }
 }
+
+private val ALL_MIGRATIONS: Array<Migration> = arrayOf()

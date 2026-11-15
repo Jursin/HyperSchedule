@@ -1,5 +1,7 @@
 package com.hyperschedule.app.ui.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -8,7 +10,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.VerticalPager
@@ -32,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
+import com.hyperschedule.app.LocalAppGraph
+import com.hyperschedule.app.reminder.ReminderScheduler
 import com.hyperschedule.app.theme.WideLayoutMinWidth
 import com.hyperschedule.app.theme.useWindowedPages
 import com.hyperschedule.app.ui.component.BackToNowButton
@@ -46,7 +49,8 @@ import com.hyperschedule.app.ui.effect.WallpaperBackground
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.rememberBarBackdrop
 import com.hyperschedule.app.ui.effect.rememberWallpaperState
-import com.hyperschedule.app.ui.page.settings.LicensePage
+import com.hyperschedule.app.ui.state.rememberCourseTableData
+import com.hyperschedule.app.ui.state.rememberCoursesWithWeeks
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
@@ -71,6 +75,8 @@ private val VerticalScrollShield =
         ): Offset = Offset(0f, available.y)
     }
 
+/** 关于页需要 RuntimeShader，所以整页要求 API 33 */
+@RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun MainScaffold(
     appBlur: Boolean,
@@ -79,45 +85,18 @@ fun MainScaffold(
     wallpaper: String = "",
     wallpaperBlur: Int = 0,
     onWallpaperSaved: (String) -> Unit = {},
-    wallpaperCropPage: @Composable (uri: String, onSaved: (String) -> Unit, onBack: () -> Unit) -> Unit =
-        { _, _, _ -> },
-    settingsPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    themePage: @Composable (onBack: () -> Unit) -> Unit = {},
-    updatePage: @Composable (onOpenLog: () -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    updateLogPage: @Composable (onBack: () -> Unit) -> Unit = {},
-    aboutPage: @Composable (onBack: () -> Unit, onLicenseClick: () -> Unit) -> Unit = { _, _ -> },
-    courseDetailPage: @Composable (name: String, week: Int, onBack: () -> Unit) -> Unit = { _, _, _ -> },
-    courseManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    courseEditPage:
-        @Composable (
-            name: String,
-            day: Int,
-            startSection: Int,
-            endSection: Int,
-            focusId: String,
-            onBack: () -> Unit,
-        ) -> Unit = { _, _, _, _, _, _ -> },
-    timeTableManagePage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    courseTableManagePage: @Composable (onBack: () -> Unit) -> Unit = {},
-    scheduleTransferPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    eduImportPage: @Composable (navigate: (Page) -> Unit, onBack: () -> Unit) -> Unit = { _, _ -> },
-    eduImportWebPage:
-        @Composable
-        (
-            schoolId: String,
-            adapterId: String,
-            url: String,
-            onBack: () -> Unit,
-            onImported: () -> Unit,
-        ) -> Unit = { _, _, _, _, _ -> },
-    backupPage: @Composable (onBack: () -> Unit) -> Unit = {},
-    holidayPage: @Composable (onBack: () -> Unit) -> Unit = {},
-    reminderPage: @Composable (onBack: () -> Unit) -> Unit = {},
-    wearPushPage: @Composable (onBack: () -> Unit) -> Unit = {},
-    timeTableEditPage: @Composable (planId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
-    comboEditPage: @Composable (comboId: String, onBack: () -> Unit) -> Unit = { _, _ -> },
-    content: @Composable (page: Int, navigate: (Page) -> Unit) -> Unit,
 ) {
+    val graph = LocalAppGraph.current
+    val store = graph.settings
+    val settings = store.state
+    // 课表数据常驻订阅，进详情页不必再查一次库
+    val table = rememberCourseTableData(graph.schedule, store)
+    val allCourses = rememberCoursesWithWeeks(graph.schedule, table?.tableId)
+    // 提醒重排的触发点：启动、改提醒设置、换课表、课程增删改
+    LaunchedEffect(settings.reminder, settings.currentTableId, allCourses) {
+        ReminderScheduler.resync(graph.context)
+    }
+
     val navBackStack = rememberNavBackStack<Page>(Page.Home)
     val backStack: MutableList<NavKey> = navBackStack
     val pagerState = rememberPagerState(
@@ -194,6 +173,19 @@ fun MainScaffold(
             }
         }
 
+    // 二级页面只需要一个页面标识，其余参数这里补齐
+    val secondaryPage: @Composable (Page) -> Unit = { page ->
+        SecondaryPage(
+            key = page,
+            navigate = navigate,
+            onBack = onBack,
+            backToScheduleTransfer = backToScheduleTransfer,
+            onWallpaperSaved = onWallpaperSaved,
+            table = table,
+            allCourses = allCourses,
+        )
+    }
+
     val interceptPredictiveBack = !predictiveBackEnabled && backStack.size > 1
 
     // 回到上一层，在非首个 Tab 时先回到首个 Tab
@@ -263,7 +255,7 @@ fun MainScaffold(
                                     LocalTabPageIndex provides page,
                                     LocalBackToNowHost provides backToNowHost,
                                 ) {
-                                    content(page, navigate)
+                                    HomeTabContent(page, navigate, table, allCourses)
                                 }
                             }
                             CompositionLocalProvider(
@@ -340,7 +332,6 @@ fun MainScaffold(
                                                     blurBackdrop = barBackdrop,
                                                     onSelect = { mainPagerState.animateToPage(it) },
                                                     onOpenSettings = { navigate(Page.Settings) },
-                                                    modifier = Modifier.fillMaxWidth(0.63f),
                                                 )
                                             }
                                         }
@@ -356,118 +347,108 @@ fun MainScaffold(
                 }
                 entry<Page.License> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        LicensePage(
-                            appBlur = appBlur,
-                            onBack = onBack,
-                        )
+                        secondaryPage(Page.License)
                     }
                 }
                 entry<Page.Settings> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        settingsPage(navigate, onBack)
+                        secondaryPage(Page.Settings)
                     }
                 }
                 entry<Page.Appearance> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        themePage(onBack)
+                        secondaryPage(Page.Appearance)
                     }
                 }
                 entry<Page.Update> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        updatePage({ navigate(Page.UpdateLog) }, onBack)
+                        secondaryPage(Page.Update)
                     }
                 }
                 entry<Page.UpdateLog> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        updateLogPage(onBack)
+                        secondaryPage(Page.UpdateLog)
                     }
                 }
                 entry<Page.About> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        aboutPage(onBack) { navigate(Page.License) }
+                        secondaryPage(Page.About)
                     }
                 }
                 entry<Page.CourseDetail> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        courseDetailPage(key.name, key.week, onBack)
+                        secondaryPage(key)
                     }
                 }
                 entry<Page.CourseManage> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        courseManagePage(navigate, onBack)
+                        secondaryPage(Page.CourseManage)
                     }
                 }
                 entry<Page.CourseEdit> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        courseEditPage(key.name, key.day, key.startSection, key.endSection, key.focusId, onBack)
+                        secondaryPage(key)
                     }
                 }
                 entry<Page.TimeTableManage> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        timeTableManagePage(navigate, onBack)
+                        secondaryPage(Page.TimeTableManage)
                     }
                 }
                 entry<Page.CourseTableManage> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        courseTableManagePage(onBack)
+                        secondaryPage(Page.CourseTableManage)
                     }
                 }
                 entry<Page.ScheduleTransfer> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        scheduleTransferPage(navigate, onBack)
+                        secondaryPage(Page.ScheduleTransfer)
                     }
                 }
                 entry<Page.EduImport> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        eduImportPage(navigate, onBack)
+                        secondaryPage(Page.EduImport)
                     }
                 }
                 entry<Page.EduImportWeb> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        eduImportWebPage(key.schoolId, key.adapterId, key.url, onBack, backToScheduleTransfer)
+                        secondaryPage(key)
                     }
                 }
                 entry<Page.Backup> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        backupPage(onBack)
+                        secondaryPage(Page.Backup)
                     }
                 }
                 entry<Page.Holiday> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        holidayPage(onBack)
+                        secondaryPage(Page.Holiday)
                     }
                 }
                 entry<Page.Reminder> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        reminderPage(onBack)
+                        secondaryPage(Page.Reminder)
                     }
                 }
                 entry<Page.WearPush> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        wearPushPage(onBack)
+                        secondaryPage(Page.WearPush)
                     }
                 }
                 entry<Page.TimeTableEdit> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        timeTableEditPage(key.planId, onBack)
+                        secondaryPage(key)
                     }
                 }
                 entry<Page.ComboEdit> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
-                        comboEditPage(key.comboId, onBack)
+                        secondaryPage(key)
                     }
                 }
                 entry<Page.WallpaperCrop> { key ->
                     // 裁剪框要按整屏比例算，这一页始终铺满，不套浮窗
                     NavEntry(interceptPredictiveBack, onBack, windowed = false) {
-                        wallpaperCropPage(
-                            key.uri,
-                            { path ->
-                                onWallpaperSaved(path)
-                                onBack()
-                            },
-                            onBack,
-                        )
+                        secondaryPage(key)
                     }
                 }
             }

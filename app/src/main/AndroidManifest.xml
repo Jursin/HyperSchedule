@@ -18,6 +18,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY" />
     <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <uses-permission android:name="com.hamondev.shevery.permission.PRIVILEGED_API" />
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
 
@@ -28,6 +30,7 @@
     </queries>
 
     <application
+        android:name=".HyperScheduleApp"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:enableOnBackInvokedCallback="true"

@@ -27,14 +27,12 @@ import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.data.backup.backupFolderError
 import com.hyperschedule.app.data.backup.s3BucketError
 import com.hyperschedule.app.data.backup.s3RegionError
-import com.hyperschedule.app.data.local.BackupSettings
+import com.hyperschedule.app.data.local.RemoteAccountInfo
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.WebDavSettings
-import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -74,7 +72,7 @@ internal fun WebDavBackupTab(
     onOpenFile: (BackupFile) -> Unit,
 ) {
     RemoteBackupTab(
-        summary = settings.summary(),
+        summary = settings,
         list = list,
         busy = busy,
         fields =
@@ -119,7 +117,7 @@ internal fun S3BackupTab(
     onOpenFile: (BackupFile) -> Unit,
 ) {
     RemoteBackupTab(
-        summary = settings.summary(),
+        summary = settings,
         list = list,
         busy = busy,
         fields =
@@ -179,7 +177,7 @@ internal fun S3BackupTab(
 /** 远端备份页的公共排版，WebDAV 与 S3 共用 */
 @Composable
 private fun RemoteBackupTab(
-    summary: RemoteSummary,
+    summary: RemoteAccountInfo,
     list: RemoteList,
     busy: Boolean,
     fields: List<RemoteField>,
@@ -190,6 +188,7 @@ private fun RemoteBackupTab(
     onOpenFile: (BackupFile) -> Unit,
     extraRows: (@Composable () -> Unit)? = null,
 ) {
+    val stamp = summary.stamp
     PreferenceSection {
         Column(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
@@ -204,30 +203,12 @@ private fun RemoteBackupTab(
             enabled = !busy,
             onClick = onTest,
         )
-        ArrowPreference(
-            title = "立即备份",
-            summary =
-                when {
-                    busy -> "正在处理"
-                    summary.lastError.isNotBlank() -> summary.lastError
-                    summary.lastTime.isNotBlank() -> "上次备份${summary.lastTime}".cjkDigitGap()
-                    else -> null
-                },
-            enabled = !busy,
-            onClick = onBackupNow,
-        )
-        SwitchPreference(
-            checked = summary.autoBackup,
-            onCheckedChange = onToggleAuto,
-            title = "启动时自动备份",
-            summary = "启动时检查一次，内容有变化时新增备份",
-        )
-        OverlayDropdownPreference(
-            title = "备份保留数量",
-            summary = "超出后删除最旧的一份",
-            items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },
-            selectedIndex = BackupSettings.keepIndexOf(summary.keepCount),
-            onSelectedIndexChange = onKeepChange,
+        BackupActionsSection(
+            stamp = stamp,
+            busy = busy,
+            onBackupNow = onBackupNow,
+            onToggleAuto = onToggleAuto,
+            onKeepChange = onKeepChange,
         )
     }
 

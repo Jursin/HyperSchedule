@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.hyperschedule.app.AppMessages
 import com.hyperschedule.app.schedule.parseDateOrNull
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
@@ -100,6 +101,7 @@ private fun BroadcastReceiver.receiveAsync(block: suspend () -> Unit) {
             block()
         } catch (error: Throwable) {
             Log.w(TAG, "处理课程提醒失败", error)
+            AppMessages.post("课程提醒处理失败，请检查通知与闹钟权限")
         } finally {
             pending.finish()
         }

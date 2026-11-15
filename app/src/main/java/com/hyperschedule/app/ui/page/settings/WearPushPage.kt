@@ -45,11 +45,12 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.schedule.semesterStartMonday
 import com.hyperschedule.app.theme.CardCornerRadius
+import com.hyperschedule.app.theme.ContainerTintAlpha
+import com.hyperschedule.app.theme.accentBlueColor
 import com.hyperschedule.app.theme.dangerColor
 import com.hyperschedule.app.theme.dangerContainerColor
 import com.hyperschedule.app.theme.successColor
 import com.hyperschedule.app.theme.successContainerColor
-import com.hyperschedule.app.ui.component.Container
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
@@ -306,10 +307,26 @@ fun WearPushPage(
         }
 
         if (deviceId != null && appInstalled == false) {
-            Container(
-                text = "通过 AstroBox 获取快应用",
+            val colors =
+                CardDefaults.defaultColors(
+                    color = accentBlueColor().copy(alpha = ContainerTintAlpha),
+                    contentColor = accentBlueColor(),
+                )
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = CardCornerRadius,
+                colors = colors,
+                pressFeedbackType = PressFeedbackType.Sink,
                 onClick = { uriHandler.openUri(WEAR_APP_URL) },
-            )
+            ) {
+                Text(
+                    text = "通过 AstroBox 获取快应用",
+                    modifier = Modifier.padding(16.dp),
+                    style = MiuixTheme.textStyles.body2,
+                    color = colors.contentColor,
+                    fontWeight = FontWeight.SemiBold,
+                )
+            }
         }
     }
 }

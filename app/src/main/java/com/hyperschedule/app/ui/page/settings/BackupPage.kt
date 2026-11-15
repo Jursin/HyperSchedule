@@ -23,8 +23,7 @@ import com.hyperschedule.app.data.backup.BackupRepository
 import com.hyperschedule.app.data.backup.RemoteBackupClient
 import com.hyperschedule.app.data.backup.S3Client
 import com.hyperschedule.app.data.backup.WebDavClient
-import com.hyperschedule.app.data.backup.backupTimeFormatter
-import com.hyperschedule.app.data.db.AppDatabase
+import com.hyperschedule.app.data.backup.stampNow
 import com.hyperschedule.app.data.local.BackupSettings
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.SettingsStore
@@ -44,11 +43,9 @@ import com.hyperschedule.app.ui.page.settings.backup.WebDavBackupTab
 import com.hyperschedule.app.ui.page.settings.backup.WebDavDraft
 import com.hyperschedule.app.ui.page.settings.backup.deleteBackup
 import com.hyperschedule.app.ui.page.settings.backup.openBackup
-import com.hyperschedule.app.ui.page.settings.backup.record
 import com.hyperschedule.app.ui.page.settings.backup.reload
 import com.hyperschedule.app.ui.page.settings.backup.test
 import com.hyperschedule.app.ui.page.settings.backup.upload
-import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -67,6 +64,7 @@ private const val TAB_S3 = 2
 @Composable
 fun BackupPage(
     store: SettingsStore,
+    repository: BackupRepository,
     appBlur: Boolean = false,
     onBack: () -> Unit,
 ) {
@@ -74,7 +72,6 @@ fun BackupPage(
     val state = store.state
     val backup = state.backup
     val scope = rememberCoroutineScope()
-    val repository = remember { BackupRepository(context, AppDatabase.get(context)) }
 
     var selectedTab by remember { mutableIntStateOf(0) }
     val webDav = remember { WebDavDraft(store) }
@@ -95,6 +92,10 @@ fun BackupPage(
     fun currentDir(): BackupDir? =
         store.state.backup.let { BackupDirs.from(context, it.location, it.locationLabel) }
 
+    fun persistBackup(transform: (BackupSettings) -> BackupSettings) {
+        store.update { it.copy(backup = transform(it.backup)) }
+    }
+
     suspend fun reload(target: BackupDir?) {
         if (target == null) {
             files = emptyList()
@@ -108,14 +109,14 @@ fun BackupPage(
     }
 
     fun applyDir(target: BackupDir, keepHash: Boolean = true) {
-        store.update {
+        persistBackup {
             it.copy(
-                backup =
-                    it.backup.copy(
-                        location = target.location,
-                        locationLabel = target.label,
-                        // 新目录里没有备份时才清指纹，否则下次启动会平白多写一份同样的文件
-                        lastHash = if (keepHash) it.backup.lastHash else "",
+                location = target.location,
+                locationLabel = target.label,
+                stamp =
+                    it.stamp.copy(
+                        // 新目录没有备份才清指纹，否则下次启动会白写一份
+                        lastHash = if (keepHash) it.stamp.lastHash else "",
                         lastError = "",
                     ),
             )
@@ -132,7 +133,7 @@ fun BackupPage(
         if (busy) return
         busy = true
         scope.launch {
-            val result = runCatching { repository.migrate(old, target, store.state.backup.keepCount) }
+            val result = runCatching { repository.migrate(old, target, store.state.backup.stamp.keepCount) }
             busy = false
             // 备份真的搬过去了，内容指纹依然有效，新目录是空的才清掉，让下次备份补一份
             applyDir(target, keepHash = (result.getOrNull()?.moved ?: 0) > 0)
@@ -153,19 +154,10 @@ fun BackupPage(
     suspend fun saveBackup(target: BackupDir): String? {
         val data = repository.build()
         val hash = repository.fingerprint(data)
-        if (hash == store.state.backup.lastHash && repository.hasBackup(target)) return null
+        if (hash == store.state.backup.stamp.lastHash && repository.hasBackup(target)) return null
         // 保留数量从存储里取，避免用到旧组合里的值
-        val name = repository.save(target, data, store.state.backup.keepCount)
-        store.update {
-            it.copy(
-                backup =
-                    it.backup.copy(
-                        lastHash = hash,
-                        lastTime = LocalDateTime.now().format(backupTimeFormatter),
-                        lastError = "",
-                    ),
-            )
-        }
+        val name = repository.save(target, data, store.state.backup.stamp.keepCount)
+        persistBackup { it.copy(stamp = it.stamp.copy(lastHash = hash, lastTime = stampNow(), lastError = "")) }
         return name
     }
 
@@ -213,10 +205,10 @@ fun BackupPage(
             draft = webDav,
             configured = { store.state.webDav.configured },
             client = ::webDavClient,
-            lastHash = { store.state.webDav.lastHash },
-            keepCount = { store.state.webDav.keepCount },
-            mark = { hash, error -> persistWebDav { it.record(hash, error) } },
-            setKeep = { count -> persistWebDav { it.copy(keepCount = count) } },
+            lastHash = { store.state.webDav.stamp.lastHash },
+            keepCount = { store.state.webDav.stamp.keepCount },
+            mark = { hash, error -> persistWebDav { it.copy(stamp = it.stamp.record(hash, error, stampNow())) } },
+            setKeep = { count -> persistWebDav { it.copy(stamp = it.stamp.copy(keepCount = count)) } },
             repository = repository,
         )
 
@@ -228,10 +220,10 @@ fun BackupPage(
             draft = s3,
             configured = { store.state.s3.configured },
             client = ::s3Client,
-            lastHash = { store.state.s3.lastHash },
-            keepCount = { store.state.s3.keepCount },
-            mark = { hash, error -> persistS3 { it.record(hash, error) } },
-            setKeep = { count -> persistS3 { it.copy(keepCount = count) } },
+            lastHash = { store.state.s3.stamp.lastHash },
+            keepCount = { store.state.s3.stamp.keepCount },
+            mark = { hash, error -> persistS3 { it.copy(stamp = it.stamp.record(hash, error, stampNow())) } },
+            setKeep = { count -> persistS3 { it.copy(stamp = it.stamp.copy(keepCount = count)) } },
             repository = repository,
         )
 
@@ -362,13 +354,13 @@ fun BackupPage(
         scope.launch {
             val result =
                 runCatching {
-                    // 静默留一份当前数据，内容与已有备份一致时不会白写一份
+                    // 先静默留一份当前数据，内容没变不会白写
                     when (target.source) {
                         BackupSource.WebDav -> dav.saveNow()
                         BackupSource.S3 -> s3Account.saveNow()
                         BackupSource.Local -> dirNow?.let { saveBackup(it) }
                     }
-                    repository.restore(target.payload)
+                    repository.restore(target.parsed)
                 }
             busy = false
             when (target.source) {
@@ -378,9 +370,13 @@ fun BackupPage(
             }
             result.fold(
                 onSuccess = { restored ->
-                    context.toast(
-                        "已恢复${restored.tableCount}张课表、${restored.courseCount}门课程".cjkDigitGap(),
-                    )
+                    val text =
+                        if (target.parsed.hasData) {
+                            "已恢复${restored.tableCount}张课表、${restored.courseCount}门课程".cjkDigitGap()
+                        } else {
+                            "已恢复设置，课表未变动"
+                        }
+                    context.toast(text)
                 },
                 onFailure = { error ->
                     val reason = error.message
@@ -410,7 +406,6 @@ fun BackupPage(
         title = "备份与恢复",
         appBlur = appBlur,
         onBack = {
-            // 返回前收尾一次
             webDav.save()
             webDav.reset()
             s3.save()
@@ -438,7 +433,7 @@ fun BackupPage(
                     },
                     onBackupNow = ::startBackup,
                     onToggleAuto = { enabled ->
-                        store.update { it.copy(backup = it.backup.copy(autoBackup = enabled)) }
+                        persistBackup { it.copy(stamp = it.stamp.copy(autoBackup = enabled)) }
                         // 打开自动备份时先把目录定下来，否则启动时无从判断
                         if (enabled && !store.state.backup.configured) {
                             resumeAfterPick = false
@@ -447,7 +442,7 @@ fun BackupPage(
                     },
                     onKeepChange = { index ->
                         val count = BackupSettings.KEEP_OPTIONS[index]
-                        store.update { it.copy(backup = it.backup.copy(keepCount = count)) }
+                        persistBackup { it.copy(stamp = it.stamp.copy(keepCount = count)) }
                         dir?.let { target -> scope.launch { reload(target) } }
                     },
                     onOpenFile = ::openRestore,
@@ -460,7 +455,7 @@ fun BackupPage(
                     list = davList,
                     busy = busy,
                     onTest = { dav.test(context, busyState, scope) },
-                    onToggleAuto = { enabled -> persistWebDav { it.copy(autoBackup = enabled) } },
+                    onToggleAuto = { enabled -> persistWebDav { it.copy(stamp = it.stamp.copy(autoBackup = enabled)) } },
                     onBackupNow = { dav.upload(context, busyState, scope) },
                     onKeepChange = { index -> dav.setKeep(BackupSettings.KEEP_OPTIONS[index]) },
                     onOpenFile = { dav.openBackup(it, BackupSource.WebDav, context, repository, busyState, scope) { t -> restoreTarget = t } },
@@ -473,7 +468,7 @@ fun BackupPage(
                     list = s3List,
                     busy = busy,
                     onTest = { s3Account.test(context, busyState, scope) },
-                    onToggleAuto = { enabled -> persistS3 { it.copy(autoBackup = enabled) } },
+                    onToggleAuto = { enabled -> persistS3 { it.copy(stamp = it.stamp.copy(autoBackup = enabled)) } },
                     onTogglePathStyle = { enabled ->
                         persistS3 { it.copy(pathStyle = enabled) }
                         scope.launch { s3Account.reload() }

@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
@@ -297,6 +298,7 @@ private fun Modifier.navBarSurface(
                 Modifier.background(colors.container, shape)
             },
         )
+        .border(NavBarMetrics.outlineWidth, colors.outline, shape)
 
 /** 选中指示器，左右边界各自动弹，宽度随两条边变化 */
 @Composable

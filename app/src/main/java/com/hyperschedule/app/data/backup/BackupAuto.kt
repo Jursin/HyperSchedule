@@ -2,7 +2,6 @@ package com.hyperschedule.app.data.backup
 
 import android.content.Context
 import com.hyperschedule.app.data.local.SettingsStore
-import java.time.LocalDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -25,13 +24,13 @@ object BackupAuto {
             val webDav = store.state.webDav
             val s3 = store.state.s3
             val dir =
-                if (backup.autoBackup && backup.configured) {
+                if (backup.stamp.autoBackup && backup.configured) {
                     BackupDirs.from(context, backup.location, backup.locationLabel)
                 } else {
                     null
                 }
-            val webDavOn = webDav.autoBackup && webDav.configured
-            val s3On = s3.autoBackup && s3.configured
+            val webDavOn = webDav.stamp.autoBackup && webDav.configured
+            val s3On = s3.stamp.autoBackup && s3.configured
             if (dir == null && !webDavOn && !s3On) return@withContext
 
             val payload =
@@ -43,11 +42,11 @@ object BackupAuto {
                     return@withContext
                 }
             val hash = repository.fingerprint(payload)
-            if (dir != null) saveLocal(dir, store, repository, payload, hash, backup.keepCount)
+            if (dir != null) saveLocal(dir, store, repository, payload, hash, backup.stamp.keepCount)
             if (webDavOn) {
                 val client =
                     WebDavClient(webDav.serverUrl, webDav.username, webDav.password, webDav.folder)
-                saveRemote(store, repository, payload, hash, Target.WebDav, webDav.keepCount, client, webDav.lastHash)
+                saveRemote(store, repository, payload, hash, Target.WebDav, webDav.stamp.keepCount, client, webDav.stamp.lastHash)
             }
             if (s3On) {
                 val client =
@@ -60,7 +59,7 @@ object BackupAuto {
                         pathStyle = s3.pathStyle,
                         folder = s3.folder,
                     )
-                saveRemote(store, repository, payload, hash, Target.S3, s3.keepCount, client, s3.lastHash)
+                saveRemote(store, repository, payload, hash, Target.S3, s3.stamp.keepCount, client, s3.stamp.lastHash)
             }
         }
     }
@@ -78,7 +77,7 @@ object BackupAuto {
             return
         }
         // 内容没变、目录里那份还在，就不必再写一份
-        if (hash == store.state.backup.lastHash && repository.hasBackup(dir)) return
+        if (hash == store.state.backup.stamp.lastHash && repository.hasBackup(dir)) return
         runCatching { repository.save(dir, payload, keep) }
             .onSuccess { record(store, Target.Local, hash = hash) }
             .onFailure { record(store, Target.Local, error = it.message ?: "备份失败") }
@@ -106,43 +105,19 @@ object BackupAuto {
             .onFailure { record(store, target, error = it.message ?: "云端备份失败") }
     }
 
-    /** 记下这次结果，[hash] 非空表示真的写成功了，同时刷新时间 */
+    /** [hash] 非空表示真的写成功了，同时刷新时间 */
     private fun record(
         store: SettingsStore,
         target: Target,
         hash: String? = null,
         error: String? = null,
     ) {
-        val time = hash?.let { LocalDateTime.now().format(backupTimeFormatter) }
+        val now = stampNow()
         store.update { state ->
             when (target) {
-                Target.Local ->
-                    state.copy(
-                        backup =
-                            state.backup.copy(
-                                lastHash = hash ?: state.backup.lastHash,
-                                lastTime = time ?: state.backup.lastTime,
-                                lastError = error.orEmpty(),
-                            ),
-                    )
-                Target.WebDav ->
-                    state.copy(
-                        webDav =
-                            state.webDav.copy(
-                                lastHash = hash ?: state.webDav.lastHash,
-                                lastTime = time ?: state.webDav.lastTime,
-                                lastError = error.orEmpty(),
-                            ),
-                    )
-                Target.S3 ->
-                    state.copy(
-                        s3 =
-                            state.s3.copy(
-                                lastHash = hash ?: state.s3.lastHash,
-                                lastTime = time ?: state.s3.lastTime,
-                                lastError = error.orEmpty(),
-                            ),
-                    )
+                Target.Local -> state.copy(backup = state.backup.copy(stamp = state.backup.stamp.record(hash, error, now)))
+                Target.WebDav -> state.copy(webDav = state.webDav.copy(stamp = state.webDav.stamp.record(hash, error, now)))
+                Target.S3 -> state.copy(s3 = state.s3.copy(stamp = state.s3.stamp.record(hash, error, now)))
             }
         }
     }

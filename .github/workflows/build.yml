@@ -45,6 +45,14 @@ jobs:
       - name: Run tests, lint and build debug APKs
         run: bash ./gradlew testDebugUnitTest lintDebug assembleDebug --no-daemon --stacktrace
 
+      - name: Verify Room schema is up to date
+        run: |
+          if [ -n "$(git status --porcelain app/schemas)" ]; then
+            git status --short app/schemas
+            echo "::error::Room schema changed. Bump AppDatabase.version, add a Migration, and commit app/schemas."
+            exit 1
+          fi
+
       - name: Upload debug APKs
         uses: actions/upload-artifact@v7
         with:

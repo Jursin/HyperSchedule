@@ -3,12 +3,8 @@ package com.hyperschedule.app.ui.page.settings.backup
 import androidx.compose.runtime.Composable
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.local.BackupSettings
-import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.PreferenceSection
-import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.MultilineArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
-import com.hyperschedule.app.ui.component.pref.SwitchPreference
 
 @Composable
 internal fun LocalBackupTab(
@@ -29,31 +25,13 @@ internal fun LocalBackupTab(
             summary = dirLabel.ifBlank { "点击选择备份文件夹" },
             onClick = onPickDir,
         )
-        ArrowPreference(
-            title = "立即备份",
-            summary =
-                when {
-                    busy -> "正在处理"
-                    dirUsable == false -> "备份路径已失效，请重新选择"
-                    backup.lastError.isNotBlank() -> backup.lastError
-                    backup.lastTime.isNotBlank() -> "上次备份${backup.lastTime}".cjkDigitGap()
-                    else -> null
-                },
-            enabled = !busy,
-            onClick = onBackupNow,
-        )
-        SwitchPreference(
-            checked = backup.autoBackup,
-            onCheckedChange = onToggleAuto,
-            title = "启动时自动备份",
-            summary = "启动时检查一次，内容有变化时新增备份",
-        )
-        OverlayDropdownPreference(
-            title = "备份保留数量",
-            items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },
-            selectedIndex = BackupSettings.keepIndexOf(backup.keepCount),
-            summary = "超出后删除最旧的一份",
-            onSelectedIndexChange = onKeepChange,
+        BackupActionsSection(
+            stamp = backup.stamp,
+            busy = busy,
+            blockedHint = if (dirUsable == false) "备份路径已失效，请重新选择" else null,
+            onBackupNow = onBackupNow,
+            onToggleAuto = onToggleAuto,
+            onKeepChange = onKeepChange,
         )
     }
     BackupFileSection(

@@ -14,7 +14,6 @@ data class SettingsState(
     val predictiveBack: Boolean = true,
     val customColor: Boolean = false,
     val dynamicColor: Boolean = true,
-    val floatingNav: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
     val acceptPrerelease: Boolean = false,
@@ -33,14 +32,34 @@ data class SettingsState(
     val s3: S3Settings = S3Settings(),
 )
 
-data class BackupSettings(
+/** 备份的公共状态，本地与两个云端各一份 */
+data class BackupStamp(
     val autoBackup: Boolean = false,
-    val keepCount: Int = DEFAULT_KEEP,
-    val location: String = "",
-    val locationLabel: String = "",
+    val keepCount: Int = BackupSettings.DEFAULT_KEEP,
     val lastHash: String = "",
     val lastTime: String = "",
     val lastError: String = "",
+) {
+    /** 写成功才更新 hash 与时间，失败只记错误 */
+    fun record(hash: String?, error: String?, now: String): BackupStamp =
+        copy(
+            lastHash = hash ?: lastHash,
+            lastTime = if (hash != null) now else lastTime,
+            lastError = error.orEmpty(),
+        )
+}
+
+/** 远端备份的公共视图，界面只认这几个字段 */
+interface RemoteAccountInfo {
+    val stamp: BackupStamp
+
+    val configured: Boolean
+}
+
+data class BackupSettings(
+    val location: String = "",
+    val locationLabel: String = "",
+    val stamp: BackupStamp = BackupStamp(),
 ) {
     val configured: Boolean get() = location.isNotBlank()
 
@@ -59,13 +78,9 @@ data class WebDavSettings(
     val username: String = "",
     val password: String = "",
     val folder: String = BACKUP_FOLDER,
-    val autoBackup: Boolean = false,
-    val keepCount: Int = BackupSettings.DEFAULT_KEEP,
-    val lastHash: String = "",
-    val lastTime: String = "",
-    val lastError: String = "",
-) {
-    val configured: Boolean
+    override val stamp: BackupStamp = BackupStamp(),
+) : RemoteAccountInfo {
+    override val configured: Boolean
         get() = serverUrl.isNotBlank() && username.isNotBlank() && password.isNotBlank()
 }
 
@@ -77,13 +92,9 @@ data class S3Settings(
     val region: String = S3_DEFAULT_REGION,
     val pathStyle: Boolean = true,
     val folder: String = BACKUP_FOLDER,
-    val autoBackup: Boolean = false,
-    val keepCount: Int = BackupSettings.DEFAULT_KEEP,
-    val lastHash: String = "",
-    val lastTime: String = "",
-    val lastError: String = "",
-) {
-    val configured: Boolean
+    override val stamp: BackupStamp = BackupStamp(),
+) : RemoteAccountInfo {
+    override val configured: Boolean
         get() = endpoint.isNotBlank() && accessKeyId.isNotBlank() && secretAccessKey.isNotBlank() && bucket.isNotBlank()
 }
 

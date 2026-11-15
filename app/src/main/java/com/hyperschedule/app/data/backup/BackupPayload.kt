@@ -16,14 +16,22 @@ import kotlinx.serialization.Serializable
 
 const val BACKUP_FORMAT = "hyperschedule-backup"
 
-/** 当前备份格式版本，读到更高版本直接拒绝 */
+/** 外壳版本，读到更高版本直接拒绝 */
 const val BACKUP_FORMAT_VERSION = 1
+
+/** 课表数据块版本，备份比它新时只恢复设置 */
+const val BACKUP_DATA_VERSION = 1
+
+/** 设置块版本，备份比它新时只恢复课表 */
+const val BACKUP_PREFS_VERSION = 1
 
 /** 备份文件，编码时不写默认值与 null */
 @Serializable
 data class BackupPayload(
     val format: String,
     val formatVersion: Int,
+    val dataVersion: Int = 1,
+    val prefsVersion: Int = 1,
     val appVersion: String = "",
     val createdAt: String = "",
     val tables: List<TableRow> = emptyList(),
@@ -38,6 +46,13 @@ data class BackupPayload(
     /** 指纹只看内容，不看时间与版本号 */
     fun contentKey(): BackupPayload = copy(appVersion = "", createdAt = "")
 }
+
+/** 按块标记能否读取，读不了的块恢复时跳过 */
+class ParsedBackup(
+    val payload: BackupPayload,
+    val hasData: Boolean,
+    val hasPrefs: Boolean,
+)
 
 /** 课表 */
 @Serializable

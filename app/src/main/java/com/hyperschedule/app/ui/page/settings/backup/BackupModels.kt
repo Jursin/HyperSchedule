@@ -7,17 +7,14 @@ import com.hyperschedule.app.data.backup.BACKUP_FOLDER
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.BackupPayload
 import com.hyperschedule.app.data.backup.BackupRepository
+import com.hyperschedule.app.data.backup.ParsedBackup
 import com.hyperschedule.app.data.backup.RemoteBackupClient
 import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.data.backup.backupFolderError
-import com.hyperschedule.app.data.backup.backupTimeFormatter
 import com.hyperschedule.app.data.backup.s3BucketError
 import com.hyperschedule.app.data.backup.s3RegionError
-import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.SettingsStore
-import com.hyperschedule.app.data.local.WebDavSettings
 import java.net.URI
-import java.time.LocalDateTime
 
 /** 输入框草稿，负责校验、落盘与恢复 */
 internal interface RemoteDraft {
@@ -65,7 +62,13 @@ internal class WebDavDraft(private val store: SettingsStore) : RemoteDraft {
         store.update {
             it.copy(
                 webDav =
-                    it.webDav.copy(serverUrl = url, username = user, password = password, folder = folder, lastError = ""),
+                    it.webDav.copy(
+                        serverUrl = url,
+                        username = user,
+                        password = password,
+                        folder = folder,
+                        stamp = it.webDav.stamp.copy(lastError = ""),
+                    ),
             )
         }
     }
@@ -119,7 +122,7 @@ internal class S3Draft(private val store: SettingsStore) : RemoteDraft {
                         bucket = bucketName,
                         region = regionName,
                         folder = folder,
-                        lastError = "",
+                        stamp = it.s3.stamp.copy(lastError = ""),
                     ),
             )
         }
@@ -142,9 +145,20 @@ internal enum class BackupSource { Local, WebDav, S3 }
 /** 待恢复的备份 */
 internal class RestoreTarget(
     val file: BackupFile,
-    val payload: BackupPayload,
+    val parsed: ParsedBackup,
     val source: BackupSource = BackupSource.Local,
-)
+) {
+    val payload: BackupPayload get() = parsed.payload
+
+    /** 有一块读不了时提示只恢复哪一部分 */
+    val partialNotice: String?
+        get() =
+            when {
+                !parsed.hasPrefs -> "该备份的设置由更新版本的应用创建，只会恢复课表"
+                !parsed.hasData -> "该备份的课表由更新版本的应用创建，只会恢复设置"
+                else -> null
+            }
+}
 
 /** 远端备份的界面动作，两个后端只差配置来源与文案 */
 internal class RemoteAccount(
@@ -174,36 +188,6 @@ internal class RemoteAccount(
         return name
     }
 }
-
-/** 记下这次结果，[hash] 非空表示真的写成功了 */
-internal fun WebDavSettings.record(hash: String?, error: String?): WebDavSettings =
-    copy(
-        lastHash = hash ?: lastHash,
-        lastTime = if (hash != null) LocalDateTime.now().format(backupTimeFormatter) else lastTime,
-        lastError = error.orEmpty(),
-    )
-
-internal fun S3Settings.record(hash: String?, error: String?): S3Settings =
-    copy(
-        lastHash = hash ?: lastHash,
-        lastTime = if (hash != null) LocalDateTime.now().format(backupTimeFormatter) else lastTime,
-        lastError = error.orEmpty(),
-    )
-
-/** 概览区要用的几个值，两个后端字段名不同，先摊平 */
-internal class RemoteSummary(
-    val configured: Boolean,
-    val autoBackup: Boolean,
-    val keepCount: Int,
-    val lastTime: String,
-    val lastError: String,
-)
-
-internal fun WebDavSettings.summary(): RemoteSummary =
-    RemoteSummary(configured, autoBackup, keepCount, lastTime, lastError)
-
-internal fun S3Settings.summary(): RemoteSummary =
-    RemoteSummary(configured, autoBackup, keepCount, lastTime, lastError)
 
 /** 地址输入的问题，没填或合法时返回 null */
 internal fun serverUrlError(url: String): String? {

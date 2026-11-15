@@ -104,6 +104,9 @@ class BackupRepository(
             BackupPayload(
                 format = BACKUP_FORMAT,
                 formatVersion = BACKUP_FORMAT_VERSION,
+                // 显式写入，改块结构时要跟着抬版本
+                dataVersion = BACKUP_DATA_VERSION,
+                prefsVersion = BACKUP_PREFS_VERSION,
                 appVersion = getAppVersion(appContext),
                 createdAt = LocalDateTime.now().format(isoFormatter),
                 tables =
@@ -133,15 +136,22 @@ class BackupRepository(
 
     fun encode(payload: BackupPayload): String = json.encodeToString(payload)
 
-    /** 解析并做格式门禁 */
-    fun parse(text: String): BackupPayload {
+    /** 解析并做格式门禁，块版本过新只丢那一块 */
+    fun parse(text: String): ParsedBackup {
         val payload =
             runCatching { json.decodeFromString<BackupPayload>(text) }
                 .getOrElse { throw BackupException("不是有效的备份文件") }
         if (payload.format != BACKUP_FORMAT) throw BackupException("这不是本应用导出的备份")
         if (payload.formatVersion > BACKUP_FORMAT_VERSION) throw BackupException("备份由更新版本的应用创建，请先升级")
         if (payload.formatVersion <= 0) throw BackupException("备份文件的格式版本无效")
-        return payload
+        val parsed =
+            ParsedBackup(
+                payload = payload,
+                hasData = payload.dataVersion <= BACKUP_DATA_VERSION,
+                hasPrefs = payload.prefsVersion <= BACKUP_PREFS_VERSION,
+            )
+        if (!parsed.hasData && !parsed.hasPrefs) throw BackupException("备份由更新版本的应用创建，请先升级")
+        return parsed
     }
 
     /** 内容指纹，用于「内容没变就不重复备份」 */
@@ -176,7 +186,7 @@ class BackupRepository(
             runCatching { dir.list().any { BACKUP_FILE_NAME.matches(it.name) } }.getOrDefault(false)
         }
 
-    suspend fun read(dir: BackupDir, name: String): BackupPayload =
+    suspend fun read(dir: BackupDir, name: String): ParsedBackup =
         withContext(Dispatchers.IO) {
             val text =
                 runCatching { dir.read(name) }.getOrElse { throw BackupException("读取备份失败：${it.message ?: "无法读取文件"}") }
@@ -231,15 +241,23 @@ class BackupRepository(
         return name
     }
 
-    suspend fun readFrom(client: RemoteBackupClient, name: String): BackupPayload = parse(client.download(name))
+    suspend fun readFrom(client: RemoteBackupClient, name: String): ParsedBackup = parse(client.download(name))
 
     // 恢复
 
-    /** 覆盖式恢复，整体在一个事务里 */
-    suspend fun restore(payload: BackupPayload): RestoreResult =
+    /** 覆盖式恢复，整体在一个事务里，块不可读时只恢复另一块 */
+    suspend fun restore(parsed: ParsedBackup): RestoreResult =
         withContext(Dispatchers.IO) {
-            if (payload.tables.isEmpty()) throw BackupException("备份里没有课表，未做改动")
+            val payload = parsed.payload
+            if (!parsed.hasData && !parsed.hasPrefs) throw BackupException("备份里没有可恢复的数据，未做改动")
+            if (parsed.hasData && payload.tables.isEmpty()) throw BackupException("备份里没有课表，未做改动")
+            if (!parsed.hasData) {
+                // 只写设置，课表原样留着
+                restorePrefs(payload.prefs, validTableIds = null)
+                return@withContext RestoreResult(tableCount = 0, courseCount = 0)
+            }
             val dao = db.backupDao()
+
             val tableIds = payload.tables.mapTo(HashSet()) { it.id }
             val timeTableIds = payload.timeTables.mapTo(HashSet()) { it.id }
             val comboIds = payload.combos.mapTo(HashSet()) { it.id }
@@ -297,7 +315,7 @@ class BackupRepository(
                 dao.insertBindings(bindings)
             }
 
-            restorePrefs(payload.prefs, tableIds)
+            if (parsed.hasPrefs) restorePrefs(payload.prefs, validTableIds = tableIds)
             RestoreResult(tableCount = payload.tableCount, courseCount = payload.courseCount)
         }
 
@@ -313,7 +331,8 @@ class BackupRepository(
     private fun prefsSnapshotOf(name: String): PrefsSnapshot =
         PrefsSnapshot.of(appContext.getSharedPreferences(name, Context.MODE_PRIVATE).all)
 
-    private fun restorePrefs(prefs: Map<String, PrefsSnapshot>, tableIds: Set<String>) {
+    /** [validTableIds] 为 null 时不校验当前课表是否还在 */
+    private fun restorePrefs(prefs: Map<String, PrefsSnapshot>, validTableIds: Set<String>?) {
         val store = SettingsStore.get(appContext)
         prefs[PREFS_SETTINGS]?.let(store::restore)
         writePrefsFile(PREFS_HOLIDAY, prefs[PREFS_HOLIDAY])
@@ -322,7 +341,7 @@ class BackupRepository(
         EduRepoStore.get(appContext).reload()
 
         // 当前课表指向的表不在这次备份里时清空，课表页会回退到最早一张
-        if (store.state.currentTableId !in tableIds) {
+        if (validTableIds != null && store.state.currentTableId !in validTableIds) {
             store.update { it.copy(currentTableId = null) }
         }
     }
@@ -367,6 +386,9 @@ internal fun backupFileOf(name: String, size: Long): BackupFile? {
 
 /** 备份时间的展示格式，设置里也直接存这个字符串 */
 val backupTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
+
+/** 记备份状态用的当前时间 */
+internal fun stampNow(): String = LocalDateTime.now().format(backupTimeFormatter)
 
 /** 列表标题就是文件名去掉扩展名 */
 fun BackupFile.title(): String = name.removeSuffix(BACKUP_EXTENSION)

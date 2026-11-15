@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.core.content.edit
+import com.hyperschedule.app.AppMessages
 import com.hyperschedule.app.data.local.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -253,6 +254,7 @@ internal object ReminderScheduler {
                 }
             }.onFailure { error ->
                 Log.w("CourseReminder", "注册提醒闹钟失败 requestCode=$requestCode", error)
+                AppMessages.post("提醒闹钟注册失败，请检查精确闹钟权限")
             }.isSuccess
         return requestCode.takeIf { scheduled }
     }

@@ -21,9 +21,11 @@ import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
 import com.hyperschedule.app.schedule.semesterStartMonday
+import com.hyperschedule.app.ui.component.CalendarSyncHost
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.rememberCalendarSyncState
 import com.hyperschedule.app.ui.component.toast
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -50,9 +52,11 @@ internal fun ExportTab(
     holidayRepository: HolidayRepository,
     currentTableId: String?,
     reminder: ReminderSettings,
+    appBlur: Boolean = false,
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val calendarSync = rememberCalendarSyncState()
     val ids = tables.map { it.table.id }
     var selectedId by remember { mutableStateOf(currentTableId) }
     val activeId = selectedId?.takeIf { it in ids } ?: ids.firstOrNull()
@@ -60,6 +64,8 @@ internal fun ExportTab(
     var busy by remember { mutableStateOf(false) }
     // 系统保存窗口的回调是异步的，内容先算好放这里，选好路径再写
     var pending by remember { mutableStateOf<Pair<ExportFormat, String>?>(null) }
+
+    CalendarSyncHost(calendarSync, appBlur, activeId)
 
     fun save(uri: Uri?) {
         val (format, text) = pending ?: return
@@ -152,8 +158,9 @@ internal fun ExportTab(
         )
         ArrowPreference(
             title = "ICS 文件导出",
-            summary = "导出课表为 ICS 日历文件",
+            summary = "导出课表为 ICS 日历文件，长按直接同步到系统日历",
             onClick = { export(ExportFormat.ICS) },
+            onLongClick = { calendarSync.request() },
         )
     }
 }

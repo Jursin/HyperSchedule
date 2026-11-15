@@ -137,6 +137,8 @@ fun WallpaperCropPage(
                 pinnedTitle = true,
                 // 裁剪区一直压在栏下且不滚动，按钮底色得常驻
                 materialPinned = true,
+                // 和框外压暗同一层遮罩，栏与下方不会出现色差
+                color = Color.Black.copy(alpha = OUTSIDE_SCRIM_ALPHA),
                 onBack = if (saving) null else onBack,
             )
         },

@@ -74,6 +74,37 @@ private inline fun <reified T : Enum<T>> enumSetting(
 /** 壁纸模糊强度上限（dp），0 表示不模糊 */
 const val MAX_WALLPAPER_BLUR = 40
 
+/** 三个备份位置各占同样 5 个键，只有自动备份开关会进备份文件 */
+private fun stampSettings(
+    prefix: String,
+    get: (SettingsState) -> BackupStamp,
+    autoBackedUp: Boolean = false,
+    set: (SettingsState, BackupStamp) -> SettingsState,
+): List<Setting> {
+    fun write(state: SettingsState, transform: (BackupStamp) -> BackupStamp): SettingsState =
+        set(state, transform(get(state)))
+    return listOf(
+        boolSetting("${prefix}Auto", { get(it).autoBackup }, backedUp = autoBackedUp) { state, value ->
+            write(state) { it.copy(autoBackup = value) }
+        },
+        intSetting(
+            "${prefix}Keep",
+            { get(it).keepCount },
+            coerce = BackupSettings::coerceKeep,
+            backedUp = false,
+        ) { state, value -> write(state) { it.copy(keepCount = value) } },
+        stringSetting("${prefix}LastHash", { get(it).lastHash }, backedUp = false) { state, value ->
+            write(state) { it.copy(lastHash = value.orEmpty()) }
+        },
+        stringSetting("${prefix}LastTime", { get(it).lastTime }, backedUp = false) { state, value ->
+            write(state) { it.copy(lastTime = value.orEmpty()) }
+        },
+        stringSetting("${prefix}LastError", { get(it).lastError }, backedUp = false) { state, value ->
+            write(state) { it.copy(lastError = value.orEmpty()) }
+        },
+    )
+}
+
 /** 壁纸模糊强度的档位间隔 */
 const val WALLPAPER_BLUR_STEP = 4
 
@@ -93,7 +124,6 @@ private val Prefs =
         boolSetting("predictiveBack", { it.predictiveBack }) { s, v -> s.copy(predictiveBack = v) },
         boolSetting("customColor", { it.customColor }) { s, v -> s.copy(customColor = v) },
         boolSetting("dynamicColor", { it.dynamicColor }) { s, v -> s.copy(dynamicColor = v) },
-        boolSetting("floatingNav", { it.floatingNav }) { s, v -> s.copy(floatingNav = v) },
         intSetting("launchPage", { it.launchPage }, coerce = { it.coerceIn(0, 1) }) { s, v ->
             s.copy(launchPage = v)
         },
@@ -195,40 +225,13 @@ private val Prefs =
             s.copy(wearPush = s.wearPush.copy(excludeHoliday = v))
         },
         // 这几项都是本机状态，不进备份
-        boolSetting("backupAuto", { it.backup.autoBackup }) { s, v ->
-            s.copy(backup = s.backup.copy(autoBackup = v))
-        },
-        intSetting(
-            "backupKeep",
-            { it.backup.keepCount },
-            coerce = { BackupSettings.coerceKeep(it) },
-            backedUp = false,
-        ) { s, v -> s.copy(backup = s.backup.copy(keepCount = v)) },
         stringSetting("backupLocation", { it.backup.location }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(location = v.orEmpty()))
         },
         stringSetting("backupLocationLabel", { it.backup.locationLabel }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(locationLabel = v.orEmpty()))
         },
-        stringSetting("backupLastHash", { it.backup.lastHash }, backedUp = false) { s, v ->
-            s.copy(backup = s.backup.copy(lastHash = v.orEmpty()))
-        },
-        stringSetting("backupLastTime", { it.backup.lastTime }, backedUp = false) { s, v ->
-            s.copy(backup = s.backup.copy(lastTime = v.orEmpty()))
-        },
-        stringSetting("backupLastError", { it.backup.lastError }, backedUp = false) { s, v ->
-            s.copy(backup = s.backup.copy(lastError = v.orEmpty()))
-        },
-        // WebDAV 配置全部是本机状态，账号密码绝不能进备份
-        boolSetting("webdavAuto", { it.webDav.autoBackup }, backedUp = false) { s, v ->
-            s.copy(webDav = s.webDav.copy(autoBackup = v))
-        },
-        intSetting(
-            "webdavKeep",
-            { it.webDav.keepCount },
-            coerce = { BackupSettings.coerceKeep(it) },
-            backedUp = false,
-        ) { s, v -> s.copy(webDav = s.webDav.copy(keepCount = v)) },
+        // 账号密码与密钥绝不能进备份
         stringSetting("webdavServer", { it.webDav.serverUrl }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(serverUrl = v.orEmpty()))
         },
@@ -241,25 +244,6 @@ private val Prefs =
         stringSetting("webdavFolder", { it.webDav.folder }, backedUp = false) { s, v ->
             s.copy(webDav = s.webDav.copy(folder = v.orEmpty()))
         },
-        stringSetting("webdavLastHash", { it.webDav.lastHash }, backedUp = false) { s, v ->
-            s.copy(webDav = s.webDav.copy(lastHash = v.orEmpty()))
-        },
-        stringSetting("webdavLastTime", { it.webDav.lastTime }, backedUp = false) { s, v ->
-            s.copy(webDav = s.webDav.copy(lastTime = v.orEmpty()))
-        },
-        stringSetting("webdavLastError", { it.webDav.lastError }, backedUp = false) { s, v ->
-            s.copy(webDav = s.webDav.copy(lastError = v.orEmpty()))
-        },
-        // S3 配置同样是本机状态，密钥不进备份
-        boolSetting("s3Auto", { it.s3.autoBackup }, backedUp = false) { s, v ->
-            s.copy(s3 = s.s3.copy(autoBackup = v))
-        },
-        intSetting(
-            "s3Keep",
-            { it.s3.keepCount },
-            coerce = { BackupSettings.coerceKeep(it) },
-            backedUp = false,
-        ) { s, v -> s.copy(s3 = s.s3.copy(keepCount = v)) },
         stringSetting("s3Endpoint", { it.s3.endpoint }, backedUp = false) { s, v ->
             s.copy(s3 = s.s3.copy(endpoint = v.orEmpty()))
         },
@@ -281,16 +265,12 @@ private val Prefs =
         stringSetting("s3Folder", { it.s3.folder }, backedUp = false) { s, v ->
             s.copy(s3 = s.s3.copy(folder = v.orEmpty()))
         },
-        stringSetting("s3LastHash", { it.s3.lastHash }, backedUp = false) { s, v ->
-            s.copy(s3 = s.s3.copy(lastHash = v.orEmpty()))
-        },
-        stringSetting("s3LastTime", { it.s3.lastTime }, backedUp = false) { s, v ->
-            s.copy(s3 = s.s3.copy(lastTime = v.orEmpty()))
-        },
-        stringSetting("s3LastError", { it.s3.lastError }, backedUp = false) { s, v ->
-            s.copy(s3 = s.s3.copy(lastError = v.orEmpty()))
-        },
-    )
+    ) +
+        stampSettings("backup", { it.backup.stamp }, autoBackedUp = true) { s, v ->
+            s.copy(backup = s.backup.copy(stamp = v))
+        } +
+        stampSettings("webdav", { it.webDav.stamp }) { s, v -> s.copy(webDav = s.webDav.copy(stamp = v)) } +
+        stampSettings("s3", { it.s3.stamp }) { s, v -> s.copy(s3 = s.s3.copy(stamp = v)) }
 
 class SettingsStore private constructor(context: Context) {
     private val preferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)

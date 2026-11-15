@@ -54,6 +54,7 @@ fun ScheduleTransferPage(
                     holidayRepository = holidayRepository,
                     currentTableId = currentTableId,
                     reminder = reminder,
+                    appBlur = appBlur,
                 )
         }
     }

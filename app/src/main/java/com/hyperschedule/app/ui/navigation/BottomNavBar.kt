@@ -102,7 +102,7 @@ internal fun BottomNavBar(
         }
 
     Row(
-        modifier = modifier.height(NavBarMetrics.containerHeight),
+        modifier = modifier.width(NavBarMetrics.totalWidth).height(NavBarMetrics.containerHeight),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         TabsPill(
@@ -121,48 +121,49 @@ internal fun BottomNavBar(
 
 /** 底栏尺寸 */
 internal object NavBarMetrics {
-    val containerHeight: Dp = 54.dp // 实测 152px
-    /** 栏体与页面底边之间悬空的距离 */
+    val containerHeight: Dp = 54.dp
     val floatingBottomMargin: Dp = 24.dp
     val containerRadius: Dp = containerHeight / 2
-    val containerPadding: Dp = 8.dp // 实测 22px
-    val splitGap: Dp = 8.dp // 胶囊与设置圆之间的间距
-    val overlayHeight: Dp = containerHeight - 6.dp // 指示器上下各内缩 3dp
+    val containerPadding: Dp = 8.dp
+    val totalWidth: Dp = 233.dp
+    val splitGap: Dp = 13.dp
+    val overlayHeight: Dp = containerHeight - 6.dp
     val overlayRadius: Dp = containerRadius - 3.dp
     val indicatorOverhang: Dp = 5.dp
     val pressInset: Dp = 6.dp
-    val iconSize: Dp = 26.dp // 按可见墨迹 57×53px 校准
-    val labelFontSize: Dp = 11.dp // footnote3，注意是 dp
+    val iconSize: Dp = 26.dp
+    val labelFontSize: Dp = 11.dp
     val barShadowRadius: Dp = 10.dp
-    val liftShadowDelta: Dp = 8.dp // 拖动中额外抬升
-    const val LIFT_SHADOW_ALPHA = 0.8f // 抬升时投影浓度放大系数
+    val liftShadowDelta: Dp = 8.dp
+    val outlineWidth: Dp = 0.7.dp
+    const val LIFT_SHADOW_ALPHA = 0.8f
 }
 
 internal object NavBarColors {
     val Light =
         NavBarPalette(
-            container = Color.White,
+            container = Color(0xFFFBFBFB),
             blurTint = Color.White.copy(alpha = 0.45f),
-            contentTint = Color.White.copy(alpha = 0.68f),
+            contentTint = Color(0xFFFBFBFB).copy(alpha = 0.68f),
             selector = Color.Black.copy(alpha = 0.06f),
-            // 按下 16%
             selectorPressed = Color.Black.copy(alpha = 0.16f),
-            // 选中不变色
             icon = Color.Black,
             iconPressed = Color.Black.copy(alpha = 0.6f),
             barShadowAlpha = 0.1f,
+            outline = Color.White,
         )
 
     val Dark =
         NavBarPalette(
-            container = Color(0xFF181818),
+            container = Color(0xFF151515),
             blurTint = Color.White.copy(alpha = 0.08f),
-            contentTint = Color(0xFF181818).copy(alpha = 0.72f),
+            contentTint = Color(0xFF151515).copy(alpha = 0.72f),
             selector = Color.White.copy(alpha = 0.12f),
             selectorPressed = Color.White.copy(alpha = 0.26f),
             icon = Color.White.copy(alpha = 0.95f),
             iconPressed = Color.White.copy(alpha = 0.57f),
             barShadowAlpha = 0.14f,
+            outline = Color.White.copy(alpha = 0.12f),
         )
 }
 
@@ -175,4 +176,5 @@ internal data class NavBarPalette(
     val icon: Color,
     val iconPressed: Color,
     val barShadowAlpha: Float,
+    val outline: Color,
 )
