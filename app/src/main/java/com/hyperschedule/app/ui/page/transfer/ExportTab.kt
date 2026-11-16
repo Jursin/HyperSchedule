@@ -15,12 +15,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.exporter.buildIcs
 import com.hyperschedule.app.data.exporter.buildTableJson
-import com.hyperschedule.app.data.exporter.lastWeek
+import com.hyperschedule.app.data.exporter.loadEvents
 import com.hyperschedule.app.data.local.ReminderSettings
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
-import com.hyperschedule.app.schedule.semesterStartMonday
 import com.hyperschedule.app.ui.component.CalendarSyncHost
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
@@ -108,12 +107,7 @@ internal fun ExportTab(
                         require(data.courses.isNotEmpty()) { "课表为空" }
                         when (format) {
                             ExportFormat.JSON -> buildTableJson(data)
-                            ExportFormat.ICS -> {
-                                val start = data.startDate ?: error("请先设置开学日期")
-                                // 假期查到最后实际导出的一周，超出总周数的周也按放假规则过滤
-                                val end = semesterStartMonday(start).plusWeeks(data.lastWeek.toLong()).minusDays(1)
-                                buildIcs(data, holidayRepository.entriesIn(start, end), reminder.icsAlarmMinutes)
-                            }
+                            ExportFormat.ICS -> buildIcs(data.loadEvents(holidayRepository), reminder.icsAlarmMinutes)
                         }
                     }
                 }
@@ -158,7 +152,7 @@ internal fun ExportTab(
         )
         ArrowPreference(
             title = "ICS 文件导出",
-            summary = "导出课表为 ICS 日历文件，长按直接同步到系统日历",
+            summary = "导出课表为 iCalendar 格式文件，长按直接同步到系统日历",
             onClick = { export(ExportFormat.ICS) },
             onLongClick = { calendarSync.request() },
         )

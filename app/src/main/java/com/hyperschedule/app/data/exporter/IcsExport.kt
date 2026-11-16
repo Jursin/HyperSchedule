@@ -4,6 +4,7 @@ import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.data.db.entity.CourseWithWeeks
 import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.model.HolidayEntry
+import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.schedule.HolidayPlan
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.schedule.weekDatesOf
@@ -19,19 +20,63 @@ private val IcsLocalFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss")
 private val IcsStampFormatter = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'")
 private val IcsDayFormatter = DateTimeFormatter.ofPattern("yyyyMMdd")
 
-/** 逐周展开为 VEVENT，放假不写，[alarmMinutes] 为空不加提醒 */
-fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: Int?): String {
-    val startDate = data.startDate ?: error("请先设置开学日期")
-    val lastWeek = data.lastWeek
-    val plan = HolidayPlan.build(startDate, lastWeek, entries)
+internal data class ExportEvent(
+    val uid: String,
+    val start: LocalDateTime,
+    val end: LocalDateTime,
+    val summary: String,
+    val location: String,
+    val description: String,
+)
+
+/** 逐周展开成日记事，放假不写，同一天按实际上课时刻排 */
+internal fun TableExportData.expandEvents(entries: List<HolidayEntry>): List<ExportEvent> {
+    val start = startDate ?: error("请先设置开学日期")
+    val weeks = lastWeek
+    val plan = HolidayPlan.build(start, weeks, entries)
     val coursesByCell = HashMap<Int, MutableList<CourseWithWeeks>>()
-    data.courses.forEach { group ->
+    courses.forEach { group ->
         group.weeks.forEach { courseWeek ->
             coursesByCell.getOrPut(courseWeek.weekNumber * 10 + group.course.day) { mutableListOf() } += group
         }
     }
-    val stamp = IcsStampFormatter.format(ZonedDateTime.now(ZoneId.of("UTC")))
+    val events = ArrayList<ExportEvent>()
+    for (week in 1..weeks) {
+        val dates = weekDatesOf(start, week)
+        for (day in 1..7) {
+            val cell = plan.of(week, day)
+            if (cell.holiday) continue
+            val date = dates[day - 1]
+            val slots = slotsFor(date).associateBy { it.number }
+            // 补课列画的是被调那一天的课，跨周调课时连周次一起换
+            coursesByCell[cell.weekOr(week) * 10 + cell.dayOr(day)].orEmpty()
+                .mapNotNull { group -> group.course.timeSpanOn(date, slots)?.let { group.course to it } }
+                .sortedBy { it.second.first }
+                .forEach { (course, span) ->
+                    events +=
+                        ExportEvent(
+                            uid = "${course.id}-$week-${IcsDayFormatter.format(date)}@hyperschedule",
+                            start = span.first,
+                            end = span.second,
+                            summary = course.name,
+                            location = course.position,
+                            description = describe(week, course),
+                        )
+                }
+        }
+    }
+    return events
+}
 
+/** 查完区间内的假期再展开，ICS 导出与日历同步共用 */
+internal suspend fun TableExportData.loadEvents(holidays: HolidayRepository): List<ExportEvent> {
+    val (start, end) = holidayRange() ?: error("请先设置开学日期")
+    return expandEvents(holidays.entriesIn(start, end))
+}
+
+/** 展开后的日程拼成 VEVENT，[alarmMinutes] 为空不加提醒 */
+internal fun buildIcs(events: List<ExportEvent>, alarmMinutes: Int?): String {
+    val stamp = IcsStampFormatter.format(ZonedDateTime.now(ZoneId.of("UTC")))
     return buildString {
         append("BEGIN:VCALENDAR\r\n")
         append("VERSION:2.0\r\n")
@@ -39,32 +84,7 @@ fun buildIcs(data: TableExportData, entries: List<HolidayEntry>, alarmMinutes: I
         append("CALSCALE:GREGORIAN\r\n")
         append("METHOD:PUBLISH\r\n")
         appendTimeZone()
-        for (week in 1..lastWeek) {
-            val dates = weekDatesOf(startDate, week)
-            for (day in 1..7) {
-                val cell = plan.of(week, day)
-                if (cell.holiday) continue
-                val date = dates[day - 1]
-                val slots = data.slotsFor(date).associateBy { it.number }
-                // 补课列画的是被调那一天的课，跨周调课时连周次一起换
-                coursesByCell[cell.weekOr(week) * 10 + cell.dayOr(day)].orEmpty()
-                    .mapNotNull { entry -> entry.course.timeSpanOn(date, slots)?.let { entry.course to it } }
-                    // 同一天按实际上课时刻排
-                    .sortedBy { it.second.first }
-                    .forEach { (course, span) ->
-                        appendEvent(
-                            uid = "${course.id}-$week-${IcsDayFormatter.format(date)}@hyperschedule",
-                            stamp = stamp,
-                            start = span.first,
-                            end = span.second,
-                            summary = course.name,
-                            location = course.position,
-                            description = describe(week, course),
-                            alarmMinutes = alarmMinutes,
-                        )
-                    }
-            }
-        }
+        events.forEach { appendEvent(it, stamp, alarmMinutes) }
         append("END:VCALENDAR\r\n")
     }
 }
@@ -112,23 +132,18 @@ private fun StringBuilder.appendTimeZone() {
 }
 
 private fun StringBuilder.appendEvent(
-    uid: String,
+    event: ExportEvent,
     stamp: String,
-    start: LocalDateTime,
-    end: LocalDateTime,
-    summary: String,
-    location: String,
-    description: String,
     alarmMinutes: Int?,
 ) {
     append("BEGIN:VEVENT\r\n")
-    append("UID:").append(uid).append("\r\n")
+    append("UID:").append(event.uid).append("\r\n")
     append("DTSTAMP:").append(stamp).append("\r\n")
-    append("DTSTART;TZID=").append(IcsTimeZone).append(':').append(IcsLocalFormatter.format(start)).append("\r\n")
-    append("DTEND;TZID=").append(IcsTimeZone).append(':').append(IcsLocalFormatter.format(end)).append("\r\n")
-    append("SUMMARY:").append(escapeIcs(summary)).append("\r\n")
-    if (location.isNotBlank()) append("LOCATION:").append(escapeIcs(location)).append("\r\n")
-    if (description.isNotBlank()) append("DESCRIPTION:").append(escapeIcs(description)).append("\r\n")
+    append("DTSTART;TZID=").append(IcsTimeZone).append(':').append(IcsLocalFormatter.format(event.start)).append("\r\n")
+    append("DTEND;TZID=").append(IcsTimeZone).append(':').append(IcsLocalFormatter.format(event.end)).append("\r\n")
+    append("SUMMARY:").append(escapeIcs(event.summary)).append("\r\n")
+    if (event.location.isNotBlank()) append("LOCATION:").append(escapeIcs(event.location)).append("\r\n")
+    if (event.description.isNotBlank()) append("DESCRIPTION:").append(escapeIcs(event.description)).append("\r\n")
     if (alarmMinutes != null) {
         append("BEGIN:VALARM\r\n")
         append("ACTION:DISPLAY\r\n")

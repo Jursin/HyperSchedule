@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +39,7 @@ import com.hyperschedule.app.ui.component.DAY_NAMES
 import com.hyperschedule.app.ui.component.HolidayMarkBadge
 import com.hyperschedule.app.ui.component.InfoField
 import com.hyperschedule.app.ui.component.InfoIconId
+import com.hyperschedule.app.ui.component.SectionPill
 import com.hyperschedule.app.ui.component.SectionTitle
 import com.hyperschedule.app.ui.component.copyOnClick
 import com.hyperschedule.app.ui.component.dayLabel
@@ -45,6 +47,7 @@ import com.hyperschedule.app.ui.component.endTimeOf
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
+import com.hyperschedule.app.ui.component.parseTime
 import com.hyperschedule.app.ui.component.placeTeacherCredit
 import com.hyperschedule.app.ui.component.sectionLabel
 import com.hyperschedule.app.ui.component.startTimeOf
@@ -52,6 +55,7 @@ import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.state.CourseTableData
 import com.hyperschedule.app.ui.state.rememberHolidayPlan
 import java.time.LocalDate
+import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -70,6 +74,16 @@ fun CourseWeeksPage(
     onBack: () -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    LaunchedEffect(scrollBehavior) {
+        repeat(30) {
+            val limit = scrollBehavior.state.heightOffsetLimit
+            if (limit != 0f) {
+                scrollBehavior.state.heightOffset = limit
+                return@LaunchedEffect
+            }
+            withFrameNanos { }
+        }
+    }
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val slotMap = remember(table?.slots) { table?.slots.orEmpty().associateBy { it.number } }
     val startDate =
@@ -129,6 +143,10 @@ fun CourseWeeksPage(
         positioned.value = true
     }
 
+    val now = remember { LocalDateTime.now() }
+    val totalCount = weekGroups.sumOf { it.second.size }
+    val leftCount = weekGroups.sumOf { (_, rows) -> rows.count { row -> row.endAt(slotMap)?.isAfter(now) ?: true } }
+
     Scaffold(
         topBar = { BlurredTopAppBar(courseName, blurBackdrop, scrollBehavior, onBack = onBack) },
     ) { paddingValues ->
@@ -176,6 +194,16 @@ fun CourseWeeksPage(
                     }
                 }
             }
+            if (weekGroups.isNotEmpty()) {
+                item {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        SectionPill(
+                            text = "共${totalCount}节，还剩${leftCount}节".cjkDigitGap(),
+                            style = MiuixTheme.textStyles.footnote1,
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -186,6 +214,18 @@ private data class WeekRowData(
     val course: Course,
     val mark: String?,
 )
+
+/** 这一天这节课的下课时刻，缺日期或作息时间时为 null */
+private fun WeekRowData.endAt(slotMap: Map<Int, TimeSlot>): LocalDateTime? =
+    date?.let { day ->
+        val text =
+            if (course.isCustomTime) {
+                course.customEndTime
+            } else {
+                slotMap[course.endSection ?: course.startSection]?.endTime
+            }
+        text?.let(::parseTime)?.let(day::atTime)
+    }
 
 /** 一周里的一次课，日期 + 星期 + 节次，右侧作息时间，放假/调休时名称后带角标 */
 @Composable

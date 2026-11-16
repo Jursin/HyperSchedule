@@ -12,17 +12,9 @@ import android.net.Uri
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import com.hyperschedule.app.data.db.AppDatabase
-import com.hyperschedule.app.data.db.entity.CourseWithWeeks
-import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
-import com.hyperschedule.app.reminder.DayCourse
-import com.hyperschedule.app.reminder.coursesOn
-import com.hyperschedule.app.schedule.HolidayPlan
-import com.hyperschedule.app.schedule.parseDateOrNull
-import com.hyperschedule.app.schedule.semesterStartMonday
-import java.time.LocalDate
 import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
@@ -33,9 +25,6 @@ object CalendarSync {
     private const val ACCOUNT_NAME = "HyperSchedule"
     private const val CALENDAR_NAME = "课程表"
     private const val CALENDAR_COLOR = 0xFF2196F3.toInt()
-
-    /** 缺少下课时间时的兜底时长 */
-    private const val FALLBACK_MINUTES = 90L
 
     /** 单批事件数，一整批走一次 binder，太大触发 TransactionTooLargeException */
     private const val EVENTS_PER_BATCH = 150
@@ -51,45 +40,21 @@ object CalendarSync {
         withContext(Dispatchers.IO) {
             try {
                 val appContext = context.applicationContext
-                val data = loadTable(appContext, tableId) ?: error("还未设置开学日期")
+                val state = SettingsStore.get(appContext).state
+                val repository = ScheduleRepository(AppDatabase.get(appContext))
+                val id = repository.existingTableIdOnce(tableId ?: state.currentTableId) ?: error("课表不存在")
+                val data = repository.loadExportData(id)
+                if (data.courses.isEmpty()) error("课表为空，未做改动")
+                val events = data.loadEvents(HolidayRepository.get(appContext))
                 val calendarId = ensureCalendar(appContext)
                 clearEvents(appContext, calendarId)
-                Result.success(writeEvents(appContext, calendarId, data))
+                Result.success(writeEvents(appContext, calendarId, events, state.reminder.icsAlarmMinutes))
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 Result.failure(e)
             }
         }
-
-    /** 课表、作息、节假日一次读齐 */
-    private suspend fun loadTable(context: Context, tableId: String?): TableData? {
-        val state = SettingsStore.get(context).state
-        val repository = ScheduleRepository(AppDatabase.get(context))
-        val current = repository.existingTableIdOnce(tableId ?: state.currentTableId) ?: return null
-        val config = repository.configOnce(current) ?: return null
-        val startDate = config.semesterStartDate?.let(::parseDateOrNull) ?: return null
-        val totalWeeks = config.semesterTotalWeeks.coerceAtLeast(1)
-        val semesterEnd = semesterStartMonday(startDate).plusWeeks(totalWeeks.toLong()).minusDays(1)
-        val holidays = HolidayRepository.get(context).entriesIn(startDate, semesterEnd)
-        return TableData(
-            startDate = startDate,
-            totalWeeks = totalWeeks,
-            slotMap = repository.slotsOnce(current).associateBy { it.number },
-            courses = repository.coursesOnce(current),
-            plan = HolidayPlan.build(startDate, totalWeeks, holidays),
-            preMinutes = state.reminder.preMinutes.takeIf { state.reminder.enabled },
-        )
-    }
-
-    private class TableData(
-        val startDate: LocalDate,
-        val totalWeeks: Int,
-        val slotMap: Map<Int, TimeSlot>,
-        val courses: List<CourseWithWeeks>,
-        val plan: HolidayPlan,
-        val preMinutes: Int?,
-    )
 
     private fun ensureCalendar(context: Context): Long {
         findCalendar(context)?.let { return it }
@@ -139,40 +104,28 @@ object CalendarSync {
         )
     }
 
-    /** 整学期逐日展开成事件，分批写入，返回写入的课程节数 */
-    private fun writeEvents(context: Context, calendarId: Long, data: TableData): Int {
-        val zone = ZoneId.systemDefault()
-        val last = semesterStartMonday(data.startDate).plusWeeks(data.totalWeeks.toLong()).minusDays(1)
-        val events = ArrayList<ContentValues>()
-        var date = data.startDate
-        while (!date.isAfter(last)) {
-            data.plan.coursesOn(date, data.startDate, data.courses, data.slotMap).forEach { course ->
-                events += eventValues(calendarId, course, zone, data.preMinutes)
-            }
-            date = date.plusDays(1)
-        }
+    /** 分批写入，返回写入的课程节数 */
+    private fun writeEvents(context: Context, calendarId: Long, events: List<ExportEvent>, preMinutes: Int?): Int {
         if (events.isEmpty()) return 0
+        val zone = ZoneId.systemDefault()
         val resolver = context.contentResolver
-        events.chunked(EVENTS_PER_BATCH).forEach { chunk ->
-            resolver.applyBatch(CalendarContract.AUTHORITY, batchOf(chunk, data.preMinutes))
+        events.map { eventValues(calendarId, it, zone, preMinutes) }.chunked(EVENTS_PER_BATCH).forEach { chunk ->
+            resolver.applyBatch(CalendarContract.AUTHORITY, batchOf(chunk, preMinutes))
         }
         return events.size
     }
 
-    private fun eventValues(calendarId: Long, course: DayCourse, zone: ZoneId, preMinutes: Int?): ContentValues {
-        val end = course.end ?: course.start.plusMinutes(FALLBACK_MINUTES)
-        return ContentValues().apply {
+    private fun eventValues(calendarId: Long, event: ExportEvent, zone: ZoneId, preMinutes: Int?): ContentValues =
+        ContentValues().apply {
             put(CalendarContract.Events.CALENDAR_ID, calendarId)
-            put(CalendarContract.Events.TITLE, course.name)
-            put(CalendarContract.Events.DTSTART, course.start.atZone(zone).toInstant().toEpochMilli())
-            put(CalendarContract.Events.DTEND, end.atZone(zone).toInstant().toEpochMilli())
+            put(CalendarContract.Events.TITLE, event.summary)
+            put(CalendarContract.Events.DTSTART, event.start.atZone(zone).toInstant().toEpochMilli())
+            put(CalendarContract.Events.DTEND, event.end.atZone(zone).toInstant().toEpochMilli())
             put(CalendarContract.Events.EVENT_TIMEZONE, zone.id)
-            put(CalendarContract.Events.EVENT_LOCATION, course.position)
-            // 地点已经在 LOCATION 里，描述只放教师
-            if (course.teacher.isNotBlank()) put(CalendarContract.Events.DESCRIPTION, course.teacher)
+            put(CalendarContract.Events.EVENT_LOCATION, event.location)
+            if (event.description.isNotBlank()) put(CalendarContract.Events.DESCRIPTION, event.description)
             put(CalendarContract.Events.HAS_ALARM, if (preMinutes != null) 1 else 0)
         }
-    }
 
     /** 一批事件连同各自的提醒，提醒用批内下标回指刚插入的事件 */
     private fun batchOf(events: List<ContentValues>, preMinutes: Int?): ArrayList<ContentProviderOperation> {

@@ -10,6 +10,7 @@ import com.hyperschedule.app.data.importer.CourseTableJsonParser
 import com.hyperschedule.app.data.importer.PublicScheduleJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
 import com.hyperschedule.app.schedule.parseMinutes
+import com.hyperschedule.app.schedule.semesterStartMonday
 import com.hyperschedule.app.schedule.startMinutesOf
 import java.time.LocalDate
 
@@ -27,6 +28,10 @@ data class TableExportData(
 /** 实际要展开的最后一周，课程周次可能超出总周数 */
 val TableExportData.lastWeek: Int
     get() = maxOf(totalWeeks, courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0)
+
+/** 查假期用的区间，开学日到实际展开的最后一周结束 */
+fun TableExportData.holidayRange(): Pair<LocalDate, LocalDate>? =
+    startDate?.let { start -> start to semesterStartMonday(start).plusWeeks(lastWeek.toLong()).minusDays(1) }
 
 /** 组合作息快照，组合名 + 每条日期规则各带一套公共作息 */
 data class ComboScheduleExport(
