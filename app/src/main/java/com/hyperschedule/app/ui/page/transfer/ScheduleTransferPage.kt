@@ -37,25 +37,24 @@ fun ScheduleTransferPage(
             selectedTabIndex = selectedTab,
             onTabSelected = { selectedTab = it },
         )
-        when (selectedTab) {
-            TAB_IMPORT ->
-                ImportTab(
-                    tables = tables,
-                    table = table,
-                    repository = repository,
-                    appBlur = appBlur,
-                    onSwitchTable = onSwitchTable,
-                    onOpenEduImport = onOpenEduImport,
-                )
-            else ->
-                ExportTab(
-                    tables = tables,
-                    repository = repository,
-                    holidayRepository = holidayRepository,
-                    currentTableId = currentTableId,
-                    reminder = reminder,
-                    appBlur = appBlur,
-                )
+        if (selectedTab == TAB_IMPORT) {
+            ImportTab(
+                tables = tables,
+                table = table,
+                repository = repository,
+                appBlur = appBlur,
+                onSwitchTable = onSwitchTable,
+                onOpenEduImport = onOpenEduImport,
+            )
+        } else {
+            ExportTab(
+                tables = tables,
+                repository = repository,
+                holidayRepository = holidayRepository,
+                currentTableId = currentTableId,
+                reminder = reminder,
+                appBlur = appBlur,
+            )
         }
     }
 }

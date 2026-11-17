@@ -98,15 +98,16 @@ fun DatePager(
     }
 }
 
-/** 今天，跨零点自动更新，避免页面一直用启动那天的日期 */
+/** 今天，跨零点、改系统时间或回到前台都会更新 */
 @Composable
-fun rememberToday(): LocalDate {
+fun rememberToday(timeVersion: Int = rememberSystemTimeChanges()): LocalDate {
     var today by remember { mutableStateOf(LocalDate.now()) }
-    LaunchedEffect(Unit) {
+    LaunchedEffect(timeVersion) {
+        today = LocalDate.now()
         while (true) {
             val now = LocalDateTime.now()
             val nextMidnight = now.toLocalDate().plusDays(1).atStartOfDay()
-            delay(Duration.between(now, nextMidnight).toMillis().coerceAtLeast(1_000L).milliseconds)
+            delay(Duration.between(now, nextMidnight).toMillis().coerceAtLeast(500L).milliseconds)
             today = LocalDate.now()
         }
     }

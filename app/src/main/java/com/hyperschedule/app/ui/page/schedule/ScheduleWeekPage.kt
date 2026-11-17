@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.gestures.FlingBehavior
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,7 +20,6 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.db.entity.Course
@@ -45,10 +45,8 @@ import com.hyperschedule.app.ui.component.TimelineWeekGrid
 import com.hyperschedule.app.ui.component.WeekCourse
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.component.resolveWeekCourses
-import com.hyperschedule.app.ui.effect.wallpaperVisible
 import java.time.LocalDate
 import java.time.LocalDateTime
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -63,7 +61,7 @@ internal fun ScheduleWeekPage(
     startDate: LocalDate?,
     totalWeeks: Int,
     currentWeek: Int?,
-    now: LocalDateTime,
+    nowState: State<LocalDateTime>,
     holidayPlan: HolidayPlan,
     allCourses: List<CourseWithWeeks>,
     showNonCurrentWeek: Boolean,
@@ -80,14 +78,13 @@ internal fun ScheduleWeekPage(
     onAddCourse: (Int, Int, Int) -> Unit,
 ) {
     val week = page - EdgePages + 1
-    // 有壁纸时底部统计文字也带胶囊底
-    val hasWallpaper = wallpaperVisible()
     val draggingSlot = editor.draggingSlot
     // 已经有一指在拖
     val dragInProgress = editor.drag?.released == false
     // 未开学/学期已结束
     val inSemester = week in 1..totalWeeks
-    val currentSection = if (week == currentWeek) currentSectionAt(sectionTimes, now.toLocalTime()) else -1
+    val now = if (week == currentWeek) nowState.value else null
+    val currentSection = now?.let { currentSectionAt(sectionTimes, it.toLocalTime()) } ?: -1
     // 7 天各自的放假/调休
     val dayPlans =
         remember(holidayPlan, week) {
@@ -128,7 +125,6 @@ internal fun ScheduleWeekPage(
         if (style.timeline) {
             TimelineWeekPage(
                 week = week,
-                currentWeek = currentWeek,
                 now = now,
                 dayPlans = dayPlans,
                 coursesByWeek = coursesByWeek,
@@ -221,24 +217,11 @@ internal fun ScheduleWeekPage(
         Spacer(modifier = Modifier.height(SectionSpacing))
         val countText = "本周共${weekCourseCount}节课".cjkDigitGap()
         val countAlpha = if (inSemester) 1f else 0f
-        if (hasWallpaper) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                SectionPill(
-                    text = countText,
-                    modifier = Modifier.alpha(countAlpha),
-                    style = MiuixTheme.textStyles.footnote1,
-                )
-            }
-        } else {
-            Text(
+        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            SectionPill(
                 text = countText,
+                modifier = Modifier.alpha(countAlpha),
                 style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                textAlign = TextAlign.Center,
-                modifier =
-                    Modifier
-                        .fillMaxWidth()
-                        .alpha(countAlpha),
             )
         }
         Spacer(modifier = Modifier.height(BackToNowOccupiedHeight + SectionSpacing))
@@ -249,8 +232,7 @@ internal fun ScheduleWeekPage(
 @Composable
 private fun TimelineWeekPage(
     week: Int,
-    currentWeek: Int?,
-    now: LocalDateTime,
+    now: LocalDateTime?,
     dayPlans: List<HolidayDay>,
     coursesByWeek: Map<Int, List<WeekCourse>>,
     sectionTimes: List<Pair<String, String>>,
@@ -258,10 +240,9 @@ private fun TimelineWeekPage(
     breaks: List<BreakMark>,
     onCourseClick: (Course, Int, String?) -> Unit,
 ) {
-    val isThisWeek = week == currentWeek
-    val todayColumn = now.dayOfWeek.value
+    val todayColumn = now?.dayOfWeek?.value ?: 0
     // 调休当日那列画的是别的星期的课，时间线不往上面压
-    val todayRemapped = dayPlans.getOrNull(todayColumn - 1)?.remapped == true
+    val todayRemapped = todayColumn > 0 && dayPlans.getOrNull(todayColumn - 1)?.remapped == true
     val days =
         remember(week, dayPlans, coursesByWeek) {
             (1..DAY_NAMES.size).map { day ->
@@ -283,8 +264,8 @@ private fun TimelineWeekPage(
         sectionTimes = sectionTimes,
         style = style,
         breaks = breaks,
-        nowMinute = if (isThisWeek) now.hour * 60 + now.minute else -1,
-        todayColumn = if (isThisWeek && !todayRemapped) todayColumn else 0,
+        nowMinute = now?.let { it.hour * 60 + it.minute } ?: -1,
+        todayColumn = if (todayRemapped) 0 else todayColumn,
         onCourseClick = { course, day -> onCourseClick(course, day.week, day.mark) },
     )
 }

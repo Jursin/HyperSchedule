@@ -58,10 +58,11 @@ import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.LocalPageReselect
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
 import com.hyperschedule.app.ui.state.CourseTableData
+import com.hyperschedule.app.ui.state.millisToNextTick
 import com.hyperschedule.app.ui.state.rememberHolidayPlan
+import com.hyperschedule.app.ui.state.rememberSystemTimeChanges
 import java.time.LocalDateTime
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -99,15 +100,17 @@ fun SchedulePage(
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
 
-    // 每分钟走一格
-    val now by
-        produceState(initialValue = LocalDateTime.now()) {
+    // 每分钟走一格，轮询落在整分上，时间被改或回到前台时立刻重算
+    val timeVersion = rememberSystemTimeChanges()
+    val nowState =
+        produceState(LocalDateTime.now(), timeVersion) {
             while (true) {
-                delay(1.minutes)
-                value = LocalDateTime.now()
+                val current = LocalDateTime.now()
+                value = current
+                delay(millisToNextTick(60, current.toLocalTime()).milliseconds)
             }
         }
-    val today = now.toLocalDate()
+    val today by remember(nowState) { derivedStateOf { nowState.value.toLocalDate() } }
 
     // 节次列与网格高度跟着作息走
     val sectionTimes = table?.sectionTimes ?: DEFAULT_SECTION_TIMES
@@ -306,7 +309,7 @@ fun SchedulePage(
                 pageScroll = pageScroll,
                 sectionTimes = sectionTimes,
                 timelineHourHeight = style.timelineHourHeight,
-                now = now,
+                nowState = nowState,
                 topPadding = paddingValues.calculateTopPadding(),
                 pageIsCurrent = pageIsCurrent,
                 reselectTick = LocalPageReselect.current,
@@ -374,7 +377,7 @@ fun SchedulePage(
                     startDate = startDate,
                     totalWeeks = totalWeeks,
                     currentWeek = nowWeek,
-                    now = now,
+                    nowState = nowState,
                     holidayPlan = holidayPlan,
                     allCourses = allCourses,
                     showNonCurrentWeek = showNonCurrentWeek,

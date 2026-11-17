@@ -26,6 +26,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -68,16 +69,16 @@ internal fun ScheduleTopBar(
             blurBackdrop = blurBackdrop,
             scrollBehavior = scrollBehavior,
             leading = {
-                TopBarIconButton(onClick = onManageTables) {
+                TopBarIconButton(onClick = onManageTables, tooltip = "课表切换") {
                     Icon(MiuixIcons.ConvertFile, contentDescription = "课表切换")
                 }
             },
             actions = {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TopBarIconButton(onClick = onManageCourses) {
+                    TopBarIconButton(onClick = onManageCourses, tooltip = "课程管理") {
                         Icon(MiuixIcons.Backup, contentDescription = "课程管理")
                     }
-                    TopBarIconButton(onClick = onAppearanceClick) {
+                    TopBarIconButton(onClick = onAppearanceClick, tooltip = "课程表外观") {
                         Icon(MiuixIcons.Background, contentDescription = "课程表外观")
                     }
                 }
@@ -112,18 +113,20 @@ internal fun ScheduleTopBar(
             )
             // 没设开学日期就没有可跳转的周，不显示按钮
             if (startDate != null) {
-                IconButton(
-                    onClick = { onJumpClick(pageWeek) },
-                    modifier = Modifier.padding(start = 4.dp),
-                    minWidth = 32.dp,
-                    minHeight = 32.dp,
-                ) {
-                    Icon(
-                        imageVector = MiuixIcons.Basic.ArrowUpDown,
-                        contentDescription = "跳转周数",
-                        modifier = Modifier.size(titleIconSize),
-                        tint = MiuixTheme.colorScheme.onSurface,
-                    )
+                TooltipBox(text = "跳转周数") {
+                    IconButton(
+                        onClick = { onJumpClick(pageWeek) },
+                        modifier = Modifier.padding(start = 4.dp),
+                        minWidth = 32.dp,
+                        minHeight = 32.dp,
+                    ) {
+                        Icon(
+                            imageVector = MiuixIcons.Basic.ArrowUpDown,
+                            contentDescription = "跳转周数",
+                            modifier = Modifier.size(titleIconSize),
+                            tint = MiuixTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
         }

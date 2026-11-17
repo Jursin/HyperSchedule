@@ -13,8 +13,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.hyperschedule.app.data.backup.BackupCleanupException
 import com.hyperschedule.app.data.backup.BackupDir
 import com.hyperschedule.app.data.backup.BackupDirs
@@ -53,9 +51,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.TabRowWithContour
 
-/** 页面在前台时检查目录变化的间隔 */
-private const val DIR_REFRESH_INTERVAL = 3_000L
-
 private const val TAB_LOCAL = 0
 private const val TAB_WEBDAV = 1
 private const val TAB_S3 = 2
@@ -73,7 +68,7 @@ fun BackupPage(
     val backup = state.backup
     val scope = rememberCoroutineScope()
 
-    var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedTab by remember { mutableIntStateOf(TAB_LOCAL) }
     val webDav = remember { WebDavDraft(store) }
     val s3 = remember { S3Draft(store) }
     var files by remember { mutableStateOf<List<BackupFile>?>(null) }
@@ -268,7 +263,8 @@ fun BackupPage(
         picker.launch(null)
     }
 
-    LaunchedEffect(backup.location) {
+    LaunchedEffect(backup.location, selectedTab) {
+        if (selectedTab != TAB_LOCAL) return@LaunchedEffect
         val target = BackupDirs.from(context, backup.location, backup.locationLabel)
         reload(target)
         if (resumeAfterPick && target != null) {
@@ -322,12 +318,18 @@ fun BackupPage(
         if (selectedTab == TAB_S3) s3Account.reload()
     }
 
-    // 应用外往目录里增删文件后，靠前台轮询刷新列表
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(dir?.location, lifecycleOwner) {
-        while (true) {
-            delay(DIR_REFRESH_INTERVAL.milliseconds)
-            if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) reload(currentDir())
+    // 应用外往目录里增删文件后，靠下拉刷新重读列表，不再定时轮询
+    var refreshing by remember { mutableStateOf(false) }
+    fun refreshCurrent() {
+        if (refreshing) return
+        refreshing = true
+        scope.launch {
+            when (selectedTab) {
+                TAB_LOCAL -> reload(currentDir())
+                TAB_WEBDAV -> dav.reload()
+                else -> s3Account.reload()
+            }
+            refreshing = false
         }
     }
 
@@ -405,6 +407,8 @@ fun BackupPage(
     PreferenceScreen(
         title = "备份与恢复",
         appBlur = appBlur,
+        refreshing = refreshing,
+        onRefresh = ::refreshCurrent,
         onBack = {
             webDav.save()
             webDav.reset()
@@ -419,7 +423,7 @@ fun BackupPage(
             onTabSelected = { selectedTab = it },
         )
         when (selectedTab) {
-            TAB_LOCAL -> {
+            TAB_LOCAL ->
                 LocalBackupTab(
                     backup = backup,
                     // 位置说明以当前解析结果为准，存下来的旧值只作兜底
@@ -447,8 +451,7 @@ fun BackupPage(
                     },
                     onOpenFile = ::openRestore,
                 )
-            }
-            TAB_WEBDAV -> {
+            TAB_WEBDAV ->
                 WebDavBackupTab(
                     settings = store.state.webDav,
                     draft = webDav,
@@ -458,10 +461,13 @@ fun BackupPage(
                     onToggleAuto = { enabled -> persistWebDav { it.copy(stamp = it.stamp.copy(autoBackup = enabled)) } },
                     onBackupNow = { dav.upload(context, busyState, scope) },
                     onKeepChange = { index -> dav.setKeep(BackupSettings.KEEP_OPTIONS[index]) },
-                    onOpenFile = { dav.openBackup(it, BackupSource.WebDav, context, repository, busyState, scope) { t -> restoreTarget = t } },
+                    onOpenFile = {
+                        dav.openBackup(it, BackupSource.WebDav, context, repository, busyState, scope) { t ->
+                            restoreTarget = t
+                        }
+                    },
                 )
-            }
-            else -> {
+            else ->
                 S3BackupTab(
                     settings = store.state.s3,
                     draft = s3,
@@ -475,9 +481,12 @@ fun BackupPage(
                     },
                     onBackupNow = { s3Account.upload(context, busyState, scope) },
                     onKeepChange = { index -> s3Account.setKeep(BackupSettings.KEEP_OPTIONS[index]) },
-                    onOpenFile = { s3Account.openBackup(it, BackupSource.S3, context, repository, busyState, scope) { t -> restoreTarget = t } },
+                    onOpenFile = {
+                        s3Account.openBackup(it, BackupSource.S3, context, repository, busyState, scope) { t ->
+                            restoreTarget = t
+                        }
+                    },
                 )
-            }
         }
     }
 

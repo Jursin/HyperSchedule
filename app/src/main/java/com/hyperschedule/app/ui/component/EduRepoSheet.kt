@@ -75,8 +75,6 @@ fun EduRepoSheet(
                     )
                 }
             }
-
-            SheetBottomSpacer()
         }
     }
 }

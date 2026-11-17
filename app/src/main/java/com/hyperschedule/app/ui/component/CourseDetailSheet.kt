@@ -37,6 +37,7 @@ import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -67,22 +68,24 @@ fun CourseDetailSheet(
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
         endAction = {
-            IconButton(
-                onClick = {
-                    items.firstOrNull()?.let { item ->
-                        val course = item.course
-                        val start = course.startSection ?: 1
-                        onDismiss()
-                        onAdd(course.day, start, (course.endSection ?: start).coerceAtLeast(start))
-                    }
-                },
-            ) {
-                Icon(
-                    imageVector = MiuixIcons.Add,
-                    contentDescription = "添加课程",
-                    modifier = Modifier.size(24.dp),
-                    tint = MiuixTheme.colorScheme.onSurface,
-                )
+            TooltipBox(text = "添加课程") {
+                IconButton(
+                    onClick = {
+                        items.firstOrNull()?.let { item ->
+                            val course = item.course
+                            val start = course.startSection ?: 1
+                            onDismiss()
+                            onAdd(course.day, start, (course.endSection ?: start).coerceAtLeast(start))
+                        }
+                    },
+                ) {
+                    Icon(
+                        imageVector = MiuixIcons.Add,
+                        contentDescription = "添加课程",
+                        modifier = Modifier.size(24.dp),
+                        tint = MiuixTheme.colorScheme.onSurface,
+                    )
+                }
             }
         },
     ) {
@@ -97,16 +100,13 @@ fun CourseDetailSheet(
             modifier =
                 Modifier
                     .fillMaxWidth()
-                    .heightIn(max = SheetMaxHeight)
-                    .bouncyScroll(),
+                    .heightIn(max = SheetMaxHeight),
             contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         ) {
             items(items, key = { it.course.id }) { item ->
                 CourseDetailCard(item, mark = mark, onEdit = { onEdit(item.course) })
             }
-            // 卡片下方留白，最后一张也能完整滚出来
-            item { SheetBottomSpacer() }
         }
     }
 }

@@ -33,12 +33,14 @@ import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.ui.effect.cardSurface
 import com.hyperschedule.app.ui.effect.wallpaperVisible
+import com.hyperschedule.app.ui.state.millisToNextTick
+import com.hyperschedule.app.ui.state.rememberSystemTimeChanges
 import com.hyperschedule.app.ui.state.rememberToday
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlin.math.ceil
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -71,15 +73,17 @@ fun TodayCourseList(
     onCourseClick: (Course) -> Unit = {},
 ) {
     val slotMap = remember(slots) { slots.associateBy { it.number } }
-    // 30 秒刷一次「现在」，日期用全局那套跨零点刷新，跟日期分页保持同一个今天
+    // 30 秒刷一次「现在」，对齐到半分钟，时间被改或回到前台时立刻重算
+    val timeVersion = rememberSystemTimeChanges()
     val now by
-        produceState(LocalTime.now()) {
+        produceState(LocalTime.now(), timeVersion) {
             while (true) {
-                delay(30.seconds)
-                value = LocalTime.now()
+                val current = LocalTime.now()
+                value = current
+                delay(millisToNextTick(30, current).milliseconds)
             }
         }
-    val today = rememberToday()
+    val today = rememberToday(timeVersion)
 
     val groups =
         remember(courses, slotMap) {

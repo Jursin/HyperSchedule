@@ -41,7 +41,6 @@ import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.ConfirmDialog
-import com.hyperschedule.app.ui.component.SheetBottomSpacer
 import com.hyperschedule.app.ui.component.SheetScaffold
 import com.hyperschedule.app.ui.component.SheetScrollColumn
 import top.yukonga.miuix.kmp.basic.Card
@@ -95,7 +94,6 @@ internal fun AdapterSheet(
 
     SheetScaffold(
         title = school.name,
-        titleIcon = ImageVector.vectorResource(R.drawable.ic_school),
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
@@ -114,7 +112,6 @@ internal fun AdapterSheet(
         } else {
             SheetScrollColumn(maxHeight = SheetMaxHeight) {
                 adapters.forEach { adapter -> AdapterCard(adapter) { onOpen(adapter) } }
-                SheetBottomSpacer()
             }
         }
     }

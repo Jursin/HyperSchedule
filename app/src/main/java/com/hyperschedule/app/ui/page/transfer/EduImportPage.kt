@@ -56,6 +56,7 @@ import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.TabRow
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.More
 import top.yukonga.miuix.kmp.icon.extended.Refresh
@@ -224,22 +225,24 @@ fun EduImportPage(
                 )
             },
             floatingActionButton = {
-                FloatingActionButton(onClick = { sync() }) {
-                    if (updating) {
-                        CircularProgressIndicator(
-                            size = 24.dp,
-                            colors =
-                                ProgressIndicatorDefaults.progressIndicatorColors(
-                                    foregroundColor = MiuixTheme.colorScheme.onPrimary,
-                                    backgroundColor = Color.Transparent,
-                                ),
-                        )
-                    } else {
-                        Icon(
-                            imageVector = MiuixIcons.Refresh,
-                            contentDescription = "更新学校列表",
-                            tint = MiuixTheme.colorScheme.onPrimary,
-                        )
+                TooltipBox(text = "更新学校列表") {
+                    FloatingActionButton(onClick = { sync() }) {
+                        if (updating) {
+                            CircularProgressIndicator(
+                                size = 24.dp,
+                                colors =
+                                    ProgressIndicatorDefaults.progressIndicatorColors(
+                                        foregroundColor = MiuixTheme.colorScheme.onPrimary,
+                                        backgroundColor = Color.Transparent,
+                                    ),
+                            )
+                        } else {
+                            Icon(
+                                imageVector = MiuixIcons.Refresh,
+                                contentDescription = "更新学校列表",
+                                tint = MiuixTheme.colorScheme.onPrimary,
+                            )
+                        }
                     }
                 }
             },

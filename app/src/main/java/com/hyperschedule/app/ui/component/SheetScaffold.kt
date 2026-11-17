@@ -2,7 +2,6 @@ package com.hyperschedule.app.ui.component
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -18,15 +17,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -45,15 +44,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.PanelCorner
 import com.hyperschedule.app.theme.SectionSpacing
-import com.hyperschedule.app.theme.SheetBottomInset
 import com.hyperschedule.app.theme.SheetLargeMaxWidth
 import com.hyperschedule.app.theme.ShortSheetMaxHeight
 import com.hyperschedule.app.theme.panelOutlineColor
@@ -63,8 +62,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.anim.DecelerateEasing
 import top.yukonga.miuix.kmp.anim.folmeSpring
-import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.overlay.OverlayBottomSheet
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 拉到这条分界线以下才收起，没到就弹回去 */
@@ -73,21 +72,20 @@ private val DismissDistance = 150.dp
 /** 甩得够快时不必非要拉过 [DismissDistance] */
 private val DismissVelocity = 800.dp
 
+/** 居中浮层距屏幕左右边的最小留白 */
 private val OutsideMargin = 12.dp
 
-private val HandleWidth = 60.dp
-private val HandleHeight = 3.dp
+private val HandleWidth = 45.dp
+private val HandleHeight = 4.dp
 private val HandleAreaHeight = 21.dp
 
-private val HeaderMinHeight = 46.dp
-private val HeaderHorizontalPadding = 20.dp
-private val TitleIconSize = 22.dp
+/** 标题行与面板边缘的水平留白 */
+private val HeaderHorizontalPadding = 16.dp
 
-private val HeaderToContentSpacing = 18.dp
-private val HeaderToContentSpacingNoSubtitle = 10.dp
+/** 抽屉内容的水平留白 */
 private val SheetContentInset = 16.dp
 
-/** 抽屉内可滚动的内容列，高度上限、下拉回弹、统一内边距 */
+/** 抽屉内可滚动的内容列，最大高度与统一内边距 */
 @Composable
 fun SheetScrollColumn(
     maxHeight: Dp = ShortSheetMaxHeight,
@@ -98,20 +96,11 @@ fun SheetScrollColumn(
             Modifier
                 .fillMaxWidth()
                 .heightIn(max = maxHeight)
-                .bouncyScroll()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = SheetContentInset),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         content = content,
     )
-}
-
-/** 抽屉底部留白 */
-@Composable
-fun SheetBottomSpacer() {
-    val height =
-        if (useLargeScreenWindow()) (SheetContentInset - SectionSpacing).coerceAtLeast(0.dp) else SheetBottomInset
-    Spacer(modifier = Modifier.height(height))
 }
 
 /** 底部抽屉外壳 */
@@ -121,11 +110,41 @@ fun SheetScaffold(
     show: Boolean,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
-    subtitle: String? = null,
-    titleIcon: ImageVector? = null,
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
-    content: @Composable ColumnScope.() -> Unit,
+    content: @Composable () -> Unit,
+) {
+    if (useLargeScreenWindow()) {
+        FloatingSheet(title, show, onDismiss, onDismissFinished, startAction, endAction, content)
+    } else {
+        // 面板贴到屏幕底边，内容自己让开手势条
+        val navBarInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+        OverlayBottomSheet(
+            show = show,
+            title = title,
+            startAction = startAction,
+            endAction = endAction,
+            backgroundColor = sheetPanelColor(),
+            cornerRadius = PanelCorner,
+            // 左右留白由各内容自己给
+            insideMargin = DpSize(0.dp, navBarInset + SheetContentInset),
+            onDismissRequest = onDismiss,
+            onDismissFinished = onDismissFinished,
+            content = content,
+        )
+    }
+}
+
+/** 平板上的居中浮层 */
+@Composable
+private fun FloatingSheet(
+    title: String,
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onDismissFinished: () -> Unit,
+    startAction: (@Composable () -> Unit)?,
+    endAction: (@Composable () -> Unit)?,
+    content: @Composable () -> Unit,
 ) {
     val progress = remember { Animatable(0f) }
     // 下拉位移，不参与进出场动画
@@ -155,41 +174,24 @@ fun SheetScaffold(
         }
 
     val panelColor = sheetPanelColor()
+    val shape = remember { RoundedCornerShape(PanelCorner) }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        // 居中浮层/贴底，按宽屏判定选位置
-        val largeScreen = useLargeScreenWindow()
         val screenHeightPx = constraints.maxHeight.toFloat()
-        val showSpec: AnimationSpec<Float> =
-            if (largeScreen) {
-                folmeSpring(damping = 0.9f, response = 0.3f)
-            } else {
-                spring(dampingRatio = 0.86f, stiffness = 520f)
-            }
-        val hideSpec: AnimationSpec<Float> =
-            if (largeScreen) {
-                tween(durationMillis = 260, easing = DecelerateEasing(1.5f))
-            } else {
-                spring(dampingRatio = 0.95f, stiffness = 620f)
-            }
-        LaunchedEffect(show, largeScreen) {
+        LaunchedEffect(show) {
             if (show) {
                 opened = true
                 dragY = 0f
-                progress.animateTo(targetValue = 1f, animationSpec = showSpec)
+                progress.animateTo(targetValue = 1f, animationSpec = folmeSpring(damping = 0.9f, response = 0.3f))
             } else {
-                progress.animateTo(targetValue = 0f, animationSpec = hideSpec)
+                progress.animateTo(
+                    targetValue = 0f,
+                    animationSpec = tween(durationMillis = 260, easing = DecelerateEasing(1.5f)),
+                )
             }
         }
 
-        val shape =
-            if (largeScreen) {
-                RoundedCornerShape(PanelCorner)
-            } else {
-                RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
-            }
-        // 遮罩跟着下拉一起变淡，强度取 windowDimming
-        val dimming = MiuixTheme.colorScheme.windowDimming
+        // 遮罩跟着下拉一起变淡
         Box(
             modifier =
                 Modifier
@@ -198,7 +200,7 @@ fun SheetScaffold(
                         val remain = 1f - (dragY / dismissDistance).coerceIn(0f, 1f)
                         alpha = progress.value * remain
                     }
-                    .background(dimming)
+                    .background(MiuixTheme.colorScheme.windowDimming)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -208,33 +210,22 @@ fun SheetScaffold(
         Column(
             modifier =
                 Modifier
-                    .align(if (largeScreen) Alignment.Center else Alignment.BottomCenter)
-                    .then(
-                        // 宽屏固定宽度居中，窄屏贴底铺满
-                        if (largeScreen) {
-                            Modifier
-                                .padding(horizontal = OutsideMargin)
-                                .widthIn(max = SheetLargeMaxWidth)
-                                .heightIn(max = maxHeight * 2f / 3f)
-                        } else {
-                            Modifier.fillMaxWidth()
-                        },
-                    )
+                    .align(Alignment.Center)
+                    // 先留白再限宽
+                    .padding(horizontal = OutsideMargin)
+                    .widthIn(max = SheetLargeMaxWidth)
+                    .heightIn(max = maxHeight * 2f / 3f)
                     .graphicsLayer {
-                        translationY = if (largeScreen) {
-                            // 居中层同样从屏幕底边滑入滑出
-                            (1f - progress.value) * (screenHeightPx + size.height) / 2f + dragY
-                        } else {
-                            (1f - progress.value) * size.height + dragY
-                        }
+                        // 居中浮层同样从屏幕底边滑入滑出
+                        translationY = (1f - progress.value) * (screenHeightPx + size.height) / 2f + dragY
                     }
                     .clip(shape)
                     .background(panelColor)
                     // 顶边一道极淡的高光，避免深色下和背景黏在一起
                     .border(width = 1.dp, color = panelOutlineColor(), shape = shape),
         ) {
-            // 只有顶部可拖，内容区列表要能自己滚
-            Box(
+            // 只有头部可拖，内容区的列表要能自己滚
+            Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
@@ -242,8 +233,7 @@ fun SheetScaffold(
                             state = dragState,
                             orientation = Orientation.Vertical,
                             onDragStopped = { velocity ->
-                                val passed =
-                                    dragY > dismissDistance && velocity > -dismissVelocity
+                                val passed = dragY > dismissDistance && velocity > -dismissVelocity
                                 if (passed || velocity > dismissVelocity) {
                                     onDismiss()
                                 } else {
@@ -263,81 +253,46 @@ fun SheetScaffold(
                             },
                         ),
             ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    // 拖动条，贴底抽屉和居中浮层都画，两种形态都有「往下拉收起」的手势
-                    Box(
-                        modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Box(
-                            modifier =
-                                Modifier
-                                    .size(width = HandleWidth, height = HandleHeight)
-                                    .clip(RoundedCornerShape(percent = 50))
-                                    .background(
-                                        MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f),
-                                    ),
-                        )
-                    }
+                Box(
+                    modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Box(
                         modifier =
                             Modifier
-                                .fillMaxWidth()
-                                .heightIn(min = HeaderMinHeight)
-                                .padding(horizontal = HeaderHorizontalPadding),
-                    ) {
-                        startAction?.let { action ->
-                            Box(modifier = Modifier.align(Alignment.CenterStart)) { action() }
-                        }
-                        Column(
-                            modifier = Modifier.align(Alignment.Center).padding(horizontal = 40.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.Center,
-                            ) {
-                                if (titleIcon != null) {
-                                    Icon(
-                                        imageVector = titleIcon,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(TitleIconSize),
-                                        tint = MiuixTheme.colorScheme.onSurface,
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                }
-                                Text(
-                                    text = title,
-                                    style = MiuixTheme.textStyles.title3,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MiuixTheme.colorScheme.onSurface,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            if (subtitle != null) {
-                                Text(
-                                    text = subtitle,
-                                    style = MiuixTheme.textStyles.body2,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                        }
-                        endAction?.let { action ->
-                            Box(modifier = Modifier.align(Alignment.CenterEnd)) { action() }
-                        }
+                                .size(width = HandleWidth, height = HandleHeight)
+                                .clip(RoundedCornerShape(percent = 50))
+                                .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f)),
+                    )
+                }
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(top = 6.dp, bottom = 12.dp, start = HeaderHorizontalPadding, end = HeaderHorizontalPadding),
+                ) {
+                    startAction?.let { action ->
+                        Box(modifier = Modifier.align(Alignment.CenterStart)) { action() }
+                    }
+                    Text(
+                        text = title,
+                        modifier = Modifier.align(Alignment.Center),
+                        fontSize = MiuixTheme.textStyles.title4.fontSize,
+                        fontWeight = FontWeight.Medium,
+                        textAlign = TextAlign.Center,
+                        color = MiuixTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    endAction?.let { action ->
+                        Box(modifier = Modifier.align(Alignment.CenterEnd)) { action() }
                     }
                 }
             }
-            Spacer(
-                modifier =
-                    Modifier.height(
-                        if (subtitle == null) HeaderToContentSpacingNoSubtitle else HeaderToContentSpacing,
-                    ),
-            )
-            content()
+            // 内容底部留白，最后一张卡片不贴圆角
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = SheetContentInset)) {
+                content()
+            }
         }
     }
 }

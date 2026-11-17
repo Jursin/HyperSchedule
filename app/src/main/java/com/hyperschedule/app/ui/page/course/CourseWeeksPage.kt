@@ -54,6 +54,7 @@ import com.hyperschedule.app.ui.component.startTimeOf
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.state.CourseTableData
 import com.hyperschedule.app.ui.state.rememberHolidayPlan
+import com.hyperschedule.app.ui.state.rememberSystemTimeChanges
 import java.time.LocalDate
 import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.basic.Card
@@ -143,7 +144,9 @@ fun CourseWeeksPage(
         positioned.value = true
     }
 
-    val now = remember { LocalDateTime.now() }
+    // 剩下的次数按现在到期末算，时间被改或回到前台时重算
+    val timeVersion = rememberSystemTimeChanges()
+    val now = remember(timeVersion) { LocalDateTime.now() }
     val totalCount = weekGroups.sumOf { it.second.size }
     val leftCount = weekGroups.sumOf { (_, rows) -> rows.count { row -> row.endAt(slotMap)?.isAfter(now) ?: true } }
 

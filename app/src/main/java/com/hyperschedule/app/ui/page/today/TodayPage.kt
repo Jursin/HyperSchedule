@@ -166,6 +166,7 @@ fun TodayPage(
                             appearanceVisible = true
                             appearanceMounted = true
                         },
+                        tooltip = "今日课表外观",
                     ) {
                         Icon(MiuixIcons.Background, contentDescription = "今日课表外观")
                     }
@@ -328,6 +329,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
             modifier = Modifier.padding(start = 6.dp),
             minWidth = 34.dp,
             minHeight = 34.dp,
+            tooltip = "跳转日期",
         ) {
             Icon(
                 imageVector = MiuixIcons.Basic.ArrowUpDown,

@@ -66,8 +66,6 @@ fun TodayAppearanceSheet(
                     title = "显示备注",
                 )
             }
-
-            SheetBottomSpacer()
         }
     }
 }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -300,7 +301,7 @@ internal fun ScrollToNowOnShow(
     pageScroll: ScrollState,
     sectionTimes: List<Pair<String, String>>,
     timelineHourHeight: Int,
-    now: LocalDateTime,
+    nowState: State<LocalDateTime>,
     topPadding: Dp,
     pageIsCurrent: Boolean,
     reselectTick: Int,
@@ -318,6 +319,7 @@ internal fun ScrollToNowOnShow(
         handledTick = reselectTick
         if (!pageIsCurrent || !(returning || tappedAgain)) return@LaunchedEffect
         val viewport = pageScroll.viewportSize
+        val now = nowState.value
         val minute = now.hour * 60 + now.minute
         if (viewport <= 0 || minute !in axis.startMinute until axis.endMinute) return@LaunchedEffect
         val contentY = with(density) { topPadding.toPx() + axis.topOf(minute).toPx() }

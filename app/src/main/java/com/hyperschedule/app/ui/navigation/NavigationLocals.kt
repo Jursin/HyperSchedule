@@ -1,5 +1,6 @@
 package com.hyperschedule.app.ui.navigation
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.compositionLocalOf
@@ -8,6 +9,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.Color
+import top.yukonga.miuix.kmp.basic.Scaffold
 
 /** 跨页浮层宿主，抽屉这类内容挂在底栏之后绘制 */
 class OverlayHostState {
@@ -39,6 +42,16 @@ fun ProvideOverlay(content: (@Composable () -> Unit)?) {
         if (content != null) host.show(owner) { latest.value?.invoke() } else host.hide(owner)
         onDispose { host.hide(owner) }
     }
+}
+
+/** 底部抽屉的外壳靠根 Scaffold 的浮层宿主渲染，这里只提供宿主，配色与内边距留给下层 */
+@Composable
+fun RootOverlayHost(content: @Composable () -> Unit) {
+    Scaffold(
+        containerColor = Color.Transparent,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        content = { content() },
+    )
 }
 
 /** 底部导航切换动画中，页面据此临时关掉日期/周 pager 的手势 */

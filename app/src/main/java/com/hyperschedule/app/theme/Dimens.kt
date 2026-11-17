@@ -60,8 +60,6 @@ fun useLargeScreenWindow(): Boolean {
     return useWindowedPages(size.width, size.height)
 }
 
-val SheetBottomInset = 70.dp
-
 /** 选择格的高度、圆角、间距与字号，星期与周次网格共用 */
 val SelectCellHeight = 36.dp
 val SelectCellCorner = 10.dp

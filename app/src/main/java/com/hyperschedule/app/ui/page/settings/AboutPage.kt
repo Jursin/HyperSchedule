@@ -33,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.BlendMode as ComposeBlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -60,7 +59,6 @@ import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.LocalPageHorizontalMargin
 import com.hyperschedule.app.ui.component.LocalPageTopPadding
-import com.hyperschedule.app.ui.component.SectionTitle
 import com.hyperschedule.app.ui.component.bouncyScroll
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.effect.BgEffectBackground
@@ -73,12 +71,16 @@ import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
-import top.yukonga.miuix.kmp.blur.BlurColors
+import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import androidx.compose.ui.graphics.BlendMode as ComposeBlendMode
 
 private const val RepositoryUrl = "https://github.com/Jursin/HyperSchedule"
+
+/** 卡片玻璃的模糊半径（dp） */
+private const val CardBlurRadius = 60f
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
@@ -175,8 +177,7 @@ private fun AboutContentBody(
 
     // 图标/名称渐变取色层，不跟随模糊开关，只要支持 RuntimeShader 就始终启用
     val gradientBackdrop = rememberAppBlurBackdrop(true)
-    // 卡片半透明采样层，跟随模糊效果开关
-    val cardBackdrop = rememberAppBlurBackdrop(useBlur)
+    val cardBackdrop = if (useBlur) gradientBackdrop else null
     val logoBlend =
         remember(isDark) {
             if (isDark) {
@@ -206,6 +207,9 @@ private fun AboutContentBody(
                 )
             }
         }
+
+    val logoColors = BlurDefaults.blurColors(blendColors = logoBlend)
+    val cardColors = BlurDefaults.blurColors(blendColors = cardBlend)
 
     var logoHeightDp by remember { mutableStateOf(300.dp) }
     val displayCutoutInsets = WindowInsets.displayCutout.asPaddingValues()
@@ -239,10 +243,7 @@ private fun AboutContentBody(
     BgEffectBackground(
         isDark = isDark,
         modifier = Modifier.fillMaxSize(),
-        bgModifier =
-            Modifier
-                .then(gradientBackdrop?.let { Modifier.layerBackdrop(it) } ?: Modifier)
-                .then(cardBackdrop?.let { Modifier.layerBackdrop(it) } ?: Modifier),
+        bgModifier = gradientBackdrop?.let { Modifier.layerBackdrop(it) } ?: Modifier,
         alpha = { 1f - scrollProgressProvider() },
     ) {
         // 吸顶渐隐头部
@@ -283,8 +284,8 @@ private fun AboutContentBody(
                                 .textureBlur(
                                     backdrop = gradientBackdrop,
                                     shape = RoundedCornerShape(20.dp),
-                                    blurRadius = 200f,
-                                    colors = BlurColors(blendColors = logoBlend),
+                                    blurRadius = BlurDefaults.MaxBlurRadius,
+                                    colors = logoColors,
                                     contentBlendMode = ComposeBlendMode.DstIn,
                                 ),
                     )
@@ -313,8 +314,8 @@ private fun AboutContentBody(
                                 Modifier.textureBlur(
                                     backdrop = gradientBackdrop,
                                     shape = RoundedCornerShape(16.dp),
-                                    blurRadius = 150f,
-                                    colors = BlurColors(blendColors = logoBlend),
+                                    blurRadius = BlurDefaults.MaxBlurRadius,
+                                    colors = logoColors,
                                     contentBlendMode = ComposeBlendMode.DstIn,
                                 )
                             } else {
@@ -379,8 +380,6 @@ private fun AboutContentBody(
                             .fillParentMaxHeight()
                             .padding(bottom = listContentPadding.calculateBottomPadding()),
                 ) {
-                    SectionTitle("关于")
-
                     Card(
                         modifier =
                             Modifier.then(
@@ -388,8 +387,8 @@ private fun AboutContentBody(
                                         Modifier.textureBlur(
                                             backdrop = cardBackdrop,
                                             shape = RoundedCornerShape(CardCornerRadius),
-                                            blurRadius = 60f,
-                                            colors = BlurColors(blendColors = cardBlend),
+                                            blurRadius = CardBlurRadius,
+                                            colors = cardColors,
                                         )
                                     } else {
                                         Modifier
@@ -403,9 +402,28 @@ private fun AboutContentBody(
                             ),
                     ) {
                         ArrowPreference(
-                            title = "GitHub 仓库",
-                            summary = RepositoryUrl,
+                            title = "查看源代码",
+                            endActions = {
+                                Text(
+                                    text = "GitHub",
+                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                )
+                            },
                             onClick = { uriHandler.openUri(RepositoryUrl) },
+                        )
+                        ArrowPreference(
+                            title = "许可证",
+                            endActions = {
+                                Text(
+                                    text = "Apache-2.0",
+                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                )
+                            },
+                            onClick = {
+                                uriHandler.openUri("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                            },
                         )
                         ArrowPreference(
                             title = "开放源代码许可",

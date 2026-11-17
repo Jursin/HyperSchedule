@@ -74,7 +74,9 @@ fun appBarBandBackdrop(content: Backdrop?): Backdrop? {
 private class CombinedBackdrop(
     private vararg val layers: Backdrop,
 ) : Backdrop {
-    override val isCoordinatesDependent: Boolean = true
+    override val isCoordinatesDependent: Boolean = layers.any { it.isCoordinatesDependent }
+    override val offsetResidualX: Float get() = layers.firstOrNull()?.offsetResidualX ?: 0f
+    override val offsetResidualY: Float get() = layers.firstOrNull()?.offsetResidualY ?: 0f
 
     override fun DrawScope.drawBackdrop(
         density: Density,

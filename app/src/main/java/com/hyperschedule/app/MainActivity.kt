@@ -23,6 +23,7 @@ import com.hyperschedule.app.reminder.ReminderScheduler
 import com.hyperschedule.app.reminder.ShizukuAccess
 import com.hyperschedule.app.theme.AppTheme
 import com.hyperschedule.app.ui.navigation.MainScaffold
+import com.hyperschedule.app.ui.navigation.RootOverlayHost
 import com.hyperschedule.app.ui.page.settings.UpdateDialogs
 import com.hyperschedule.app.update.AppForeground
 import java.time.LocalDate
@@ -87,18 +88,20 @@ class MainActivity : ComponentActivity() {
                     BackupAuto.runIfNeeded(applicationContext, store, graph.backup)
                 }
                 AppTheme(settings = settings) {
-                    MainScaffold(
-                        appBlur = settings.blur,
-                        predictiveBackEnabled = settings.predictiveBack,
-                        initialPage = settings.launchPage,
-                        wallpaper = settings.wallpaper,
-                        wallpaperBlur = settings.wallpaperBlur,
-                        // 裁剪页存好图后把设置指向新文件，这时才能删旧图
-                        onWallpaperSaved = { path ->
-                            store.update { it.copy(wallpaper = path) }
-                            WallpaperStore.prune(applicationContext, path)
-                        },
-                    )
+                    RootOverlayHost {
+                        MainScaffold(
+                            appBlur = settings.blur,
+                            predictiveBackEnabled = settings.predictiveBack,
+                            initialPage = settings.launchPage,
+                            wallpaper = settings.wallpaper,
+                            wallpaperBlur = settings.wallpaperBlur,
+                            // 裁剪页存好图后把设置指向新文件，这时才能删旧图
+                            onWallpaperSaved = { path ->
+                                store.update { it.copy(wallpaper = path) }
+                                WallpaperStore.prune(applicationContext, path)
+                            },
+                        )
+                    }
                     UpdateDialogs(updateController, settings.blur)
                 }
             }

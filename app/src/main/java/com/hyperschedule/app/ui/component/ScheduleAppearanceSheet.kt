@@ -154,8 +154,6 @@ fun ScheduleAppearanceSheet(
                     title = "地点前显示 @ 符号",
                 )
             }
-
-            SheetBottomSpacer()
         }
     }
 }

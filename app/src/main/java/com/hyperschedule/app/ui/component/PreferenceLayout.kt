@@ -21,15 +21,22 @@ import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.PullToRefresh
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.SmallTitle
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** 下拉刷新的四个状态文案 */
+private val PullRefreshTexts = listOf("下拉刷新", "松手刷新", "正在刷新", "刷新完成")
 
 @Composable
 fun PreferenceScreen(
     title: String,
     appBlur: Boolean,
     onBack: (() -> Unit)? = null,
+    // 传了 onRefresh 才装下拉刷新，其余页面保持原样
+    refreshing: Boolean = false,
+    onRefresh: (() -> Unit)? = null,
     floatingActionButton: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable ColumnScope.() -> Unit,
@@ -57,12 +64,28 @@ fun PreferenceScreen(
             }
         },
     ) { paddingValues ->
-        PageScrollColumn(
-            blurBackdrop = blurBackdrop,
-            scrollBehavior = scrollBehavior,
-            topInset = paddingValues.calculateTopPadding(),
-            content = content,
-        )
+        val page: @Composable () -> Unit = {
+            PageScrollColumn(
+                blurBackdrop = blurBackdrop,
+                scrollBehavior = scrollBehavior,
+                topInset = paddingValues.calculateTopPadding(),
+                content = content,
+            )
+        }
+        if (onRefresh == null) {
+            page()
+        } else {
+            PullToRefresh(
+                isRefreshing = refreshing,
+                onRefresh = onRefresh,
+                // 只作用于指示器：让它从栏底下探出；内容自己的顶栏留白在 PageScrollColumn 里
+                contentPadding = PaddingValues(top = paddingValues.calculateTopPadding()),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                refreshTexts = PullRefreshTexts,
+            ) {
+                page()
+            }
+        }
     }
 }
 

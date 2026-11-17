@@ -70,6 +70,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.IconButtonDefaults
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
 import top.yukonga.miuix.kmp.blur.Backdrop
@@ -268,20 +269,43 @@ fun TopBarIconButton(
     enabled: Boolean = true,
     minWidth: Dp = IconButtonDefaults.MinWidth,
     minHeight: Dp = IconButtonDefaults.MinHeight,
+    tooltip: String? = null,
     content: @Composable () -> Unit,
 ) {
-    val banded = LocalTopBarBanded.current
-    if (!banded) {
-        IconButton(
-            onClick = onClick,
-            modifier = modifier,
-            enabled = enabled,
-            minWidth = minWidth,
-            minHeight = minHeight,
-            content = content,
-        )
-        return
+    val button: @Composable () -> Unit = {
+        if (!LocalTopBarBanded.current) {
+            IconButton(
+                onClick = onClick,
+                modifier = modifier,
+                enabled = enabled,
+                minWidth = minWidth,
+                minHeight = minHeight,
+                content = content,
+            )
+        } else {
+            BandedIconButton(
+                onClick = onClick,
+                enabled = enabled,
+                minWidth = minWidth,
+                minHeight = minHeight,
+                modifier = modifier,
+                content = content,
+            )
+        }
     }
+    if (tooltip == null) button() else TooltipBox(text = tooltip) { button() }
+}
+
+/** 叠着糊带时的按钮：垫一层随滚动浮起的容器色 */
+@Composable
+private fun BandedIconButton(
+    onClick: () -> Unit,
+    enabled: Boolean,
+    minWidth: Dp,
+    minHeight: Dp,
+    modifier: Modifier,
+    content: @Composable () -> Unit,
+) {
     val materialAlpha = LocalTopBarMaterialAlpha.current
     val dark = MiuixTheme.colorScheme.surface.luminance() < 0.5f
     // 有壁纸时用半透明容器色，透出糊带里已模糊的内容，实心圆会在壁纸上糊出一块灰
