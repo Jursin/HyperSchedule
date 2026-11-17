@@ -24,6 +24,7 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
   - 支持 JSON 文件、ICS 日历文件
   - 支持 WakeUp 课程表、星链课表、Nexio 课程表分享口令/分享码导入
   - 支持教务系统网页导入，学校适配脚本获取自 [shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)
+  - 支持推送课表到手环，需配合 [HyperSchedule-for-Band](https://github.com/Jursin/HyperSchedule-for-Band) 使用
 - **课程提醒：**
   - 支持课前提醒、课中提醒，显示上课、下课倒计时
   - 上课自动开启静音/勿扰，下课自动恢复
@@ -40,11 +41,11 @@ HyperSchedule 是一款 Android 课程表应用，界面使用 [Miuix](https://g
   - 自定义颜色
     - 基于系统壁纸的动态取色（Android 12+）
     - 自定义调色板
-  - 设置背景壁纸
+  - 支持设置背景壁纸及模糊强度
 - **更新设置：**
   - 从 GitHub 检查最新版本
-  - 可启用启动时检查更新
-  - 可设置 GitHub 加速地址
+  - 支持启动时检查更新
+  - 可设置 GitHub 镜像源
   - 后台下载时通知栏显示进度
 - [ ] 安卓小部件
 - [ ] 多语言
