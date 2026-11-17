@@ -226,12 +226,13 @@ private fun RemoteBackupTab(
     RestoreHint()
 }
 
-/** 实时校验，非法时描边变红、下方给提示 */
+/** 失焦后才校验，非法时描边变红、下方给提示 */
 @Composable
 private fun RemoteFieldRow(field: RemoteField) {
     val interaction = remember { MutableInteractionSource() }
     val focused by interaction.collectIsFocusedAsState()
     var revealed by remember { mutableStateOf(false) }
+    val error = if (focused) null else field.error
     // 清空后离开输入框时补回默认值，不留空路径
     LaunchedEffect(focused) {
         val fallback = field.blankFallback
@@ -272,13 +273,12 @@ private fun RemoteFieldRow(field: RemoteField) {
                 if (field.secret) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
             colors =
                 TextFieldDefaults.textFieldColors(
-                    borderColor =
-                        if (field.error != null) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
+                    borderColor = if (error != null) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
                 ),
         )
-        if (field.error != null) {
+        if (error != null) {
             Text(
-                text = field.error,
+                text = error,
                 modifier = Modifier.padding(start = 12.dp, top = 4.dp),
                 color = MiuixTheme.colorScheme.error,
                 style = MiuixTheme.textStyles.body2,

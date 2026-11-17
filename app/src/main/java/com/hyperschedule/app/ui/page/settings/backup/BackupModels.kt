@@ -192,8 +192,7 @@ internal class RemoteAccount(
 /** 地址输入的问题，没填或合法时返回 null */
 internal fun serverUrlError(url: String): String? {
     if (url.isBlank()) return null
-    val uri = runCatching { URI(url.trim()) }.getOrNull()
-    val scheme = uri?.scheme?.lowercase()
-    val ok = (scheme == "http" || scheme == "https") && !uri.host.isNullOrBlank()
-    return if (ok) null else "需要以 http:// 或 https:// 开头"
+    val uri = runCatching { URI(url.trim()) }.getOrNull() ?: return "地址格式不正确"
+    if (uri.scheme?.lowercase() !in setOf("http", "https")) return "需要以 http:// 或 https:// 开头"
+    return if (uri.host?.contains('.') == true) null else "请输入完整的域名或 IP 地址"
 }

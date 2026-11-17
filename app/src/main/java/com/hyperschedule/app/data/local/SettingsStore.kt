@@ -71,6 +71,22 @@ private inline fun <reified T : Enum<T>> enumSetting(
     },
 )
 
+private const val UPDATE_MIRRORS_KEY = "updateMirrors"
+
+/** 自定义镜像域名按行拼接成一个键存，域名里不会出现换行 */
+private fun updateMirrorsSetting(
+    get: (SettingsState) -> List<String>,
+    set: (SettingsState, List<String>) -> SettingsState,
+) = Setting(
+    key = UPDATE_MIRRORS_KEY,
+    write = { editor, state -> editor.putString(UPDATE_MIRRORS_KEY, get(state).joinToString("\n")) },
+    read = { prefs, state ->
+        prefs.getString(UPDATE_MIRRORS_KEY, null)?.let { saved ->
+            set(state, saved.split('\n').filter { it.isNotBlank() })
+        } ?: state
+    },
+)
+
 /** 壁纸模糊强度上限（dp），0 表示不模糊 */
 const val MAX_WALLPAPER_BLUR = 40
 
@@ -133,7 +149,8 @@ private val Prefs =
         stringSetting("lastUpdateCheck", { it.lastUpdateCheck }, backedUp = false) { s, v ->
             s.copy(lastUpdateCheck = v.orEmpty())
         },
-        stringSetting("githubProxyUrl", { it.githubProxyUrl }) { s, v -> s.copy(githubProxyUrl = v.orEmpty()) },
+        stringSetting("updateSource", { it.updateSource }) { s, v -> s.copy(updateSource = v.orEmpty()) },
+        updateMirrorsSetting({ it.updateMirrors }) { s, v -> s.copy(updateMirrors = v) },
         enumSetting("paletteStyle", { it.paletteStyle }) { s, v -> s.copy(paletteStyle = v) },
         boolSetting("showNonCurrentWeek", { it.showNonCurrentWeek }) { s, v -> s.copy(showNonCurrentWeek = v) },
         stringSetting("currentTableId", { it.currentTableId }) { s, v -> s.copy(currentTableId = v) },
@@ -285,6 +302,19 @@ class SettingsStore private constructor(context: Context) {
                 secrets.edit { putString("webdavPassword", old) }
             }
             preferences.edit { remove("webdavPassword") }
+        }
+        // 旧版只有一个加速地址，搬进更新源并记成自定义镜像
+        preferences.getString("githubProxyUrl", null)?.let { legacy ->
+            val host = legacy.trim().removePrefix("https://").removePrefix("http://").substringBefore('/')
+            if (host.isNotEmpty() && preferences.getString("updateSource", null).isNullOrEmpty()) {
+                val mirrors =
+                    preferences.getString(UPDATE_MIRRORS_KEY, null)?.split('\n').orEmpty().filter { it.isNotBlank() }
+                preferences.edit {
+                    putString("updateSource", "https://$host")
+                    putString(UPDATE_MIRRORS_KEY, (mirrors + host).distinct().joinToString("\n"))
+                }
+            }
+            preferences.edit { remove("githubProxyUrl") }
         }
     }
 

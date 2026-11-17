@@ -25,13 +25,14 @@ fun WideActionButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     contentColor: Color = MiuixTheme.colorScheme.onBackground,
+    containerColor: Color = MiuixTheme.colorScheme.surfaceContainerHighest,
 ) {
     Button(
         onClick = onClick,
         modifier = modifier.fillMaxWidth().height(50.dp),
         colors =
             ButtonDefaults.buttonColors(
-                color = MiuixTheme.colorScheme.surfaceContainerHighest,
+                color = containerColor,
                 contentColor = contentColor,
             ),
     ) {

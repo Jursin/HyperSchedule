@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
                     store.update { it.copy(lastUpdateCheck = today) }
                     updateController.checkForUpdate(
                         settings.acceptPrerelease,
-                        settings.githubProxyUrl,
+                        settings.updateSource,
                         silent = true,
                     )
                 }

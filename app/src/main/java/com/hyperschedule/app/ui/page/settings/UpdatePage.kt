@@ -1,17 +1,23 @@
 package com.hyperschedule.app.ui.page.settings
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.style.TextAlign
@@ -20,19 +26,36 @@ import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.getAppVersion
 import com.hyperschedule.app.getAppVersionCode
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.theme.dangerColor
+import com.hyperschedule.app.theme.successColor
+import com.hyperschedule.app.theme.warningColor
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.MarkdownText
+import com.hyperschedule.app.ui.component.PreferenceItemSection
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
+import com.hyperschedule.app.ui.component.SelectableEditRow
+import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import com.hyperschedule.app.update.ChangelogEntry
+import com.hyperschedule.app.update.SourceSpeed
 import com.hyperschedule.app.update.UpdateController
 import com.hyperschedule.app.update.UpdateDialogState
+import com.hyperschedule.app.update.UpdateSource
+import com.hyperschedule.app.update.UpdateSpeed
+import com.hyperschedule.app.update.mirrorHost
+import com.hyperschedule.app.update.sourcesOf
 import java.time.LocalDate
+import java.util.Locale
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TextFieldDefaults
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.extended.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -44,8 +67,23 @@ fun UpdatePage(
 ) {
     val state = store.state
     val context = LocalContext.current
-    var showProxyDialog by remember { mutableStateOf(false) }
-    var proxyInput by remember { mutableStateOf(state.githubProxyUrl) }
+    val sources = remember(state.updateMirrors) { sourcesOf(state.updateMirrors) }
+    // 没有匹配项时退回直连
+    val current = sources.firstOrNull { isSelected(it, state.updateSource) } ?: sources.first()
+    // 正在编辑的镜像，null 表示新增
+    var editing by remember { mutableStateOf<UpdateSource?>(null) }
+    var showMirrorDialog by remember { mutableStateOf(false) }
+    var mirrorInput by remember { mutableStateOf("") }
+    var pendingDelete by remember { mutableStateOf<UpdateSource?>(null) }
+    fun openEditor(source: UpdateSource) {
+        editing = source
+        mirrorInput = source.host
+        showMirrorDialog = true
+    }
+
+    // 离开页面清掉测速结果
+    DisposableEffect(Unit) { onDispose { UpdateSpeed.clear() } }
+
     PreferenceScreen(title = "更新", appBlur = state.blur, onBack = onBack) {
         PreferenceSection {
             ArrowPreference(
@@ -54,7 +92,7 @@ fun UpdatePage(
                 onClick = {
                     // 手动检查也记一次日期，避免重启后再静默查一遍
                     store.update { it.copy(lastUpdateCheck = LocalDate.now().toString()) }
-                    controller.checkForUpdate(state.acceptPrerelease, state.githubProxyUrl)
+                    controller.checkForUpdate(state.acceptPrerelease, state.updateSource)
                 },
             )
             ArrowPreference(
@@ -72,36 +110,156 @@ fun UpdatePage(
                 title = "自动检查更新",
                 summary = "打开应用时自动检查新版本",
             )
-            ArrowPreference(
-                title = "加速地址",
-                summary = state.githubProxyUrl.ifBlank { "设置 GitHub 加速地址" },
-                onClick = {
-                    proxyInput = state.githubProxyUrl
-                    showProxyDialog = true
-                },
-            )
+        }
+
+        PreferenceItemSection("更新源") {
+            sources.forEach { source ->
+                val speed = UpdateSpeed.speedOf(source)
+                val custom = !source.builtIn
+                SelectableEditRow(
+                    title = source.title,
+                    summary = speedText(speed),
+                    summaryColor = speedColor(speed),
+                    selected = source.host == current.host,
+                    onSelect = { store.update { it.copy(updateSource = source.prefix) } },
+                    onEdit = if (custom) ({ openEditor(source) }) else null,
+                    onDelete = if (custom) ({ pendingDelete = source }) else null,
+                )
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(SectionSpacing),
+            ) {
+                WideActionButton(
+                    text = "添加镜像源",
+                    icon = MiuixIcons.Add,
+                    onClick = {
+                        editing = null
+                        mirrorInput = ""
+                        showMirrorDialog = true
+                    },
+                    modifier = Modifier.weight(1f),
+                )
+                WideActionButton(
+                    text = if (UpdateSpeed.testing) "测速中" else "立即测速",
+                    icon = MiuixIcons.Refresh,
+                    onClick = { UpdateSpeed.testAll(sources) },
+                    modifier = Modifier.weight(1f),
+                    containerColor = MiuixTheme.colorScheme.primary,
+                    contentColor = MiuixTheme.colorScheme.onPrimary,
+                )
+            }
         }
     }
-    if (showProxyDialog) {
+
+    if (showMirrorDialog) {
+        // 点确认才校验，不合法时提示并禁用确定，改了输入再恢复
+        var problem by remember { mutableStateOf<String?>(null) }
         ConfirmDialog(
-            title = "设置 GitHub 加速地址",
+            title = if (editing == null) "添加镜像源" else "编辑镜像源",
             appBlur = state.blur,
-            onDismiss = { showProxyDialog = false },
+            confirmEnabled = problem == null,
+            onDismiss = { showMirrorDialog = false },
             onConfirm = {
-                store.update { it.copy(githubProxyUrl = proxyInput.trim()) }
-                showProxyDialog = false
+                val host = mirrorHost(mirrorInput)
+                val duplicated = host != null && sources.any { it.host == host && it.host != editing?.host }
+                if (host == null) {
+                    problem = "地址不合法"
+                } else if (duplicated) {
+                    problem = "该镜像源已在列表中"
+                } else {
+                    val previous = editing
+                    store.update { s ->
+                        val mirrors = s.updateMirrors.map { if (it == previous?.host) host else it }
+                        val keeping = previous != null && isSelected(previous, s.updateSource)
+                        s.copy(
+                            updateMirrors = if (host in mirrors) mirrors else mirrors + host,
+                            updateSource = if (keeping) "https://$host" else s.updateSource,
+                        )
+                    }
+                    showMirrorDialog = false
+                }
             },
         ) {
-            TextField(
-                value = proxyInput,
-                onValueChange = { proxyInput = it },
-                label = "URL",
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+            Column(modifier = Modifier.fillMaxWidth()) {
+                TextField(
+                    value = mirrorInput,
+                    onValueChange = {
+                        mirrorInput = it
+                        problem = null
+                    },
+                    label = "地址",
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors =
+                        TextFieldDefaults.textFieldColors(
+                            borderColor = if (problem != null) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
+                        ),
+                )
+                problem?.let {
+                    Text(
+                        text = it,
+                        modifier = Modifier.padding(start = 12.dp, top = 4.dp),
+                        style = MiuixTheme.textStyles.body2,
+                        color = MiuixTheme.colorScheme.error,
+                    )
+                }
+            }
         }
     }
+
+    pendingDelete?.let { target ->
+        ConfirmDialog(
+            title = "删除镜像源",
+            message = "「${target.host}」删除后无法恢复，确定删除？",
+            appBlur = state.blur,
+            destructive = true,
+            confirmText = "删除",
+            onDismiss = { pendingDelete = null },
+            onConfirm = {
+                pendingDelete = null
+                store.update { s ->
+                    s.copy(
+                        updateMirrors = s.updateMirrors - target.host,
+                        updateSource = if (isSelected(target, s.updateSource)) "" else s.updateSource,
+                    )
+                }
+            },
+        )
+    }
 }
+
+/** 当前选中的源，忽略尾部斜杠 */
+private fun isSelected(source: UpdateSource, current: String): Boolean =
+    source.prefix.trimEnd('/') == current.trim().trimEnd('/')
+
+private fun speedText(speed: SourceSpeed): String =
+    when (speed) {
+        SourceSpeed.Untested -> "未测速"
+        SourceSpeed.Testing -> "测速中"
+        is SourceSpeed.Reachable -> formatSpeed(speed.bytesPerSecond)
+        SourceSpeed.Timeout -> "timeout"
+    }
+
+private fun formatSpeed(bytesPerSecond: Long): String {
+    val kiloBytes = bytesPerSecond / 1024.0
+    return if (kiloBytes >= 1024) {
+        "${"%.1f".format(Locale.US, kiloBytes / 1024)} MB/s"
+    } else {
+        "${"%.0f".format(Locale.US, kiloBytes)} KB/s"
+    }
+}
+
+/** 1 MB/s 以上绿色，0.2 MB/s 以上黄色，再慢或超时红色 */
+@Composable
+private fun speedColor(speed: SourceSpeed): Color? =
+    when (speed) {
+        is SourceSpeed.Reachable if speed.bytesPerSecond >= 1024 * 1024 -> successColor()
+        is SourceSpeed.Reachable if speed.bytesPerSecond >= 200 * 1024 -> warningColor()
+        is SourceSpeed.Reachable -> dangerColor()
+        SourceSpeed.Timeout -> dangerColor()
+        else -> null
+    }
 
 /** 更新流程的弹窗，挂在根组合上以便任意页面都能看到 */
 @Composable

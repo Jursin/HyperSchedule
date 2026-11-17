@@ -4,11 +4,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.CardItemPadding
 import top.yukonga.miuix.kmp.basic.BasicComponent
+import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -23,12 +25,15 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 fun SelectableEditRow(
     title: String,
     summary: String? = null,
+    summaryColor: Color? = null,
     selected: Boolean,
     onSelect: () -> Unit,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
     radioAtEnd: Boolean = false,
 ) {
+    val summaryColors =
+        BasicComponentDefaults.summaryColor(color = summaryColor ?: MiuixTheme.colorScheme.onSurfaceVariantSummary)
     Card(
         modifier = Modifier.fillMaxWidth(),
         cornerRadius = CardCornerRadius,
@@ -36,6 +41,7 @@ fun SelectableEditRow(
         BasicComponent(
             title = title,
             summary = summary,
+            summaryColor = summaryColors,
             insideMargin = CardItemPadding,
             startAction =
                 if (radioAtEnd) {
