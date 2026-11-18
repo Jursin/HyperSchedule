@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -72,13 +73,6 @@ private val DismissDistance = 150.dp
 /** 甩得够快时不必非要拉过 [DismissDistance] */
 private val DismissVelocity = 800.dp
 
-/** 居中浮层距屏幕左右边的最小留白 */
-private val OutsideMargin = 12.dp
-
-private val HandleWidth = 45.dp
-private val HandleHeight = 4.dp
-private val HandleAreaHeight = 21.dp
-
 /** 标题行与面板边缘的水平留白 */
 private val HeaderHorizontalPadding = 16.dp
 
@@ -95,6 +89,7 @@ fun SheetScrollColumn(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .clearFocusOnPress(LocalFocusManager.current)
                 .heightIn(max = maxHeight)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = SheetContentInset),
@@ -212,7 +207,7 @@ private fun FloatingSheet(
                 Modifier
                     .align(Alignment.Center)
                     // 先留白再限宽
-                    .padding(horizontal = OutsideMargin)
+                    .padding(horizontal = 12.dp)
                     .widthIn(max = SheetLargeMaxWidth)
                     .heightIn(max = maxHeight * 2f / 3f)
                     .graphicsLayer {
@@ -254,13 +249,13 @@ private fun FloatingSheet(
                         ),
             ) {
                 Box(
-                    modifier = Modifier.fillMaxWidth().height(HandleAreaHeight),
+                    modifier = Modifier.fillMaxWidth().height(21.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Box(
                         modifier =
                             Modifier
-                                .size(width = HandleWidth, height = HandleHeight)
+                                .size(width = 45.dp, height = 4.dp)
                                 .clip(RoundedCornerShape(percent = 50))
                                 .background(MiuixTheme.colorScheme.onSurfaceVariantActions.copy(alpha = 0.3f)),
                     )

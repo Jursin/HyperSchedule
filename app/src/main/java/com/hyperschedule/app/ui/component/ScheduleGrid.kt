@@ -37,7 +37,6 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 左侧节次/刻度列宽 */
 internal val SectionColumnWidth = 36.dp
-private val WeekdayRowHeight = 40.dp
 
 /** 线条宽度 */
 internal val GridLineWidth = 0.6.dp
@@ -47,9 +46,6 @@ internal val AccentLineHeight = 1.5.dp
 
 /** 分界线名称的高度 */
 private val BreakLabelSlot = 14.dp
-
-/** 低于这个高度就不排起止两行 */
-private val TimeLabelMinSectionHeight = 44.dp
 
 /** 星期行，年份 + 周一~周日 + 日期，今天蓝色加粗 */
 @Composable
@@ -65,7 +61,7 @@ internal fun WeekdayRow(
             if (startDate != null) weekDatesOf(startDate, week) else null
         }
     // 列宽跟随网格
-    Box(modifier = Modifier.fillMaxWidth().height(WeekdayRowHeight)) {
+    Box(modifier = Modifier.fillMaxWidth().height(40.dp)) {
         if (gridLines) {
             val color = gridLineColor()
             Canvas(modifier = Modifier.matchParentSize()) { drawDayColumnLines(color) }
@@ -148,7 +144,7 @@ internal fun SectionTimesColumn(
                     color = if (isCurrent) accent else MiuixTheme.colorScheme.onSurface,
                 )
                 // 节次太矮排不下起止两行，只留开始时间
-                if (sectionHeight >= TimeLabelMinSectionHeight) {
+                if (sectionHeight >= 44.dp) {
                     listOf(startTime, endTime).forEach {
                         Text(text = it, style = timeStyle, color = timeColor)
                     }

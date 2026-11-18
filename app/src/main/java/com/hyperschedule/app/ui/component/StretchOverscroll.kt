@@ -26,8 +26,6 @@ import kotlinx.coroutines.CancellationException
 import kotlin.math.abs
 import kotlin.math.min
 
-private val MaxStretch = 40.dp
-
 private const val StretchTracking = 0.3f
 
 private const val MinTrackingRatio = 0.08f
@@ -112,7 +110,7 @@ class StretchOverscrollState(
 fun rememberStretchOverscrollState(): StretchOverscrollState {
     val density = LocalDensity.current
     return remember(density) {
-        StretchOverscrollState(with(density) { MaxStretch.toPx() })
+        StretchOverscrollState(with(density) { 40.dp.toPx() })
     }
 }
 

@@ -72,25 +72,8 @@ private const val OUTPUT_MAX_SIDE = 2160
 /** 框外压暗的程度，框内保持原色 */
 private const val OUTSIDE_SCRIM_ALPHA = 0.62f
 
-/** 裁剪框离页面边的距离 */
-private val CropAreaMargin = 24.dp
-
 /** 折角的臂长占框宽的比例 */
 private const val CORNER_ARM_RATIO = 0.05f
-
-/** 折角臂长上下限 */
-private val CornerArmMin = 10.dp
-private val CornerArmMax = 24.dp
-
-/** 折角线的粗细 */
-private val CornerStroke = 2.5.dp
-
-/** 参考线的粗细与浓度 */
-private val GridStroke = 0.6.dp
-private const val GRID_ALPHA = 0.45f
-
-/** 保存按钮边距 */
-private val FabSpan = 96.dp
 
 /** 壁纸裁剪 */
 @Composable
@@ -193,8 +176,8 @@ private fun CropArea(
     val source = remember(bitmap) { bitmap?.asImageBitmap() }
     val shown = source?.let { IntSize(it.width, it.height) }
     val density = LocalDensity.current
-    val marginPx = with(density) { CropAreaMargin.toPx() }
-    val fabSpan = with(density) { FabSpan.toPx() }
+    val marginPx = with(density) { 24.dp.toPx() }
+    val fabSpan = with(density) { 96.dp.toPx() }
     val zoomJob = remember { mutableStateOf<Job?>(null) }
 
     BoxWithConstraints(
@@ -317,7 +300,7 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
         drawRect(scrim, topLeft = Offset(frame.right, frame.top), size = Size(size.width - frame.right, frame.height))
     }
 
-    val gridStroke = GridStroke.toPx()
+    val gridStroke = 0.6.dp.toPx()
     val guides = buildList {
         for (i in 1..2) {
             val x = frame.left + frame.width * i / 3f
@@ -327,11 +310,11 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
         }
     }
     guides.forEach { (from, to) -> drawLine(Color.Black.copy(alpha = 0.15f), from, to, gridStroke * 1.8f) }
-    guides.forEach { (from, to) -> drawLine(Color.White.copy(alpha = GRID_ALPHA), from, to, gridStroke) }
+    guides.forEach { (from, to) -> drawLine(Color.White.copy(alpha = 0.45f), from, to, gridStroke) }
 
     // 折角整体在裁剪区域外侧，内缘贴着框边
-    val arm = (frame.width * CORNER_ARM_RATIO).coerceIn(CornerArmMin.toPx(), CornerArmMax.toPx())
-    val edge = CornerStroke.toPx()
+    val arm = (frame.width * CORNER_ARM_RATIO).coerceIn(10.dp.toPx(), 24.dp.toPx())
+    val edge = 2.5.dp.toPx()
 
     fun cornerArms(x: Float, y: Float, dx: Float, dy: Float): List<Rect> {
         val hLeft = if (dx > 0f) x - edge else x + edge - arm

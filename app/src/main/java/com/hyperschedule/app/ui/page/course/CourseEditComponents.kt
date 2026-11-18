@@ -331,7 +331,7 @@ internal fun ColorCard(
                         modifier =
                             Modifier
                                 .fillMaxWidth()
-                                .padding(start = PaletteEdge, end = PaletteEdge, bottom = PaletteRowSpacing),
+                                .padding(start = PaletteEdge, end = PaletteEdge, bottom = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(PaletteCellSpacing),
                     ) {
                         for (col in 0 until PaletteColumns) {
@@ -369,7 +369,6 @@ internal fun ColorCard(
 private const val PaletteColumns = 7
 private val PaletteEdge = 8.dp
 private val PaletteCellSpacing = 6.dp
-private val PaletteRowSpacing = 8.dp
 
 /** 颜色格之间再让出一点，格子才不会顶满 */
 private val CellInset = 2.5.dp
@@ -379,9 +378,6 @@ private val PaletteMaxCell = 46.dp
 
 /** 颜色格选中描边宽度 */
 private val BorderWidth = 2.dp
-
-/** 选中描边与色块之间的间隙 */
-private val RingGap = 2.dp
 
 /** 颜色格外轮廓圆角，色块圆角取外轮廓圆角减去描边宽与间隙，两者同心 */
 private val CellCornerRadius = 10.dp
@@ -397,7 +393,7 @@ internal fun ColorCell(
     inset: Dp = CellInset,
 ) {
     val borderAlpha = if (selected) 1f else 0f
-    val ringSpace = BorderWidth + RingGap
+    val ringSpace = BorderWidth + 2.dp
     Box(
         modifier =
             modifier

@@ -14,13 +14,11 @@ import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val BlockSpacing = 8.dp
-
 /** 轻量 Markdown 渲染，只处理标题、段落与列表 */
 @Composable
 internal fun MarkdownText(markdown: String, modifier: Modifier = Modifier) {
     val blocks = remember(markdown) { parseMarkdown(markdown) }
-    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(BlockSpacing)) {
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         blocks.forEach { block -> MarkdownBlockItem(block) }
     }
 }

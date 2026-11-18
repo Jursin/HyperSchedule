@@ -34,6 +34,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -51,6 +52,7 @@ import com.hyperschedule.app.ui.component.AddFab
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.SaveFab
+import com.hyperschedule.app.ui.component.clearFocusOnPress
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
@@ -237,6 +239,7 @@ fun CourseEditPage(
             modifier =
                 Modifier.fillMaxSize()
                     .onGloballyPositioned { cardRects.origin = it.positionInRoot() }
+                    .clearFocusOnPress(LocalFocusManager.current)
                     .pointerInput(sectionTimes) {
                         // 只观察不消费，滚动和输入框都不受影响
                         awaitPointerEventScope {

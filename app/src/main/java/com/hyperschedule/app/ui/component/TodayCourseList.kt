@@ -48,12 +48,6 @@ import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private const val MorningEndHour = 12
-private const val AfternoonEndHour = 18
-
-/** 已结束课程整卡文字的透明度 */
-private const val EndedTextAlpha = 0.45f
-
 /** 右侧状态文案，只有「正在上课」用强调色 */
 private const val StatusOngoing = "正在上课"
 private const val StatusEnded = "已结束"
@@ -193,7 +187,7 @@ private fun TodayCourseRow(
     // 已结束的课整卡文字一起变暗（课名、信息行、时间、状态）
     val dim: (Color) -> Color =
         if (status == StatusEnded) {
-            { it.copy(alpha = EndedTextAlpha) }
+            { it.copy(alpha = 0.45f) }
         } else {
             { it }
         }
@@ -352,8 +346,8 @@ private fun coursePeriod(course: Course, slotMap: Map<Int, TimeSlot>): Int {
     val start = startTimeOf(course, slotMap)?.let(::parseTime)
     if (start != null) {
         return when {
-            start.hour < MorningEndHour -> 0
-            start.hour < AfternoonEndHour -> 1
+            start.hour < 12 -> 0
+            start.hour < 18 -> 1
             else -> 2
         }
     }

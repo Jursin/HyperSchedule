@@ -54,11 +54,7 @@ import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-private val CellHeight = 40.dp
 private val MarkSize = 34.dp
-private val CalendarPadding = 12.dp
-private val ChipBorderWidth = 1.5.dp
-private val ChipPlaceholderFontSize = 11.sp
 private val ChipLineHeight = 17.sp
 private const val DATE_WIDTH_TEMPLATE = "0000/00/00"
 
@@ -246,7 +242,7 @@ private fun DualDateRoleRow(
             active = !editingPrimary,
             onClick = onSelectSecondary,
             widthTemplate = DATE_WIDTH_TEMPLATE,
-            fontSize = if (secondaryDate == null) ChipPlaceholderFontSize else 13.sp,
+            fontSize = if (secondaryDate == null) 11.sp else 13.sp,
         )
     }
 }
@@ -267,7 +263,7 @@ private fun DateRoleChip(
         modifier = Modifier
             .clip(shape)
             .background(containerColor)
-            .then(if (active) Modifier.border(ChipBorderWidth, color, shape) else Modifier)
+            .then(if (active) Modifier.border(1.5.dp, color, shape) else Modifier)
             .clickable(onClick = onClick)
             .padding(horizontal = 10.dp, vertical = 4.dp),
         contentAlignment = Alignment.Center,
@@ -313,7 +309,7 @@ private fun CalendarFrame(
     monthContent: @Composable (year: Int, month: Int) -> Unit,
 ) {
     Column(
-        modifier = modifier.padding(CalendarPadding),
+        modifier = modifier.padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         Row(
@@ -442,7 +438,7 @@ private fun CalendarDayCell(
 ) {
     Box(
         modifier = modifier
-            .height(CellHeight)
+            .height(40.dp)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
