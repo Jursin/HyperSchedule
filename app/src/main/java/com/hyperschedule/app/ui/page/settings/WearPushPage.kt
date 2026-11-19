@@ -22,13 +22,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.hyperschedule.app.R
 import com.hyperschedule.app.data.local.ReminderSettings
 import com.hyperschedule.app.data.local.WearPushSettings
 import com.hyperschedule.app.data.push.WearSchedule
@@ -51,9 +49,10 @@ import com.hyperschedule.app.theme.dangerColor
 import com.hyperschedule.app.theme.dangerContainerColor
 import com.hyperschedule.app.theme.successColor
 import com.hyperschedule.app.theme.successContainerColor
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -62,12 +61,16 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Send
+import top.yukonga.miuix.kmp.icon.glass.Error
+import top.yukonga.miuix.kmp.icon.glass.Send
+import top.yukonga.miuix.kmp.icon.glass.WatchCapsule
+import top.yukonga.miuix.kmp.icon.glass.WatchRound
+import top.yukonga.miuix.kmp.icon.glass.WatchSquare
+import top.yukonga.miuix.kmp.icon.glass.WearableUniversal
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
@@ -249,9 +252,9 @@ fun WearPushPage(
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(
+            GlassFab(
                 onClick = { push() },
-                containerColor =
+                color =
                     if (pushing) {
                         MiuixTheme.colorScheme.disabledPrimaryButton
                     } else {
@@ -269,7 +272,7 @@ fun WearPushPage(
                     )
                 } else {
                     Icon(
-                        imageVector = MiuixIcons.Send,
+                        imageVector = MiuixIcons.Glass.Send,
                         contentDescription = "推送",
                         tint = MiuixTheme.colorScheme.onPrimary,
                     )
@@ -291,7 +294,7 @@ fun WearPushPage(
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             } else {
-                OverlayDropdownPreference(
+                DropdownPreference(
                     title = "选择课表",
                     items = tables.map { it.table.name.ifBlank { "未命名" } },
                     selectedIndex = selectedIndex,
@@ -369,12 +372,13 @@ private fun ConnectionStatusCard(
                 modifier =
                     Modifier
                         .matchParentSize()
-                        .offset(50.dp, 38.dp),
+                        .offset(36.dp, 10.dp),
                 contentAlignment = Alignment.BottomEnd,
             ) {
                 Icon(
                     modifier = Modifier.size(170.dp),
-                    imageVector = ImageVector.vectorResource(if (isConnected) R.drawable.ic_check_circle else R.drawable.ic_error),
+                    imageVector =
+                        if (isConnected) wearableIcon(deviceName) else MiuixIcons.Glass.Error,
                     tint = iconColor,
                     contentDescription = null,
                 )
@@ -403,5 +407,18 @@ private fun ConnectionStatusCard(
                 Spacer(Modifier.height(36.dp))
             }
         }
+    }
+}
+
+/** 按设备名称挑机型，Pro 显示方表，手表显示圆表，手环显示胶囊，其他用通用图标 */
+private fun wearableIcon(name: String): ImageVector {
+    val pro = name.contains("pro", ignoreCase = true)
+    val watch = name.contains("手表") || name.contains("Watch", ignoreCase = true)
+    val band = name.contains("手环") || name.contains("Band", ignoreCase = true)
+    return when {
+        pro -> MiuixIcons.Glass.WatchSquare
+        watch -> MiuixIcons.Glass.WatchRound
+        band -> MiuixIcons.Glass.WatchCapsule
+        else -> MiuixIcons.Glass.WearableUniversal
     }
 }
