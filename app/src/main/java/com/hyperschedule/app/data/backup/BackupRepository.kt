@@ -5,6 +5,8 @@ import androidx.core.content.edit
 import androidx.room.withTransaction
 import com.hyperschedule.app.data.db.AppDatabase
 import com.hyperschedule.app.data.db.entity.CourseTimeBinding
+import com.hyperschedule.app.data.importer.edu.EduFavoritePrefsName
+import com.hyperschedule.app.data.importer.edu.EduFavoriteStore
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
 import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.repository.HolidayRepository
@@ -326,6 +328,7 @@ class BackupRepository(
             put(PREFS_SETTINGS, SettingsStore.get(appContext).snapshot())
             put(PREFS_HOLIDAY, prefsSnapshotOf(PREFS_HOLIDAY))
             put(PREFS_EDU, prefsSnapshotOf(PREFS_EDU))
+            put(EduFavoritePrefsName, prefsSnapshotOf(EduFavoritePrefsName))
         }
 
     private fun prefsSnapshotOf(name: String): PrefsSnapshot =
@@ -337,8 +340,10 @@ class BackupRepository(
         prefs[PREFS_SETTINGS]?.let(store::restore)
         writePrefsFile(PREFS_HOLIDAY, prefs[PREFS_HOLIDAY])
         writePrefsFile(PREFS_EDU, prefs[PREFS_EDU])
+        writePrefsFile(EduFavoritePrefsName, prefs[EduFavoritePrefsName])
         HolidayRepository.get(appContext).reload()
         EduRepoStore.get(appContext).reload()
+        EduFavoriteStore.get(appContext).reload()
 
         // 当前课表指向的表不在这次备份里时清空，课表页会回退到最早一张
         if (validTableIds != null && store.state.currentTableId !in validTableIds) {

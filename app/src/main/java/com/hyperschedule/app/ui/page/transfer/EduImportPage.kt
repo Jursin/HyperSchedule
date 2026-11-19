@@ -1,16 +1,22 @@
 package com.hyperschedule.app.ui.page.transfer
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -29,9 +35,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.importer.edu.Adapter
 import com.hyperschedule.app.data.importer.edu.EduRepo
+import com.hyperschedule.app.data.importer.edu.EduFavoriteStore
 import com.hyperschedule.app.data.importer.edu.EduRepoStore
 import com.hyperschedule.app.data.importer.edu.GLOBAL_TOOL_SCHOOL_ID
 import com.hyperschedule.app.data.importer.edu.School as EduSchool
@@ -39,27 +47,34 @@ import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.EduRepoSheet
+import com.hyperschedule.app.ui.component.GlassFab
+import com.hyperschedule.app.ui.component.GlassTabs
 import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.bouncyScroll
 import com.hyperschedule.app.ui.component.toast
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
+import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InputField
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.TabRow
+import top.yukonga.miuix.kmp.basic.SearchBar
+import top.yukonga.miuix.kmp.basic.SearchBarDefaults
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.More
-import top.yukonga.miuix.kmp.icon.extended.Refresh
+import top.yukonga.miuix.kmp.icon.glass.Close
+import top.yukonga.miuix.kmp.icon.glass.FavoriteOutline
+import top.yukonga.miuix.kmp.icon.glass.More
+import top.yukonga.miuix.kmp.icon.glass.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 分享码入口已覆盖这两个通用工具 */
@@ -73,8 +88,21 @@ private val SchoolTabs =
         "通用工具" to Adapter.TOOL,
     )
 
+private fun EduSchool.inCategory(category: Int): Boolean =
+    adapters.any { it.category == category && (category != Adapter.TOOL || it.id !in ShareToolIds) }
+
+/** 校名、首字母或任一适配器名命中搜索词 */
+private fun EduSchool.matchesQuery(text: String): Boolean =
+    text.isEmpty() ||
+        name.contains(text, true) ||
+        initial.contains(text, true) ||
+        adapters.any { it.name.contains(text, true) }
+
 private sealed interface SchoolRow {
     data class Header(val letter: String) : SchoolRow
+
+    /** 收藏分区表头 */
+    data object Favorite : SchoolRow
 
     data class Item(val school: EduSchool) : SchoolRow
 
@@ -97,6 +125,7 @@ fun EduImportPage(
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val listState = rememberLazyListState()
+    val favoriteStore = remember { EduFavoriteStore.get(context) }
     // 点搜索框以外的区域收起键盘
     val dismissKeyboardOnTap =
         Modifier.pointerInput(Unit) {
@@ -116,6 +145,7 @@ fun EduImportPage(
     var updating by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     var tab by remember { mutableIntStateOf(0) }
+    var searchExpanded by remember { mutableStateOf(false) }
     // 抽屉内容跟着学校走，收起动画期间不清空
     var sheetSchool by remember { mutableStateOf<EduSchool?>(null) }
     var sheetVisible by remember { mutableStateOf(false) }
@@ -123,7 +153,7 @@ fun EduImportPage(
     // 通用工具没有固定网址，进页面前先问一次
     var urlDialog by remember { mutableStateOf<Pair<EduSchool, Adapter>?>(null) }
 
-    // 拉索引并刷新列表；silent 只压掉无变化的提示，换仓库时新增数不作数
+    // 拉索引并刷新列表
     fun sync(silent: Boolean = false, announceAdded: Boolean = true) {
         if (updating) return
         updating = true
@@ -135,8 +165,8 @@ fun EduImportPage(
                 result.fold(
                     onSuccess = {
                         when {
-                            it.added > 0 && announceAdded -> "新增${it.added}所学校适配".cjkDigitGap()
                             silent -> null
+                            it.added > 0 && announceAdded -> "新增${it.added}所学校适配".cjkDigitGap()
                             it.changed -> "学校列表已更新"
                             else -> "已是最新版"
                         }
@@ -153,27 +183,29 @@ fun EduImportPage(
         if (repoStore.state.autoSync) sync(silent = true)
     }
 
+    val category = SchoolTabs[tab].second
+
     val shown =
-        remember(schools, tab, query) {
+        remember(schools, category, query) {
             val text = query.trim()
-            val category = SchoolTabs[tab].second
-            schools.orEmpty().filter { school ->
-                val byTab =
-                    school.adapters.any {
-                        it.category == category && (category != Adapter.TOOL || it.id !in ShareToolIds)
-                    }
-                val byQuery =
-                    text.isEmpty() ||
-                        school.name.contains(text, true) ||
-                        school.initial.contains(text, true) ||
-                        school.adapters.any { it.name.contains(text, true) }
-                byTab && byQuery
-            }
+            schools.orEmpty().filter { it.inCategory(category) && it.matchesQuery(text) }
+        }
+
+    val favoriteSchools =
+        remember(schools, category, query, favoriteStore.ids) {
+            val text = query.trim()
+            schools.orEmpty()
+                .filter { it.id in favoriteStore.ids && it.inCategory(category) && it.matchesQuery(text) }
+                .sortedBy { it.initial.uppercase() + it.name }
         }
 
     val rows =
-        remember(shown) {
+        remember(shown, favoriteSchools) {
             buildList {
+                if (favoriteSchools.isNotEmpty()) {
+                    add(SchoolRow.Favorite)
+                    favoriteSchools.forEach { add(SchoolRow.Item(it)) }
+                }
                 shown.groupBy { it.initial.uppercase().ifBlank { "#" } }.forEach { (letter, group) ->
                     if (isNotEmpty()) add(SchoolRow.Divider)
                     add(SchoolRow.Header(letter))
@@ -182,31 +214,48 @@ fun EduImportPage(
             }
         }
 
+    val favoriteRowCount = if (favoriteSchools.isEmpty()) 0 else favoriteSchools.size + 1
+
+    // 搜索态跨分类匹配
+    val searchHits =
+        remember(schools, query) {
+            val text = query.trim()
+            if (text.isEmpty()) {
+                emptyList()
+            } else {
+                schools.orEmpty().filter { it.matchesQuery(text) }
+            }
+        }
+
     val letterIndex =
         remember(rows) {
             rows.withIndex()
-                .mapNotNull { (index, row) -> (row as? SchoolRow.Header)?.let { it.letter to index } }
-                .toMap()
+                .mapNotNull { (index, row) ->
+                    (row as? SchoolRow.Header)?.letter?.takeIf { it in IndexLetters }?.let { it to index }
+                }.toMap()
         }
 
     // 当前字母跟列表走，拖动时由索引条自己接管
     val scrollLetter by remember(rows) {
         derivedStateOf {
             val end = (listState.firstVisibleItemIndex + 1).coerceAtMost(rows.size)
-            rows.subList(0, end).lastOrNull { it is SchoolRow.Header }?.let { (it as SchoolRow.Header).letter }
+            rows.subList(0, end)
+                .lastOrNull { it is SchoolRow.Header && it.letter in IndexLetters }
+                ?.let { (it as SchoolRow.Header).letter }
         }
+    }
+
+    val inFavorites by remember(favoriteRowCount) {
+        derivedStateOf { favoriteRowCount > 0 && listState.firstVisibleItemIndex < favoriteRowCount }
     }
 
     LaunchedEffect(tab, query) {
         if (rows.isNotEmpty()) listState.scrollToItem(0)
     }
 
-    fun jumpTo(
-        letter: String,
-        animate: Boolean,
-    ) {
+    fun jumpTo(letter: String) {
         val index = letterIndex[letter] ?: return
-        scope.launch { if (animate) listState.animateScrollToItem(index) else listState.scrollToItem(index) }
+        scope.launch { listState.scrollToItem(index) }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -217,31 +266,34 @@ fun EduImportPage(
                     blurBackdrop = blurBackdrop,
                     scrollBehavior = scrollBehavior,
                     onBack = onBack,
+                    pinnedTitle = true,
                     actions = {
                         TopBarIconButton(onClick = { moreVisible = true }) {
-                            Icon(imageVector = MiuixIcons.More, contentDescription = "更多")
+                            Icon(imageVector = MiuixIcons.Glass.More, contentDescription = "更多")
                         }
                     },
                 )
             },
             floatingActionButton = {
-                TooltipBox(text = "更新学校列表") {
-                    FloatingActionButton(onClick = { sync() }) {
-                        if (updating) {
-                            CircularProgressIndicator(
-                                size = 24.dp,
-                                colors =
-                                    ProgressIndicatorDefaults.progressIndicatorColors(
-                                        foregroundColor = MiuixTheme.colorScheme.onPrimary,
-                                        backgroundColor = Color.Transparent,
-                                    ),
-                            )
-                        } else {
-                            Icon(
-                                imageVector = MiuixIcons.Refresh,
-                                contentDescription = "更新学校列表",
-                                tint = MiuixTheme.colorScheme.onPrimary,
-                            )
+                CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
+                    TooltipBox(text = "更新学校列表") {
+                        GlassFab(onClick = { sync() }) {
+                            if (updating) {
+                                CircularProgressIndicator(
+                                    size = 24.dp,
+                                    colors =
+                                        ProgressIndicatorDefaults.progressIndicatorColors(
+                                            foregroundColor = MiuixTheme.colorScheme.onPrimary,
+                                            backgroundColor = Color.Transparent,
+                                        ),
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = MiuixIcons.Glass.Refresh,
+                                    contentDescription = "更新学校列表",
+                                    tint = MiuixTheme.colorScheme.onPrimary,
+                                )
+                            }
                         }
                     }
                 }
@@ -254,88 +306,181 @@ fun EduImportPage(
                         .padding(
                             top = paddingValues.calculateTopPadding(),
                             bottom = paddingValues.calculateBottomPadding(),
-                        ),
+                        )
+                        .captureForBlur(blurBackdrop),
             ) {
-                InputField(
-                    query = query,
-                    onQueryChange = { query = it },
-                    onSearch = {},
-                    expanded = false,
-                    onExpandedChange = {},
-                    label = "搜索学校或教务系统",
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-                )
-
-                TabRow(
-                    tabs = SchoolTabs.map { it.first },
-                    selectedTabIndex = tab,
-                    onTabSelected = { tab = it },
-                    modifier = Modifier.padding(horizontal = 20.dp).then(dismissKeyboardOnTap),
-                )
-
-                Box(modifier = Modifier.fillMaxSize().then(dismissKeyboardOnTap)) {
-                    when {
-                        schools == null -> LoadingHint("正在读取学校列表", showProgress = true)
-                        rows.isEmpty() ->
-                            LoadingHint(
-                                text =
-                                    when {
-                                        query.isNotBlank() -> "没有匹配的学校"
-                                        updating -> "正在同步学校列表"
-                                        else -> "暂无学校数据"
-                                    },
-                                showProgress = query.isBlank() && updating,
+                SearchBar(
+                    inputField = {
+                        InputField(
+                            query = query,
+                            onQueryChange = { query = it },
+                            onSearch = {
+                                searchExpanded = false
+                                focusManager.clearFocus()
+                            },
+                            expanded = searchExpanded,
+                            onExpandedChange = { searchExpanded = it },
+                            label = "搜索学校或教务系统",
+                        )
+                    },
+                    outsideEndAction = {
+                        IconButton(
+                            onClick = {
+                                searchExpanded = false
+                                query = ""
+                                focusManager.clearFocus()
+                            },
+                            modifier =
+                                Modifier
+                                    .padding(start = 8.dp)
+                                    .size(44.dp)
+                                    .background(MiuixTheme.colorScheme.surfaceContainerHigh, CircleShape),
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Glass.Close,
+                                contentDescription = "取消",
+                                modifier = Modifier.size(28.dp),
+                                tint = MiuixTheme.colorScheme.onSurface,
                             )
-                        else -> {
-                            LazyColumn(
-                                state = listState,
-                                modifier =
-                                    Modifier
-                                        .fillMaxSize()
-                                        .nestedScroll(scrollBehavior.nestedScrollConnection)
-                                        .bouncyScroll(),
-                                contentPadding = PaddingValues(bottom = 96.dp),
-                            ) {
-                                items(rows.size) { index ->
-                                    when (val row = rows[index]) {
-                                        is SchoolRow.Header ->
-                                            Text(
-                                                text = row.letter,
-                                                style = MiuixTheme.textStyles.body2,
-                                                color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                                modifier = Modifier.padding(start = 26.dp, top = 16.dp, bottom = 4.dp),
-                                            )
-
-                                        is SchoolRow.Item ->
-                                            SchoolItem(
-                                                school = row.school,
-                                                onClick = {
-                                                    sheetSchool = row.school
-                                                    sheetVisible = true
-                                                },
-                                            )
-
-                                        SchoolRow.Divider ->
-                                            HorizontalDivider(
-                                                modifier = Modifier.padding(horizontal = 26.dp, vertical = 12.dp),
-                                                thickness = 0.5.dp,
-                                                color = MiuixTheme.colorScheme.outline,
-                                            )
-                                    }
+                        }
+                    },
+                    expanded = searchExpanded,
+                    onExpandedChange = { searchExpanded = it },
+                    insideMargin = SearchBarDefaults.InsideMargin.copy(width = 0.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 10.dp),
+                ) {
+                    when {
+                        schools == null ->
+                            Text(
+                                text = "正在读取学校列表",
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                            )
+                        searchHits.isEmpty() ->
+                            Text(
+                                text = if (query.isBlank()) "输入关键词搜索学校或教务系统" else "没有匹配的学校或教务系统",
+                                style = MiuixTheme.textStyles.body1,
+                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                            )
+                        else ->
+                            LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
+                                items(searchHits.size) { index ->
+                                    val school = searchHits[index]
+                                    SchoolItem(
+                                        school = school,
+                                        onClick = {
+                                            searchExpanded = false
+                                            focusManager.clearFocus()
+                                            sheetSchool = school
+                                            sheetVisible = true
+                                        },
+                                    )
                                 }
                             }
+                    }
+                }
 
-                            AlphabetBar(
-                                available = letterIndex.keys,
-                                active = scrollLetter,
-                                onJump = ::jumpTo,
-                                modifier =
-                                    Modifier
-                                        .align(Alignment.CenterEnd)
-                                        .padding(end = 2.dp, top = 12.dp, bottom = 88.dp)
-                                        .width(20.dp)
-                                        .fillMaxHeight(),
-                            )
+                if (!searchExpanded) {
+                    GlassTabs(
+                        tabs = SchoolTabs.map { it.first },
+                        selectedIndex = tab,
+                        onSelect = { tab = it },
+                        modifier = Modifier.padding(horizontal = 20.dp).then(dismissKeyboardOnTap),
+                    )
+
+                    Box(
+                        modifier =
+                            Modifier
+                                .fillMaxSize()
+                                .then(dismissKeyboardOnTap),
+                    ) {
+                        when {
+                            schools == null -> LoadingHint("正在读取学校列表", showProgress = true)
+                            rows.isEmpty() ->
+                                LoadingHint(
+                                    text =
+                                        when {
+                                            query.isNotBlank() -> "没有匹配的学校"
+                                            updating -> "正在同步学校列表"
+                                            else -> "暂无学校数据"
+                                        },
+                                    showProgress = query.isBlank() && updating,
+                                )
+                            else -> {
+                                LazyColumn(
+                                    state = listState,
+                                    modifier =
+                                        Modifier
+                                            .fillMaxSize()
+                                            .nestedScroll(scrollBehavior.nestedScrollConnection)
+                                            .bouncyScroll(scrollBehavior),
+                                    contentPadding = PaddingValues(bottom = 96.dp),
+                                ) {
+                                    items(rows.size) { index ->
+                                        when (val row = rows[index]) {
+                                            is SchoolRow.Header ->
+                                                Text(
+                                                    text = row.letter,
+                                                    style = MiuixTheme.textStyles.body2,
+                                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                                    modifier =
+                                                        Modifier.padding(start = 28.dp, top = 14.dp, bottom = 2.dp),
+                                                )
+
+                                            SchoolRow.Favorite ->
+                                                Icon(
+                                                    imageVector = MiuixIcons.Glass.FavoriteOutline,
+                                                    contentDescription = "收藏的学校",
+                                                    modifier =
+                                                        Modifier
+                                                            .padding(start = 28.dp, top = 14.dp, bottom = 2.dp)
+                                                            .size(16.dp),
+                                                    tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                                )
+
+                                            is SchoolRow.Item ->
+                                                SchoolItem(
+                                                    school = row.school,
+                                                    onClick = {
+                                                        sheetSchool = row.school
+                                                        sheetVisible = true
+                                                    },
+                                                )
+
+                                            SchoolRow.Divider ->
+                                                Box(
+                                                    modifier = Modifier.fillMaxWidth().height(32.dp),
+                                                    contentAlignment = Alignment.Center,
+                                                ) {
+                                                    HorizontalDivider(
+                                                        modifier = Modifier.padding(horizontal = 28.dp),
+                                                        thickness = 0.5.dp,
+                                                        color = MiuixTheme.colorScheme.outline,
+                                                    )
+                                                }
+                                        }
+                                    }
+                                }
+
+                                AlphabetBar(
+                                    available = letterIndex.keys,
+                                    active = if (inFavorites) null else scrollLetter,
+                                    onJump = ::jumpTo,
+                                    showFavorite = favoriteRowCount > 0,
+                                    favoriteActive = inFavorites,
+                                    onJumpFavorite = { scope.launch { listState.scrollToItem(0) } },
+                                    modifier =
+                                        Modifier
+                                            .align(Alignment.CenterEnd)
+                                            .padding(top = 4.dp, bottom = 64.dp)
+                                            .width(AlphabetBarWidth)
+                                            .fillMaxHeight(),
+                                )
+                            }
                         }
                     }
                 }
@@ -346,8 +491,11 @@ fun EduImportPage(
             AdapterSheet(
                 school = school,
                 show = sheetVisible,
+                favorite = school.id in favoriteStore.ids,
+                onToggleFavorite = { favoriteStore.toggle(school.id) },
                 onOpen = { adapter ->
                     sheetVisible = false
+                    sheetSchool = null
                     // 通用教务要先问网址，演示与分享工具集直接进空白页
                     if (adapter.category == Adapter.TOOL && school.id != GLOBAL_TOOL_SCHOOL_ID) {
                         urlDialog = school to adapter
