@@ -23,7 +23,7 @@ import com.hyperschedule.app.data.repository.TableSummary
 import com.hyperschedule.app.ui.component.CalendarSyncHost
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.rememberCalendarSyncState
 import com.hyperschedule.app.ui.component.toast
 import java.time.LocalDate
@@ -135,7 +135,7 @@ internal fun ExportTab(
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         } else {
-            OverlayDropdownPreference(
+            DropdownPreference(
                 title = "选择课表",
                 items = tables.map { it.table.name.ifBlank { "未命名" } },
                 selectedIndex = selectedIndex,

@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -44,7 +45,6 @@ import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.schedule.DEFAULT_TOTAL_WEEKS
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.PageBottomInset
-import com.hyperschedule.app.theme.PresetColors
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColorOf
@@ -58,6 +58,7 @@ import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
 import com.hyperschedule.app.ui.component.rememberEditBackGuard
 import com.hyperschedule.app.ui.component.toast
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.state.CourseTableData
 import java.util.UUID
@@ -155,14 +156,14 @@ fun CourseEditPage(
         listState.animateScrollToItem(index)
     }
 
+    // 打开取色盘时的初值
+    val pickedPaletteColor = rememberCourseColorOf(colorInt ?: 0, colorArgb, isDark = false)
+
     var colorDialog by remember { mutableStateOf(false) }
-    var customColor by remember { mutableStateOf(PresetColors.first().color) }
+    var customColor by remember { mutableStateOf(pickedPaletteColor) }
     var dayDialogIndex by remember { mutableIntStateOf(-1) }
     var timeDialogIndex by remember { mutableIntStateOf(-1) }
     var weeksDialogIndex by remember { mutableIntStateOf(-1) }
-
-    // 打开取色盘时的初值，按浅色档取，存下来的就是色板原色
-    val pickedPaletteColor = rememberCourseColorOf(colorInt ?: 0, colorArgb, isDark = false)
 
     val requestBack = rememberEditBackGuard(dirty, appBlur, onBack)
 
@@ -311,13 +312,15 @@ fun CourseEditPage(
                 }
             }
 
-            Column(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
-                verticalArrangement = Arrangement.spacedBy(SectionSpacing),
-                horizontalAlignment = Alignment.End,
-            ) {
-                AddFab(enabled = true, description = "添加时段", onClick = ::addGroup)
-                SaveFab(canSave = true, onClick = onSave)
+            CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
+                Column(
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    AddFab(enabled = true, description = "添加时段", onClick = ::addGroup)
+                    SaveFab(canSave = true, onClick = onSave)
+                }
             }
         }
     }

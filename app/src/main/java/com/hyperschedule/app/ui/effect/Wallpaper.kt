@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
@@ -14,24 +15,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.draw.BlurredEdgeTreatment
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toIntSize
 import java.io.File
+import java.util.WeakHashMap
+import kotlin.math.max
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
-import top.yukonga.miuix.kmp.blur.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
+import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 解码后的壁纸长边上限 */
@@ -46,10 +57,7 @@ private val WallpaperCache = LruCache<String, ImageBitmap>(2)
 /** 壁纸状态 */
 @Stable
 class WallpaperState internal constructor(
-    /** 玻璃采样源（预糊纹理），运行时不支持模糊时为 null */
-    val backdrop: WallpaperBackdrop?,
-    /** 壁纸层按屏幕显示效果录下来的采样源（含用户设的壁纸模糊），顶栏糊带用它 */
-    val sample: LayerBackdrop?,
+    private val layer: LayerBackdrop?,
     glassEnabled: Boolean,
 ) {
     var bitmap by mutableStateOf<ImageBitmap?>(null)
@@ -58,13 +66,11 @@ class WallpaperState internal constructor(
     var glassEnabled by mutableStateOf(glassEnabled)
         internal set
 
-    /** 玻璃面可用的预糊纹理：没壁纸或关了模糊时为 null */
-    val glassBackdrop: WallpaperBackdrop?
-        get() = if (glassEnabled && bitmap != null) backdrop else null
+    val glassBackdrop: LayerBackdrop?
+        get() = if (glassEnabled && bitmap != null) layer else null
 
-    /** 顶栏可用的壁纸层采样源，条件同上 */
     val glassSample: LayerBackdrop?
-        get() = if (glassEnabled && bitmap != null) sample else null
+        get() = glassBackdrop
 }
 
 /** 当前页面上的壁纸状态 */
@@ -73,15 +79,14 @@ val LocalWallpaper = staticCompositionLocalOf<WallpaperState?> { null }
 @Composable
 fun wallpaperVisible(): Boolean = LocalWallpaper.current?.bitmap != null
 
-/** 建壁纸状态并加载图片，采样源只建一次 */
+/** 建壁纸状态并加载图片，采样层只建一次 */
 @Composable
 fun rememberWallpaperState(wallpaper: String, blurEnabled: Boolean): WallpaperState {
     val supported = isRuntimeShaderSupported()
-    val backdrop = if (supported) remember { WallpaperBackdrop() } else null
-    val sample = if (supported) rememberLayerBackdrop() else null
+    val layer = if (supported) rememberLayerBackdrop() else null
     val state =
-        remember(backdrop, sample) {
-            WallpaperState(backdrop, sample, blurEnabled).apply {
+        remember(layer) {
+            WallpaperState(layer, blurEnabled).apply {
                 // 先用会话缓存
                 bitmap = wallpaper.takeIf { it.isNotEmpty() }?.let { WallpaperCache.get(it) }
             }
@@ -91,12 +96,10 @@ fun rememberWallpaperState(wallpaper: String, blurEnabled: Boolean): WallpaperSt
     LaunchedEffect(state, wallpaper) {
         if (wallpaper.isEmpty()) {
             state.bitmap = null
-            state.backdrop?.bitmap = null
             return@LaunchedEffect
         }
         // 新图解码完再换上去
-        val cached = WallpaperCache.get(wallpaper)
-        state.bitmap = cached ?: withContext(Dispatchers.IO) { loadWallpaper(wallpaper) }
+        state.bitmap = WallpaperCache.get(wallpaper) ?: withContext(Dispatchers.IO) { loadWallpaper(wallpaper) }
     }
     return state
 }
@@ -106,60 +109,63 @@ fun rememberWallpaperState(wallpaper: String, blurEnabled: Boolean): WallpaperSt
 fun pageContainerColor(): Color =
     if (wallpaperVisible()) Color.Transparent else MiuixTheme.colorScheme.surface
 
-/** 底栏采样层 */
+/** 采样层在窗口里的位置 */
+private val LayerOrigins = WeakHashMap<LayerBackdrop, MutableState<Offset>>()
+
+/** 记录采样层挂载点的窗口位置 */
+fun Modifier.captureForBlur(backdrop: LayerBackdrop?): Modifier =
+    if (backdrop == null) {
+        this
+    } else {
+        this.layerBackdrop(backdrop).onGloballyPositioned { coordinates ->
+            val origin = LayerOrigins[backdrop] ?: return@onGloballyPositioned
+            val position = coordinates.positionInWindow()
+            if (origin.value != position) origin.value = position
+        }
+    }
+
+/** 页面采样层 */
 @Composable
-fun rememberBarBackdrop(
+fun rememberPageBackdrop(
     enabled: Boolean,
-    state: WallpaperState,
+    state: WallpaperState?,
 ): LayerBackdrop? {
     if (!enabled || !isRuntimeShaderSupported()) return null
     val surface = MiuixTheme.colorScheme.surface
-    return rememberLayerBackdrop {
-        // 在绘制里读壁纸状态，换壁纸时这一层自己重录
-        val bitmap = state.bitmap
-        if (bitmap == null) {
-            drawRect(surface)
-        } else {
-            drawWallpaper(bitmap, size.toIntSize(), surface.copy(alpha = WallpaperScrimAlpha))
+    val origin = remember { mutableStateOf(Offset.Zero) }
+    val windowSize = LocalWindowInfo.current.containerSize
+    val layer =
+        rememberLayerBackdrop {
+            val bitmap = state?.bitmap
+            if (bitmap == null) {
+                drawRect(surface)
+            } else {
+                val offset = origin.value
+                withTransform({ translate(-offset.x, -offset.y) }) {
+                    drawWallpaper(bitmap, windowSize, surface.copy(alpha = WallpaperScrimAlpha))
+                }
+            }
+            drawContent()
         }
-        drawContent()
-    }
+    SideEffect { LayerOrigins[layer] = origin }
+    return layer
 }
 
-/** 页面最底层的壁纸，同时驱动一次预烘 */
+/** 页面最底层的壁纸，同时作为玻璃的采样层 */
 @Composable
 fun WallpaperBackground(
     state: WallpaperState,
     blurRadius: Int,
     modifier: Modifier = Modifier,
 ) {
-    // 壁纸被撤掉时采样源也得跟着空
-    val backdrop = state.backdrop
-    val bitmap = state.bitmap
-    backdrop?.bitmap = bitmap
-    backdrop?.wallpaperBlur = blurRadius
-    if (backdrop == null || bitmap == null) {
-        backdrop?.clear()
-        return
-    }
+    val bitmap = state.bitmap ?: return
     val scrim = MiuixTheme.colorScheme.surface.copy(alpha = WallpaperScrimAlpha)
-    backdrop.scrim = scrim
-    val density = LocalDensity.current.density
-    // 壁纸、尺寸、蒙层、模糊档位任一变化就重烘一次
-    LaunchedEffect(backdrop, bitmap, blurRadius, scrim, backdrop.canvasSize, density) {
-        if (!backdrop.needBake(density)) return@LaunchedEffect
-        withContext(Dispatchers.Default) { backdrop.bake(density) { ensureActive() } }
-    }
     Box(
         modifier =
             modifier
                 .fillMaxSize()
                 // 挂在最外层：录进去的是屏幕上真正显示的样子（含壁纸自身那档模糊）
                 .then(state.glassSample?.let { Modifier.layerBackdrop(it) } ?: Modifier)
-                .onGloballyPositioned { coordinates ->
-                    backdrop.canvasSize = coordinates.size
-                    backdrop.anchor = coordinates
-                }
                 .then(
                     // 半径为 0 不挂效果
                     if (blurRadius > 0) {
@@ -170,6 +176,29 @@ fun WallpaperBackground(
                 )
                 .drawBehind { drawWallpaper(bitmap, size.toIntSize(), scrim) },
     )
+}
+
+/** 把壁纸按铺满裁切画进壁纸层坐标，背景与采样共用这一份几何 */
+internal fun DrawScope.drawWallpaper(bitmap: ImageBitmap, size: IntSize, scrim: Color) {
+    val width = size.width.toFloat()
+    val height = size.height.toFloat()
+    if (width <= 0f || height <= 0f || bitmap.width <= 0 || bitmap.height <= 0) return
+    val fit = max(width / bitmap.width, height / bitmap.height)
+    val drawWidth = (bitmap.width * fit).roundToInt()
+    val drawHeight = (bitmap.height * fit).roundToInt()
+    drawImage(
+        image = bitmap,
+        srcOffset = IntOffset.Zero,
+        srcSize = IntSize(bitmap.width, bitmap.height),
+        dstOffset =
+            IntOffset(
+                ((size.width - drawWidth) / 2f).roundToInt(),
+                ((size.height - drawHeight) / 2f).roundToInt(),
+            ),
+        dstSize = IntSize(drawWidth, drawHeight),
+        filterQuality = FilterQuality.Low,
+    )
+    if (scrim.alpha > 0f) drawRect(scrim, size = Size(width, height))
 }
 
 /** 读壁纸位图并记进会话缓存，文件不在或解不出来时为 null */

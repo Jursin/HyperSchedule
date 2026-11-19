@@ -14,8 +14,8 @@ import com.hyperschedule.app.data.importer.edu.EduRepo
 import com.hyperschedule.app.data.importer.edu.EduRepoConfig
 import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import com.hyperschedule.app.ui.component.pref.WindowDropdownPreference
 import top.yukonga.miuix.kmp.basic.TextField
 
 /** 学校页的更多设置 */
@@ -46,7 +46,7 @@ fun EduRepoSheet(
             }
 
             PreferenceSection(cardColor = sheetCardColor()) {
-                WindowDropdownPreference(
+                DropdownPreference(
                     title = "适配仓库",
                     items = EduRepo.entries.map { it.label },
                     selectedIndex = EduRepo.entries.indexOf(draft.repo),

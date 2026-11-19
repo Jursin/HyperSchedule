@@ -9,13 +9,13 @@ import com.hyperschedule.app.data.repository.TableSummary
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.PreferenceItemSection
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.SelectableEditRow
 import com.hyperschedule.app.ui.component.TableNameDialog
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 课表管理，课表平铺，单选切换使用，右侧编辑/删除，最后一张不可删 */
@@ -39,9 +39,9 @@ fun CourseTableManagePage(
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            GlassFab(onClick = { showAddDialog = true }) {
                 Icon(
-                    imageVector = MiuixIcons.Add,
+                    imageVector = MiuixIcons.Glass.Add,
                     contentDescription = "添加课表",
                     tint = MiuixTheme.colorScheme.onPrimary,
                 )

@@ -14,7 +14,7 @@ import com.hyperschedule.app.schedule.adjustDate
 import com.hyperschedule.app.schedule.cjkDigitGap
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.glass.Add
 
 /** 日期滚轮对话框 */
 @Composable
@@ -114,7 +114,7 @@ fun ImportTablePickerDialog(
         if (onAddTable != null) {
             WideActionButton(
                 text = "添加课表",
-                icon = MiuixIcons.Add,
+                icon = MiuixIcons.Glass.Add,
                 onClick = onAddTable,
             )
         }

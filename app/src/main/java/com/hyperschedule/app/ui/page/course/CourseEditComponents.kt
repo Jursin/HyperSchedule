@@ -48,12 +48,14 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Background
-import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.icon.extended.File
-import top.yukonga.miuix.kmp.icon.extended.Weeks
-import top.yukonga.miuix.kmp.icon.extended.Years
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Background
+import top.yukonga.miuix.kmp.icon.glass.ClockOutline
+import top.yukonga.miuix.kmp.icon.glass.Contacts
+import top.yukonga.miuix.kmp.icon.glass.Delete
+import top.yukonga.miuix.kmp.icon.glass.File
+import top.yukonga.miuix.kmp.icon.glass.Weeks
+import top.yukonga.miuix.kmp.icon.glass.Years
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -74,17 +76,17 @@ internal fun GroupCard(
             cornerRadius = CardCornerRadius,
         ) {
             Column(modifier = Modifier.fillMaxWidth()) {
-                InfoRow(icon = MiuixIcons.Years, label = "上课周次", onClick = onPickWeeks) {
+                InfoRow(icon = MiuixIcons.Glass.Years, label = "上课周次", iconSize = 22.dp, onClick = onPickWeeks) {
                     if (group.weeks.isEmpty()) {
                         ValueText("必填", placeholder = true)
                     } else {
                         ValueText(formatWeeks(group.weeks.toList()))
                     }
                 }
-                InfoRow(icon = MiuixIcons.Weeks, label = "上课星期", onClick = onPickDay) {
+                InfoRow(icon = MiuixIcons.Glass.Weeks, label = "上课星期", iconSize = 22.dp, onClick = onPickDay) {
                     ValueText(dayLabel(group.day))
                 }
-                InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_schedule), label = "上课时间", onClick = onPickTime) {
+                InfoRow(icon = MiuixIcons.Glass.ClockOutline, label = "上课时间", iconSize = 22.dp, onClick = onPickTime) {
                     val text = timeText(group)
                     if (text.isEmpty()) ValueText("必填", placeholder = true) else ValueText(text)
                 }
@@ -96,7 +98,7 @@ internal fun GroupCard(
                         hint = "选填",
                     )
                 }
-                InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_person), label = "教师") {
+                InfoRow(icon = MiuixIcons.Glass.Contacts, label = "教师", iconSize = 22.dp) {
                     InlineField(
                         value = group.teacher,
                         onValueChange = { onChange(group.copy(teacher = it)) },
@@ -111,7 +113,7 @@ internal fun GroupCard(
                             .padding(start = CardInsidePadding, end = CardInsidePadding, top = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    FieldIcon(MiuixIcons.File)
+                    FieldIcon(MiuixIcons.Glass.File, 22.dp)
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "备注",
@@ -136,7 +138,7 @@ internal fun GroupCard(
         if (canDelete) {
             WideActionButton(
                 text = "删除",
-                icon = MiuixIcons.Delete,
+                icon = MiuixIcons.Glass.Delete,
                 onClick = onDelete,
                 contentColor = MiuixTheme.colorScheme.error,
             )
@@ -151,6 +153,7 @@ internal fun InfoRow(
     label: String,
     top: Dp = 14.dp,
     bottom: Dp = 14.dp,
+    iconSize: Dp = 20.dp,
     onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit,
 ) {
@@ -172,7 +175,7 @@ internal fun InfoRow(
                 .padding(start = CardInsidePadding, end = CardInsidePadding, top = top, bottom = bottom),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FieldIcon(icon)
+        FieldIcon(icon, iconSize)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = label,
@@ -189,11 +192,11 @@ internal fun InfoRow(
 
 /** 字段左侧的小图标 */
 @Composable
-internal fun FieldIcon(icon: ImageVector) {
+internal fun FieldIcon(icon: ImageVector, size: Dp = 20.dp) {
     Icon(
         imageVector = icon,
         contentDescription = null,
-        modifier = Modifier.size(20.dp),
+        modifier = Modifier.size(size),
         tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
     )
 }
@@ -309,7 +312,7 @@ internal fun ColorCard(
                     .padding(start = CardInsidePadding, end = CardInsidePadding, bottom = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            FieldIcon(MiuixIcons.Medium.Background)
+            FieldIcon(MiuixIcons.Glass.Medium.Background, 22.dp)
             Spacer(modifier = Modifier.width(8.dp))
             Text(
                 text = "课程颜色",
@@ -324,7 +327,7 @@ internal fun ColorCard(
             // 宽屏下靠格子内边距把色块压在上限内，格子仍均匀铺满
             val slot =
                 (maxWidth - PaletteEdge * 2 - PaletteCellSpacing * (PaletteColumns - 1)) / PaletteColumns
-            val inset = ((slot - PaletteMaxCell) / 2).coerceAtLeast(CellInset)
+            val inset = ((slot - 46.dp) / 2).coerceAtLeast(CellInset)
             Column {
                 for (row in 0 until rowsCount) {
                     Row(
@@ -372,9 +375,6 @@ private val PaletteCellSpacing = 6.dp
 
 /** 颜色格之间再让出一点，格子才不会顶满 */
 private val CellInset = 2.5.dp
-
-/** 色块尺寸上限，超出部分转成格子内边距，宽屏下不至于越拉越大 */
-private val PaletteMaxCell = 46.dp
 
 /** 颜色格选中描边宽度 */
 private val BorderWidth = 2.dp
@@ -428,7 +428,7 @@ internal fun ColorCell(
         ) {
             if (color == null) {
                 Icon(
-                    imageVector = MiuixIcons.Add,
+                    imageVector = MiuixIcons.Glass.Add,
                     contentDescription = "自定义颜色",
                     modifier = Modifier.size(16.dp),
                     tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,

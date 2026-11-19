@@ -47,16 +47,16 @@ import com.hyperschedule.app.update.UpdateSource
 import com.hyperschedule.app.update.UpdateSpeed
 import com.hyperschedule.app.update.mirrorHost
 import com.hyperschedule.app.update.sourcesOf
-import java.time.LocalDate
-import java.util.Locale
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Refresh
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.SearchDevice
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import java.time.LocalDate
+import java.util.Locale
 
 @Composable
 fun UpdatePage(
@@ -132,7 +132,7 @@ fun UpdatePage(
             ) {
                 WideActionButton(
                     text = "添加镜像源",
-                    icon = MiuixIcons.Add,
+                    icon = MiuixIcons.Glass.Add,
                     onClick = {
                         editing = null
                         mirrorInput = ""
@@ -142,7 +142,7 @@ fun UpdatePage(
                 )
                 WideActionButton(
                     text = if (UpdateSpeed.testing) "测速中" else "立即测速",
-                    icon = MiuixIcons.Refresh,
+                    icon = MiuixIcons.Glass.SearchDevice,
                     onClick = { UpdateSpeed.testAll(sources) },
                     modifier = Modifier.weight(1f),
                     containerColor = MiuixTheme.colorScheme.primary,

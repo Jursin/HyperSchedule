@@ -21,7 +21,7 @@ import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.State
@@ -94,7 +94,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
     val haptics = LocalHapticFeedback.current
     val density = LocalDensity.current
 
-    // 开了自定义颜色就跟随全局配色，没开保持默认配色
+    // 开了 Monet 取色就跟随全局配色，没开保持默认配色
     val dynamic = MiuixTheme.isDynamicColor
     val accent =
         when {
@@ -126,12 +126,12 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
 
     val pressScale by
         animateFloatAsState(
-            targetValue = if (pressed) BackToNowPressScale else 1f,
+            targetValue = if (pressed) 0.9f else 1f,
             animationSpec =
                 spring(
                     dampingRatio = 0.99f,
                     stiffness =
-                        if (pressed) BackToNowPressStiffnessDown else BackToNowPressStiffnessUp,
+                        if (pressed) 1755f else 439f,
                 ),
             label = "backToNowScale",
         )
@@ -143,7 +143,7 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
                         btnW = size.width,
                         btnH = size.height,
                         pad = with(density) { BackToNowGlowPad.toPx() }.roundToInt(),
-                        dy = with(density) { BackToNowGlowDy.toPx() },
+                        dy = with(density) { 8.dp.toPx() },
                         radiusPx = with(density) { BackToNowCornerRadius.toPx() },
                         color = glowColor.toArgb(),
                     )
@@ -168,12 +168,11 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
         Box(
             modifier =
                 Modifier
-                    .size(BackToNowWidth, BackToNowHeight)
+                    .size(80.dp, BackToNowHeight)
                     .navBarBlur(
                         backdrop = blurBackdrop,
-                        shape = RoundedCornerShape(BackToNowCornerRadius),
+                        corner = CornerSize(percent = 50),
                         blendColor = fillColor,
-                        blurRadius = BackToNowBlurRadius,
                     )
                     .pointerInput(buttonSize) {
                         awaitEachGesture {
@@ -262,25 +261,11 @@ val BackToNowHostInset = 48.dp
 /** 光晕外溢区 */
 private val BackToNowGlowPad = 48.dp
 
-private val BackToNowWidth = 80.dp
 private val BackToNowHeight = 44.dp
 private val BackToNowCornerRadius = 80.dp
 
 /** 页面底部为按钮预留的高度 */
 val BackToNowOccupiedHeight: Dp = BackToNowHostInset + BackToNowGlowPad + BackToNowHeight
-
-/** 按钮玻璃的模糊半径 */
-private const val BackToNowBlurRadius = 6f
-private val BackToNowGlowDy = 8.dp
-
-/** 光晕模糊半径（半分辨率位图，换算成全尺寸 σ） */
-private const val BackToNowGlowBlurPx = 40f
-
-private const val BackToNowPressScale = 0.9f
-
-/** 按压回弹刚度，按下/松手 */
-private const val BackToNowPressStiffnessDown = 1755f
-private const val BackToNowPressStiffnessUp = 439f
 
 /** 预渲染光晕位图，模糊后挖掉按钮区域，需软件 Canvas */
 private fun buildGlowBitmap(
@@ -296,7 +281,7 @@ private fun buildGlowBitmap(
     val glow =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             this.color = color
-            maskFilter = BlurMaskFilter(BackToNowGlowBlurPx, BlurMaskFilter.Blur.NORMAL)
+            maskFilter = BlurMaskFilter(40f, BlurMaskFilter.Blur.NORMAL)
         }
     canvas.drawRoundRect(
         RectF(pad.toFloat(), pad + dy, (pad + btnW).toFloat(), pad + dy + btnH),

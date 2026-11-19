@@ -8,6 +8,7 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -50,10 +51,12 @@ import com.hyperschedule.app.ui.component.isSameSlotAs
 import com.hyperschedule.app.ui.component.rememberStretchFling
 import com.hyperschedule.app.ui.component.rememberStretchOverscrollState
 import com.hyperschedule.app.ui.component.stretchOverscroll
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
+import com.hyperschedule.app.ui.navigation.LocalPageCovered
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.LocalPageReselect
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
@@ -68,6 +71,7 @@ import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
 
 /** 空格「+」出现后自动收起的时长 */
 private const val PendingCellLifeMs = 3_000L
@@ -188,6 +192,9 @@ fun SchedulePage(
     var jumpWeek by remember { mutableIntStateOf(1) }
     var historyVisible by remember { mutableStateOf(false) }
     var dragLayerBounds by remember { mutableStateOf(Rect.Zero) }
+    // 顶栏「更多」菜单
+    val menuAnchor = rememberGlassPopupAnchor()
+    var menuOpen by remember { mutableStateOf(false) }
 
     // 换页后原来的「+」不再属于当前视图
     LaunchedEffect(viewingPage) { pendingCell = null }
@@ -217,6 +224,7 @@ fun SchedulePage(
     }
 
     val pageIsCurrent = LocalPageIsCurrent.current
+    val pageCovered = LocalPageCovered.current
     val tabNavigating = LocalMainTabNavigating.current
     // 离开过就复位到本周
     var pendingReset by remember { mutableStateOf(false) }
@@ -230,6 +238,16 @@ fun SchedulePage(
     }
 
     val pageWeek = viewingPage - EdgePages + 1
+
+    // 切走或被二级页盖住时收起菜单与抽屉，回来不会还开着
+    LaunchedEffect(pageIsCurrent, pageCovered) {
+        if (!pageIsCurrent || pageCovered) {
+            menuOpen = false
+            appearanceVisible = false
+            appearanceMounted = false
+            detailVisible = false
+        }
+    }
 
     // 不在本周时显示「今」
     val showBackToNow = remember(todayPage) {
@@ -272,144 +290,144 @@ fun SchedulePage(
     }
 
     // 采集放在周 pager 之外
-    Scaffold(
-        // 拉伸只作用在顶栏之下的内容，顶栏本身保持固定
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .nestedScroll(stretch.connection),
-        // 壁纸铺在页面外的最底层，有壁纸时底色必须透明
-        containerColor = pageContainerColor(),
-        topBar = {
-            ScheduleTopBar(
-                startDate = startDate,
-                pageWeek = pageWeek,
-                totalWeeks = totalWeeks,
-                currentWeek = nowWeek,
-                today = today,
-                gridLines = style.gridLines || style.timeline,
-                blurBackdrop = blurBackdrop,
-                scrollBehavior = scrollBehavior,
-                onManageTables = onManageTables,
-                onManageCourses = onManageCourses,
-                onAppearanceClick = {
-                    appearanceVisible = true
-                    appearanceMounted = true
-                },
-                onJumpClick = { week ->
-                    jumpWeek = week.coerceIn(1, totalWeeks)
-                    showJumpDialog = true
-                },
-            )
-        },
-    ) { paddingValues ->
-        // 时间轴视图切回本页、或停在本页时再点一次本 Tab，都把当前时刻翻到屏幕中间
-        if (style.timeline) {
-            ScrollToNowOnShow(
-                pageScroll = pageScroll,
-                sectionTimes = sectionTimes,
-                timelineHourHeight = style.timelineHourHeight,
-                nowState = nowState,
-                topPadding = paddingValues.calculateTopPadding(),
-                pageIsCurrent = pageIsCurrent,
-                reselectTick = LocalPageReselect.current,
-            )
-        }
-        // 拖动浮层与撤销按钮都挂在这一层
-        Box(
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            // 拉伸只作用在顶栏之下的内容，顶栏本身保持固定
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .onGloballyPositioned { coords -> dragLayerBounds = coords.boundsInRoot() }
-                    // 采集整块内容，顶栏模糊才带得上页面内容
-                    .captureForBlur(blurBackdrop)
-                    // 拉伸落在顶栏之下
-                    .stretchOverscroll(stretch, topInset = paddingValues.calculateTopPadding()),
-        ) {
-            HorizontalPager(
-                state = pagerState,
+                    .nestedScroll(stretch.connection),
+            // 壁纸铺在页面外的最底层，有壁纸时底色必须透明
+            containerColor = pageContainerColor(),
+            topBar = {
+                ScheduleTopBar(
+                    startDate = startDate,
+                    pageWeek = pageWeek,
+                    totalWeeks = totalWeeks,
+                    currentWeek = nowWeek,
+                    today = today,
+                    gridLines = style.gridLines || style.timeline,
+                    blurBackdrop = blurBackdrop,
+                    scrollBehavior = scrollBehavior,
+                    menuAnchor = menuAnchor,
+                    onMenuOpenChange = { menuOpen = it },
+                    onJumpClick = { week ->
+                        jumpWeek = week.coerceIn(1, totalWeeks)
+                        showJumpDialog = true
+                    },
+                )
+            },
+        ) { paddingValues ->
+            // 时间轴视图切回本页、或停在本页时再点一次本 Tab，都把当前时刻翻到屏幕中间
+            if (style.timeline) {
+                ScrollToNowOnShow(
+                    pageScroll = pageScroll,
+                    sectionTimes = sectionTimes,
+                    timelineHourHeight = style.timelineHourHeight,
+                    nowState = nowState,
+                    topPadding = paddingValues.calculateTopPadding(),
+                    pageIsCurrent = pageIsCurrent,
+                    reselectTick = LocalPageReselect.current,
+                )
+            }
+            // 拖动浮层与撤销按钮都挂在这一层
+            Box(
                 modifier =
                     Modifier
                         .fillMaxSize()
-                        .onGloballyPositioned { pagerOrigin = it.boundsInRoot().topLeft }
-                        // 横滑翻周自己接管
-                        .schedulePagerGesture(
-                            pagerState = pagerState,
-                            settleSlot = settleSlot,
-                            enabled = { !tabNavigating },
-                            blockedPointer = { touchState.pointerId },
-                            // 手指带着课卡时只许停在学期内
-                            pages = {
-                                if (editor.drag != null) pageOfWeek(1)..pageOfWeek(totalWeeks) else 0..lastPage
-                            },
-                            onVerticalScroll = { dy -> pageScroll.dispatchRawDelta(-dy) },
-                        )
-                        // 跨周拖课
-                        .scheduleDragOwner(
-                            editor = editor,
-                            touchState = touchState,
-                            pagerState = pagerState,
-                            settleSlot = settleSlot,
-                            allCourses = { allCourses },
-                            validWeeks = { 1..totalWeeks },
-                            origin = { pagerOrigin },
-                            onMove = { centerX ->
-                                edgePager.update(
-                                    centerX,
-                                    dragLayerBounds,
-                                    pageOfWeek(1)..pageOfWeek(totalWeeks),
-                                    pagerState,
-                                )
-                            },
-                            onEnd = { edgePager.stop() },
-                        ),
-                // 手势由上面接管
-                userScrollEnabled = false,
-                // 邻页不必预组合
-                beyondViewportPageCount = 1,
-            ) { page ->
-                ScheduleWeekPage(
-                    page = page,
-                    layout = layout,
-                    sectionTimes = sectionTimes,
+                        .onGloballyPositioned { coords -> dragLayerBounds = coords.boundsInRoot() }
+                        // 采集整块内容，顶栏模糊才带得上页面内容
+                        .captureForBlur(blurBackdrop)
+
+                        // 拉伸落在顶栏之下
+                        .stretchOverscroll(stretch, topInset = paddingValues.calculateTopPadding()),
+            ) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .onGloballyPositioned { pagerOrigin = it.boundsInRoot().topLeft }
+                            // 横滑翻周自己接管
+                            .schedulePagerGesture(
+                                pagerState = pagerState,
+                                settleSlot = settleSlot,
+                                enabled = { !tabNavigating },
+                                blockedPointer = { touchState.pointerId },
+                                // 手指带着课卡时只许停在学期内
+                                pages = {
+                                    if (editor.drag != null) pageOfWeek(1)..pageOfWeek(totalWeeks) else 0..lastPage
+                                },
+                                onVerticalScroll = { dy -> pageScroll.dispatchRawDelta(-dy) },
+                            )
+                            // 跨周拖课
+                            .scheduleDragOwner(
+                                editor = editor,
+                                touchState = touchState,
+                                pagerState = pagerState,
+                                settleSlot = settleSlot,
+                                allCourses = { allCourses },
+                                validWeeks = { 1..totalWeeks },
+                                origin = { pagerOrigin },
+                                onMove = { centerX ->
+                                    edgePager.update(
+                                        centerX,
+                                        dragLayerBounds,
+                                        pageOfWeek(1)..pageOfWeek(totalWeeks),
+                                        pagerState,
+                                    )
+                                },
+                                onEnd = { edgePager.stop() },
+                            ),
+                    // 手势由上面接管
+                    userScrollEnabled = false,
+                    // 邻页不必预组合
+                    beyondViewportPageCount = 1,
+                ) { page ->
+                    ScheduleWeekPage(
+                        page = page,
+                        layout = layout,
+                        sectionTimes = sectionTimes,
+                        style = style,
+                        breaks = breaks,
+                        startDate = startDate,
+                        totalWeeks = totalWeeks,
+                        currentWeek = nowWeek,
+                        nowState = nowState,
+                        holidayPlan = holidayPlan,
+                        allCourses = allCourses,
+                        showNonCurrentWeek = showNonCurrentWeek,
+                        topPadding = paddingValues.calculateTopPadding(),
+                        pageScroll = pageScroll,
+                        fling = fling,
+                        pendingCell = pendingCell,
+                        onPendingCellChange = { pendingCell = it },
+                        editor = editor,
+                        touchState = touchState,
+                        onGridPositioned = { rect ->
+                            // 落点要按当前这一页的网格算
+                            if (page == pagerState.currentPage) editor.updateLiveGrid(rect)
+                        },
+                        onCourseClick = { clicked, shownWeek, mark ->
+                            detailAnchor = clicked
+                            detailWeek = shownWeek
+                            detailMark = mark
+                            detailVisible = true
+                        },
+                        onAddCourse = onAddCourse,
+                    )
+                }
+
+                ScheduleDragLayer(
+                    visualProvider = { editor.dragVisual(dragLayerBounds.topLeft) },
+                    cardOrigin = { editor.cardOrigin(dragLayerBounds.topLeft) },
                     style = style,
-                    breaks = breaks,
-                    startDate = startDate,
-                    totalWeeks = totalWeeks,
-                    currentWeek = nowWeek,
-                    nowState = nowState,
-                    holidayPlan = holidayPlan,
-                    allCourses = allCourses,
-                    showNonCurrentWeek = showNonCurrentWeek,
-                    topPadding = paddingValues.calculateTopPadding(),
-                    pageScroll = pageScroll,
-                    fling = fling,
-                    pendingCell = pendingCell,
-                    onPendingCellChange = { pendingCell = it },
-                    editor = editor,
-                    touchState = touchState,
-                    onGridPositioned = { rect ->
-                        // 落点要按当前这一页的网格算
-                        if (page == pagerState.currentPage) editor.updateLiveGrid(rect)
-                    },
-                    onCourseClick = { clicked, shownWeek, mark ->
-                        detailAnchor = clicked
-                        detailWeek = shownWeek
-                        detailMark = mark
-                        detailVisible = true
-                    },
-                    onAddCourse = onAddCourse,
                 )
             }
-
-            ScheduleDragLayer(
-                visualProvider = { editor.dragVisual(dragLayerBounds.topLeft) },
-                cardOrigin = { editor.cardOrigin(dragLayerBounds.topLeft) },
-                style = style,
-            )
-
-            // 不做淡入/缩放
-            if (historyVisible) {
+        }
+        // 撤销/重做按钮画在采样层之外
+        if (historyVisible) {
+            CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
                 HistoryFabColumn(
                     canUndo = editor.undoStack.isNotEmpty(),
                     canRedo = editor.redoStack.isNotEmpty(),
@@ -419,6 +437,18 @@ fun SchedulePage(
                 )
             }
         }
+        ScheduleTopBarMenu(
+            show = menuOpen,
+            onDismissRequest = { menuOpen = false },
+            anchor = menuAnchor,
+            blurBackdrop = blurBackdrop,
+            onAppearanceClick = {
+                appearanceVisible = true
+                appearanceMounted = true
+            },
+            onManageTables = onManageTables,
+            onManageCourses = onManageCourses,
+        )
     }
 
     val anchor = detailAnchor
@@ -454,7 +484,11 @@ fun SchedulePage(
                     onDismissFinished = { appearanceMounted = false },
                     wallpaper = wallpaper,
                     wallpaperBlur = wallpaperBlur,
-                    onWallpaperPick = onWallpaperPick,
+                    onWallpaperPick = { uri ->
+                        appearanceVisible = false
+                        appearanceMounted = false
+                        onWallpaperPick(uri)
+                    },
                     onWallpaperClear = onWallpaperClear,
                     onWallpaperBlurChange = onWallpaperBlurChange,
                     onWallpaperBlurCommit = onWallpaperBlurCommit,

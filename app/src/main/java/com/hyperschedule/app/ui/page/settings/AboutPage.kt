@@ -77,11 +77,6 @@ import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import androidx.compose.ui.graphics.BlendMode as ComposeBlendMode
 
-private const val RepositoryUrl = "https://github.com/Jursin/HyperSchedule"
-
-/** 卡片玻璃的模糊半径（dp） */
-private const val CardBlurRadius = 60f
-
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
 fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean = false) {
@@ -123,15 +118,14 @@ fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean =
 
     Scaffold(
         topBar = {
-            // 滚到顶时才有底色，有模糊时交给毛玻璃，没有模糊时铺不透明 surface
             BlurredTopAppBar(
                 title = "关于",
-                blurBackdrop = if (scrollProgress == 1f) topBarBackdrop else null,
+                blurBackdrop = topBarBackdrop,
                 scrollBehavior = topAppBarScrollBehavior,
                 onBack = onBack,
                 pinnedTitle = true,
                 color =
-                    if (scrollProgress == 1f && topBarBackdrop == null) {
+                    if (topBarBackdrop == null && scrollProgress == 1f) {
                         MiuixTheme.colorScheme.surface
                     } else {
                         Color.Transparent
@@ -353,7 +347,7 @@ private fun AboutContentBody(
             modifier =
                 Modifier
                     .fillMaxSize()
-                    .bouncyScroll()
+                    .bouncyScroll(topAppBarScrollBehavior)
                     .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
             contentPadding = listContentPadding,
         ) {
@@ -387,7 +381,7 @@ private fun AboutContentBody(
                                         Modifier.textureBlur(
                                             backdrop = cardBackdrop,
                                             shape = RoundedCornerShape(CardCornerRadius),
-                                            blurRadius = CardBlurRadius,
+                                            blurRadius = 60f,
                                             colors = cardColors,
                                         )
                                     } else {
@@ -410,7 +404,7 @@ private fun AboutContentBody(
                                     color = MiuixTheme.colorScheme.onSurfaceVariantActions,
                                 )
                             },
-                            onClick = { uriHandler.openUri(RepositoryUrl) },
+                            onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule") },
                         )
                         ArrowPreference(
                             title = "许可证",

@@ -38,6 +38,9 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 左侧节次/刻度列宽 */
 internal val SectionColumnWidth = 36.dp
 
+/** 课表第二列（周一）的左边界 */
+internal val ScheduleDayColumnStart = SectionColumnWidth
+
 /** 线条宽度 */
 internal val GridLineWidth = 0.6.dp
 

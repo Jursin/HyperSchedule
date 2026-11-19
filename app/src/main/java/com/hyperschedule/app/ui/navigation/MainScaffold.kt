@@ -7,13 +7,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.VerticalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -22,14 +17,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.offset
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -41,17 +35,22 @@ import com.hyperschedule.app.ui.component.BackToNowButton
 import com.hyperschedule.app.ui.component.BackToNowHostInset
 import com.hyperschedule.app.ui.component.BackToNowHostState
 import com.hyperschedule.app.ui.component.LocalBackToNowHost
+import com.hyperschedule.app.ui.component.LocalRailState
 import com.hyperschedule.app.ui.component.LocalTabPageIndex
 import com.hyperschedule.app.ui.component.LocalWindowDismissState
 import com.hyperschedule.app.ui.component.WindowDismissState
+import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import com.hyperschedule.app.ui.effect.LocalWallpaper
 import com.hyperschedule.app.ui.effect.WallpaperBackground
 import com.hyperschedule.app.ui.effect.captureForBlur
-import com.hyperschedule.app.ui.effect.rememberBarBackdrop
+import com.hyperschedule.app.ui.effect.rememberPageBackdrop
 import com.hyperschedule.app.ui.effect.rememberWallpaperState
 import com.hyperschedule.app.ui.state.rememberCourseTableData
 import com.hyperschedule.app.ui.state.rememberCoursesWithWeeks
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.glass.GlassNavigationRailDefaults
+import top.yukonga.miuix.kmp.glass.GlassNavigationRailState
+import top.yukonga.miuix.kmp.glass.rememberGlassNavigationRailState
 import top.yukonga.miuix.kmp.nav.core.NavCornerClipMode
 import top.yukonga.miuix.kmp.nav.core.NavDisplay
 import top.yukonga.miuix.kmp.nav.core.NavDisplayEffects
@@ -60,20 +59,6 @@ import top.yukonga.miuix.kmp.nav.core.rememberNavBackStack
 import top.yukonga.miuix.kmp.nav.core.rememberNavSystemCornerRadius
 import top.yukonga.miuix.kmp.nav.transition.NavTransitions
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-
-/** 宽屏外层纵向 Pager 只负责切页，纵向余量到此截断，滚动全部交给内层 */
-private val VerticalScrollShield =
-    object : NestedScrollConnection {
-        // 不抢任何位移，内层滚动照常
-        override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset = Offset.Zero
-
-        // 内层滚到头的那部分在这里收住，不再往 pager 递
-        override fun onPostScroll(
-            consumed: Offset,
-            available: Offset,
-            source: NestedScrollSource,
-        ): Offset = Offset(0f, available.y)
-    }
 
 /** 关于页需要 RuntimeShader，所以整页要求 API 33 */
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
@@ -99,17 +84,15 @@ fun MainScaffold(
 
     val navBackStack = rememberNavBackStack<Page>(Page.Home)
     val backStack: MutableList<NavKey> = navBackStack
-    val pagerState = rememberPagerState(
-        initialPage = initialPage.coerceIn(0, tabs.lastIndex),
-        pageCount = { tabs.size },
-    )
     val coroutineScope = rememberCoroutineScope()
-    val mainPagerState = rememberMainPagerState(pagerState, coroutineScope)
+    val mainPagerState = rememberMainPagerState(tabs.size, initialPage)
     // 「今」按钮跨页共享，切 tab 时按钮不随页面滑走，只就地收起/展开
     val backToNowHost = remember { BackToNowHostState() }
     val overlayHost = remember { OverlayHostState() }
     // 浮窗整块收起的共享状态，进度由这里驱动，各浮窗每帧读取
     val windowDismissState = remember { WindowDismissState() }
+    // 玻璃侧栏的展开进度，宽屏时页面按它让出左侧空间
+    val railState = rememberGlassNavigationRailState()
 
     // 正在进/出的页面层级，0 首页、1 一级子页面、2 及以上浮窗里的浮窗
     val navLevel = remember { mutableIntStateOf(1) }
@@ -199,11 +182,6 @@ fun MainScaffold(
         onBackCompleted = { mainPagerState.animateToPage(0) },
     )
 
-    // 用 snapshotFlow 而非 LaunchedEffect(currentPage)，避免滑动时每帧重组
-    LaunchedEffect(pagerState) {
-        snapshotFlow { pagerState.currentPage }.collect { mainPagerState.syncPage() }
-    }
-
     BoxWithConstraints(
         modifier =
             Modifier
@@ -218,8 +196,6 @@ fun MainScaffold(
             // 浮窗整块收起的共享进度，所有浮窗读同一个进度一起下滑
             LocalWindowDismissState provides windowDismissState,
         ) {
-            // 首次组合时的页码，固定不变，避免滑动时每帧重组
-            val firstPage = remember { pagerState.currentPage }
             val systemCorner = rememberNavSystemCornerRadius()
 
             NavDisplay(
@@ -244,41 +220,45 @@ fun MainScaffold(
                         val wallpaperState = rememberWallpaperState(wallpaper, appBlur)
                         // 底栏采「壁纸 + 页面内容」，滚动穿过去的内容也会被糊进玻璃
                         val barBackdrop =
-                            rememberBarBackdrop(appBlur, wallpaperState)
+                            rememberPageBackdrop(appBlur, wallpaperState)
                         // 宽屏改用左侧栏
                         Box(modifier = Modifier.fillMaxSize()) {
-                            val pageContent: @Composable (Int) -> Unit = { page ->
-                                CompositionLocalProvider(
-                                    LocalMainTabNavigating provides mainPagerState.isNavigating,
-                                    LocalPageIsCurrent provides (page == mainPagerState.selectedPage),
-                                    LocalPageReselect provides mainPagerState.reselectTick,
-                                    LocalTabPageIndex provides page,
-                                    LocalBackToNowHost provides backToNowHost,
-                                ) {
-                                    HomeTabContent(page, navigate, table, allCourses)
+                            // 页面内容只随数据变，切布局或导航时不必整页重建
+                            val currentTable = rememberUpdatedState(table)
+                            val currentCourses = rememberUpdatedState(allCourses)
+                            val currentWide = rememberUpdatedState(wide)
+                            val pageContent: @Composable (Int) -> Unit =
+                                remember(mainPagerState, navigate, backToNowHost, railState) {
+                                    { page ->
+                                        CompositionLocalProvider(
+                                            LocalMainTabNavigating provides mainPagerState.isNavigating,
+                                            LocalPageIsCurrent provides (page == mainPagerState.selectedPage),
+                                            // 栈里压了二级页，首页的抽屉与菜单要自己收掉
+                                            LocalPageCovered provides (backStack.size > 1),
+                                            LocalPageReselect provides mainPagerState.reselectTick,
+                                            LocalTabPageIndex provides page,
+                                            LocalBackToNowHost provides backToNowHost,
+                                            LocalRailState provides if (currentWide.value) railState else null,
+                                        ) {
+                                            HomeTabContent(page, navigate, currentTable.value, currentCourses.value)
+                                        }
+                                    }
                                 }
-                            }
                             CompositionLocalProvider(
                                 LocalWallpaper provides wallpaperState,
+                                LocalPageGlassBackdrop provides barBackdrop,
                             ) {
                                 // 壁纸铺满整屏，宽屏侧栏也压在它上面
                                 WallpaperBackground(
                                     state = wallpaperState,
                                     blurRadius = wallpaperBlur,
                                 )
-                                Row(modifier = Modifier.fillMaxSize()) {
-                                    if (wide) {
-                                        SideNavBar(
-                                            selectedPage = mainPagerState.targetPage.value,
-                                            onSelect = { mainPagerState.animateToPage(it) },
-                                            onOpenSettings = { navigate(Page.Settings) },
-                                        )
-                                    }
+                                Box(modifier = Modifier.fillMaxSize()) {
                                     Box(
                                         modifier =
                                             Modifier
-                                                .weight(1f)
-                                                .fillMaxHeight(),
+                                                .fillMaxSize()
+                                                .then(if (wide) Modifier.railInset(railState) else Modifier),
                                     ) {
                                         Box(
                                             modifier =
@@ -287,29 +267,14 @@ fun MainScaffold(
                                                     // 页面内容录进底栏的采样层，壁纸由那层自己垫底
                                                     .captureForBlur(barBackdrop),
                                         ) {
-                                            // 宽屏上下、窄屏左右切换，切页只走导航，否则顶栏拖动会被外层 pager 抢走
-                                            if (wide) {
-                                                VerticalPager(
-                                                    state = pagerState,
-                                                    userScrollEnabled = false,
-                                                    beyondViewportPageCount = 1,
-                                                    modifier = Modifier.fillMaxSize(),
-                                                ) { page ->
-                                                    Box(
-                                                        modifier =
-                                                            Modifier
-                                                                .fillMaxSize()
-                                                                .nestedScroll(VerticalScrollShield),
-                                                    ) { pageContent(page) }
-                                                }
-                                            } else {
-                                                HorizontalPager(
-                                                    state = pagerState,
-                                                    userScrollEnabled = false,
-                                                    beyondViewportPageCount = 1,
-                                                    modifier = Modifier.fillMaxSize(),
-                                                ) { page -> pageContent(page) }
-                                            }
+                                            // 侧栏展开时上下、折叠成顶部导航条或窄屏时左右切换
+                                            TabPager(
+                                                pageCount = tabs.size,
+                                                position = { mainPagerState.position },
+                                                vertical = wide && railState.expanded,
+                                                modifier = Modifier.fillMaxSize(),
+                                                content = pageContent,
+                                            )
                                         }
                                         // 「今」按钮与底栏同层，切页时先收起，避免「先展开再收起」的闪动
                                         val backToNowSlot = backToNowHost.slotOf(mainPagerState.selectedPage)
@@ -327,7 +292,6 @@ fun MainScaffold(
                                                         .padding(bottom = NavBarMetrics.floatingBottomMargin),
                                             ) {
                                                 BottomNavBar(
-                                                    initialPage = firstPage,
                                                     targetPage = mainPagerState.targetPage,
                                                     blurBackdrop = barBackdrop,
                                                     onSelect = { mainPagerState.animateToPage(it) },
@@ -335,6 +299,16 @@ fun MainScaffold(
                                                 )
                                             }
                                         }
+                                    }
+                                    if (wide) {
+                                        SideNavBar(
+                                            selectedPage = mainPagerState.targetPage.value,
+                                            onSelect = { mainPagerState.animateToPage(it) },
+                                            onOpenSettings = { navigate(Page.Settings) },
+                                            blurBackdrop = LocalWallpaper.current?.glassSample,
+                                            state = railState,
+                                            modifier = Modifier.align(Alignment.TopStart),
+                                        )
                                     }
                                 }
                             }
@@ -453,5 +427,17 @@ fun MainScaffold(
                 }
             }
         }
+    }
+}
+
+/** 展开中的玻璃侧栏占位 */
+@Composable
+private fun Modifier.railInset(state: GlassNavigationRailState): Modifier {
+    val density = LocalDensity.current
+    val full = with(density) { (GlassNavigationRailDefaults.Margin + GlassNavigationRailDefaults.ExpandedWidth).toPx() }
+    return layout { measurable, constraints ->
+        val inset = (full * state.progress).toInt().coerceIn(0, constraints.maxWidth)
+        val placeable = measurable.measure(constraints.offset(horizontal = -inset))
+        layout(placeable.width + inset, placeable.height) { placeable.placeRelative(inset, 0) }
     }
 }

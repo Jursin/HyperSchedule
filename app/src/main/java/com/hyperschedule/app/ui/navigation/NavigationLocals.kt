@@ -60,5 +60,8 @@ val LocalMainTabNavigating = compositionLocalOf { false }
 /** 当前页是否为用户正在看的 Tab，二级页盖住不算离开 */
 val LocalPageIsCurrent = compositionLocalOf { true }
 
+/** 首页是否被二级页盖住 */
+val LocalPageCovered = compositionLocalOf { false }
+
 /** 停在本页时再点一次本 Tab 的次数，页面据此做复位 */
 val LocalPageReselect = compositionLocalOf { 0 }

@@ -41,7 +41,7 @@ import com.hyperschedule.app.ui.component.SaveFab
 import com.hyperschedule.app.ui.component.ValueLabel
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.WindowDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.rememberEditBackGuard
 import com.hyperschedule.app.ui.component.toast
 import java.time.LocalDate
@@ -49,7 +49,7 @@ import java.util.UUID
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.glass.Delete
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 整页快照，用于判断是否有未保存改动 */
@@ -216,7 +216,7 @@ private fun ComboEditContent(
         val targetOptions = remember(publics) { publics.map { it.name.orEmpty().ifBlank { "未命名" } } }
 
         PreferenceSection {
-            WindowDropdownPreference(
+            DropdownPreference(
                 title = "基准作息",
                 summary = "规则都不匹配时的回退作息",
                 items = baseOptions,
@@ -230,7 +230,7 @@ private fun ComboEditContent(
         val noTarget = targetOptions.isEmpty()
         rules.forEachIndexed { index, rule ->
             PreferenceSection("切换规则${index + 1}".cjkDigitGap()) {
-                WindowDropdownPreference(
+                DropdownPreference(
                     title = "目标作息",
                     items = if (noTarget) listOf("请先创建公共作息") else targetOptions,
                     selectedIndex = publics.indexOfFirst { it.id == rule.targetTimeTableId }.coerceAtLeast(0),
@@ -263,7 +263,7 @@ private fun ComboEditContent(
             if (rules.size > 1) {
                 WideActionButton(
                     text = "删除",
-                    icon = MiuixIcons.Delete,
+                    icon = MiuixIcons.Glass.Delete,
                     onClick = { rules.removeAt(index) },
                     contentColor = MiuixTheme.colorScheme.error,
                 )

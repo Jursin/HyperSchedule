@@ -4,12 +4,11 @@ import android.net.Uri
 import androidx.compose.runtime.Composable
 import com.hyperschedule.app.data.local.ScheduleStyle
 import com.hyperschedule.app.theme.sheetCardColor
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import com.hyperschedule.app.ui.component.pref.WindowDropdownPreference
 import java.util.Locale
 import kotlin.math.roundToInt
 
-/** 课程表外观抽屉，改动即时生效，不需要「应用」按钮 */
 @Composable
 fun ScheduleAppearanceSheet(
     show: Boolean,
@@ -31,7 +30,7 @@ fun ScheduleAppearanceSheet(
         onStyleCommit()
     }
     SheetScaffold(
-        title = "课程表外观",
+        title = "本周课程外观",
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
@@ -115,8 +114,7 @@ fun ScheduleAppearanceSheet(
             }
 
             PreferenceSection(cardColor = sheetCardColor(), title = "内容") {
-                // 抽屉挂在浮层里，Overlay 版下拉弹层会被抽屉盖住，用窗口版才会浮在最上层
-                WindowDropdownPreference(
+                DropdownPreference(
                     title = "卡片内容对齐方式",
                     items = listOf("居中", "左对齐"),
                     selectedIndex = if (style.contentCenter) 0 else 1,

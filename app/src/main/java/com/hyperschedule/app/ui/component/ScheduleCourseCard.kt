@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
@@ -42,12 +43,6 @@ import com.hyperschedule.app.ui.effect.cardSurface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 卡内字号的基准系数 */
-private const val CardTextScale = 0.84f
-
-/** 卡片行高与文字之间还留的余量，避免顶到边框 */
-private const val CardTextSlack = 2f
-
 /** 非本周（该格本周不上）的灰，底色与文字的透明度，深色主题另给一组 */
 private const val InactiveCardAlpha = 0.105f
 private const val InactiveCardAlphaDark = 0.04f
@@ -72,8 +67,7 @@ fun ScheduleCourseCard(
     // 放假这天不上课，按非本周的灰画
     val colors = rememberCourseCardColors(course, isCurrentWeek && !isHoliday)
     val shape = RoundedCornerShape(style.cardCorner.dp)
-
-    val scale = CardTextScale * style.textScale
+    val scale = 0.84f * style.textScale
     val infoFontSize = 11.sp * scale
     val nameFontSize = 12.7.sp * scale
     val lineHeight = 14.2.sp * scale
@@ -84,7 +78,7 @@ fun ScheduleCourseCard(
     // 字号换算成高度要带上系统字体缩放
     val fontScale = LocalDensity.current.fontScale
     val availableHeight =
-        heightOverride.value - 2f * (style.cardMargin + style.cardPadding) - CardTextSlack
+        heightOverride.value - 2f * (style.cardMargin + style.cardPadding) - 2f
     val reservedForInfo =
         ((if (showPosition) 1 else 0) + (if (showTeacher) 1 else 0)) * infoLineHeight.value * fontScale
     val nameMaxLines =
@@ -131,7 +125,7 @@ fun ScheduleCourseCard(
                 .padding(style.cardMargin.dp)
                 .clip(shape)
                 // 先铺一层和 Card 同浓度的底（开了模糊就采样壁纸），课程色压在上面
-                .cardSurface(shape)
+                .cardSurface(CornerSize(style.cardCorner.dp))
                 .background(colors.background)
                 .then(
                     if (style.cardBorder) {

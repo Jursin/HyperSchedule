@@ -9,10 +9,6 @@ import com.hyperschedule.app.schedule.SectionPeriod
 import com.hyperschedule.app.schedule.parseMinutes
 import com.hyperschedule.app.schedule.sectionPeriodOf
 
-/** 特殊节次横带的最小高度，太短的时段也要放得下两行时间 */
-private val MinBandHeight = 32.dp
-
-/** 没有节次时长时的兜底分钟数 */
 private const val FallbackSectionMinutes = 45
 
 /** 一条特殊节次横带，首尾相接的时段已经合并，[name] 是合并后的名称 */
@@ -168,7 +164,7 @@ internal class ScheduleLayout private constructor(
                         val to = parseMinutes(block.endTime) ?: return@mapIndexedNotNull null
                         if (to <= from) return@mapIndexedNotNull null
                         val rawTop = yFor(unique, from)
-                        val bandHeight = ((to - from) * minuteDp).coerceAtLeast(MinBandHeight.value)
+                        val bandHeight = ((to - from) * minuteDp).coerceAtLeast(32f)
                         RawBand(index, anchorSectionOf(rawTop), rawTop, bandHeight)
                     }
                     .sortedBy { it.rawTop }

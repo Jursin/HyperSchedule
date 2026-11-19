@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -45,6 +46,7 @@ import androidx.core.net.toUri
 import com.hyperschedule.app.data.local.WallpaperStore
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.SaveFab
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import kotlin.math.max
@@ -60,20 +62,8 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
-/** 裁剪框最大放大倍数 */
-private const val MAX_CROP_ZOOM = 5f
-
-/** 双击放大到的倍数 */
-private const val DOUBLE_TAP_ZOOM = 2.5f
-
-/** 存盘长边上限 */
-private const val OUTPUT_MAX_SIDE = 2160
-
 /** 框外压暗的程度，框内保持原色 */
 private const val OUTSIDE_SCRIM_ALPHA = 0.62f
-
-/** 折角的臂长占框宽的比例 */
-private const val CORNER_ARM_RATIO = 0.05f
 
 /** 壁纸裁剪 */
 @Composable
@@ -126,8 +116,10 @@ fun WallpaperCropPage(
             )
         },
         floatingActionButton = {
-            SaveFab(canSave = bitmap != null && !saving) {
-                if (bitmap != null && !saving) saveTick++
+            CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
+                SaveFab(canSave = bitmap != null && !saving) {
+                    if (bitmap != null && !saving) saveTick++
+                }
             }
         },
     ) { paddingValues ->
@@ -221,7 +213,7 @@ private fun CropArea(
                                 // 锚点取裁剪框中心
                                 val centre = Offset(this.size.width / 2f, frameTop + frame.height / 2f)
                                 val fromCentre = centroid - centre
-                                val next = (crop.scale * zoom).coerceIn(1f, MAX_CROP_ZOOM)
+                                val next = (crop.scale * zoom).coerceIn(1f, 5f)
                                 // 以双指中心为锚缩放，锚点下的画面不动，再叠加拖动
                                 val moved = fromCentre - (fromCentre - crop.offset) * (next / crop.scale) + pan
                                 crop.scale = next
@@ -233,7 +225,7 @@ private fun CropArea(
                                 onDoubleTap = { point ->
                                     val centre = Offset(this.size.width / 2f, frameTop + frame.height / 2f)
                                     val fromCentre = point - centre
-                                    val target = if (crop.scale > 1.05f) 1f else DOUBLE_TAP_ZOOM
+                                    val target = if (crop.scale > 1.05f) 1f else 2.5f
                                     val moved = fromCentre - (fromCentre - crop.offset) * (target / crop.scale)
                                     val toOffset = clampOffset(moved, displaySize(shown, frame, target), frame)
                                     val fromScale = crop.scale
@@ -313,7 +305,7 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
     guides.forEach { (from, to) -> drawLine(Color.White.copy(alpha = 0.45f), from, to, gridStroke) }
 
     // 折角整体在裁剪区域外侧，内缘贴着框边
-    val arm = (frame.width * CORNER_ARM_RATIO).coerceIn(10.dp.toPx(), 24.dp.toPx())
+    val arm = (frame.width * 0.05f).coerceIn(10.dp.toPx(), 24.dp.toPx())
     val edge = 2.5.dp.toPx()
 
     fun cornerArms(x: Float, y: Float, dx: Float, dy: Float): List<Rect> {
@@ -370,7 +362,7 @@ private fun sourceRect(image: IntSize, frame: Size, scale: Float, offset: Offset
 /** 存盘尺寸，长边按原图裁切区取并在上限内收住 */
 private fun outputSize(frame: Size, source: Rect): Size {
     val frameLong = max(frame.width, frame.height)
-    val targetLong = max(frameLong, min(max(source.width, source.height), OUTPUT_MAX_SIDE.toFloat()))
+    val targetLong = max(frameLong, min(max(source.width, source.height), 2160f))
     val factor = targetLong / frameLong
     return Size(frame.width * factor, frame.height * factor)
 }

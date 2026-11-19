@@ -16,25 +16,22 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.CardItemPadding
+import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.BasicComponentColors
 import top.yukonga.miuix.kmp.basic.BasicComponentDefaults
-import top.yukonga.miuix.kmp.basic.DropdownColors
-import top.yukonga.miuix.kmp.basic.DropdownDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.SwitchColors
 import top.yukonga.miuix.kmp.basic.SwitchDefaults
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.glass.GlassDropdownPreference
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowRight
+import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.preference.ArrowPreference as MiuixArrowPreference
-import top.yukonga.miuix.kmp.preference.OverlayDropdownPreference as MiuixOverlayDropdownPreference
 import top.yukonga.miuix.kmp.preference.SwitchPreference as MiuixSwitchPreference
-import top.yukonga.miuix.kmp.preference.WindowDropdownPreference as MiuixWindowDropdownPreference
 
 /** 设置条目，参数与上游同名组件一致，只把默认 insideMargin 换成 [CardItemPadding] */
 @Composable
@@ -135,7 +132,7 @@ fun MultilineArrowPreference(
         endActions = {
             Icon(
                 modifier = Modifier.size(width = 10.dp, height = 16.dp).align(Alignment.CenterVertically),
-                imageVector = MiuixIcons.Basic.ArrowRight,
+                imageVector = MiuixIcons.Glass.ChevronForward,
                 contentDescription = null,
                 tint = MiuixTheme.colorScheme.onSurfaceVariantActions,
             )
@@ -192,82 +189,39 @@ fun SwitchPreference(
     )
 }
 
+/** 下拉选择 */
 @Composable
-fun OverlayDropdownPreference(
+fun DropdownPreference(
+    title: String,
     items: List<String>,
     selectedIndex: Int,
-    title: String,
+    onSelectedIndexChange: (Int) -> Unit,
     modifier: Modifier = Modifier,
     titleColor: BasicComponentColors = BasicComponentDefaults.titleColor(),
     summary: String? = null,
     summaryColor: BasicComponentColors = BasicComponentDefaults.summaryColor(),
-    dropdownColors: DropdownColors = DropdownDefaults.dropdownColors(),
     startAction: @Composable (() -> Unit)? = null,
     bottomAction: (@Composable () -> Unit)? = null,
     insideMargin: PaddingValues = CardItemPadding,
-    maxHeight: Dp? = null,
-    enabled: Boolean = true,
-    showValue: Boolean = true,
-    renderInRootScaffold: Boolean = true,
-    onExpandedChange: ((Boolean) -> Unit)? = null,
-    onSelectedIndexChange: ((Int) -> Unit)? = null,
-) {
-    MiuixOverlayDropdownPreference(
-        items = items,
-        selectedIndex = selectedIndex,
-        title = title,
-        modifier = modifier,
-        titleColor = titleColor,
-        summary = summary,
-        summaryColor = summaryColor,
-        dropdownColors = dropdownColors,
-        startAction = startAction,
-        bottomAction = bottomAction,
-        insideMargin = insideMargin,
-        maxHeight = maxHeight,
-        enabled = enabled,
-        showValue = showValue,
-        renderInRootScaffold = renderInRootScaffold,
-        onExpandedChange = onExpandedChange,
-        onSelectedIndexChange = onSelectedIndexChange,
-    )
-}
-
-@Composable
-fun WindowDropdownPreference(
-    items: List<String>,
-    selectedIndex: Int,
-    title: String,
-    modifier: Modifier = Modifier,
-    titleColor: BasicComponentColors = BasicComponentDefaults.titleColor(),
-    summary: String? = null,
-    summaryColor: BasicComponentColors = BasicComponentDefaults.summaryColor(),
-    dropdownColors: DropdownColors = DropdownDefaults.dropdownColors(),
-    startAction: @Composable (() -> Unit)? = null,
-    bottomAction: (@Composable () -> Unit)? = null,
-    insideMargin: PaddingValues = CardItemPadding,
-    maxHeight: Dp? = null,
     enabled: Boolean = true,
     showValue: Boolean = true,
     onExpandedChange: ((Boolean) -> Unit)? = null,
-    onSelectedIndexChange: ((Int) -> Unit)? = null,
 ) {
-    MiuixWindowDropdownPreference(
+    GlassDropdownPreference(
+        onSelectedIndexChange = onSelectedIndexChange,
         items = items,
         selectedIndex = selectedIndex,
         title = title,
+        backdrop = LocalPageGlassBackdrop.current,
         modifier = modifier,
+        enabled = enabled,
+        showValue = showValue,
         titleColor = titleColor,
         summary = summary,
         summaryColor = summaryColor,
-        dropdownColors = dropdownColors,
         startAction = startAction,
         bottomAction = bottomAction,
         insideMargin = insideMargin,
-        maxHeight = maxHeight,
-        enabled = enabled,
-        showValue = showValue,
         onExpandedChange = onExpandedChange,
-        onSelectedIndexChange = onSelectedIndexChange,
     )
 }

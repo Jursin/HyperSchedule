@@ -12,12 +12,12 @@ import com.hyperschedule.app.ui.component.ChoiceDialog
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.DialogChoice
 import com.hyperschedule.app.ui.component.PreferenceItemSection
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.SelectableEditRow
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 待删除的作息，公共作息或组合作息 */
@@ -49,9 +49,9 @@ fun TimeTableManagePage(
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(onClick = { showAddDialog = true }) {
+            GlassFab(onClick = { showAddDialog = true }) {
                 Icon(
-                    imageVector = MiuixIcons.Add,
+                    imageVector = MiuixIcons.Glass.Add,
                     contentDescription = "添加作息",
                     tint = MiuixTheme.colorScheme.onPrimary,
                 )

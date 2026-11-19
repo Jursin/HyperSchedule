@@ -32,8 +32,10 @@ import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.File
-import top.yukonga.miuix.kmp.icon.extended.Years
+import top.yukonga.miuix.kmp.icon.glass.ClockOutline
+import top.yukonga.miuix.kmp.icon.glass.Contacts
+import top.yukonga.miuix.kmp.icon.glass.File
+import top.yukonga.miuix.kmp.icon.glass.Years
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 课程信息行的字段图标 id */
@@ -46,30 +48,18 @@ internal object InfoIconId {
     const val REMARK = "infoRemark"
 }
 
-/** 图标盒，墨迹约占 0.78 盒宽 */
-private val IconBoxSize = 15.sp
-
-/** 字段之间的间距 */
-private val FieldGap = 6.dp
-
-/** 复制点击高亮的圆角 */
-private val CopyHighlightShape = RoundedCornerShape(4.dp)
-
-/** 图标与字段值之间的间距 */
-private val IconTextGap = 3.dp
-
 /** 信息行的一枚字段 */
 internal data class InfoField(val icon: String, val alt: String, val value: String)
 
 /** 字段图标，未知 id 退回文件图标 */
 @Composable
 private fun infoIconVector(id: String): ImageVector = when (id) {
-    InfoIconId.WEEKS -> MiuixIcons.Years
-    InfoIconId.SECTION -> ImageVector.vectorResource(R.drawable.ic_schedule)
+    InfoIconId.WEEKS -> MiuixIcons.Glass.Years
+    InfoIconId.SECTION -> MiuixIcons.Glass.ClockOutline
     InfoIconId.POSITION -> ImageVector.vectorResource(R.drawable.ic_location_on)
-    InfoIconId.TEACHER -> ImageVector.vectorResource(R.drawable.ic_person)
+    InfoIconId.TEACHER -> MiuixIcons.Glass.Contacts
     InfoIconId.CREDIT -> ImageVector.vectorResource(R.drawable.ic_award_star)
-    else -> MiuixIcons.File
+    else -> MiuixIcons.Glass.File
 }
 
 /** 复制文本并弹提示；primaryClip 属性只读，只能调 setter 方法 */
@@ -83,7 +73,7 @@ private fun Context.copyToClipboard(alt: String, value: String) {
 @Composable
 internal fun Modifier.copyOnClick(alt: String, value: String): Modifier {
     val context = LocalContext.current
-    return clip(CopyHighlightShape)
+    return clip(RoundedCornerShape(4.dp))
         .clickable(onClickLabel = "复制$alt") { context.copyToClipboard(alt, value) }
 }
 
@@ -94,23 +84,25 @@ internal fun CourseInfoFields(
     modifier: Modifier = Modifier,
     tint: Color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
 ) {
-    val iconSize = with(LocalDensity.current) { IconBoxSize.toDp() }
+    val iconSize = with(LocalDensity.current) { 15.sp.toDp() }
+    val glassIconSize = with(LocalDensity.current) { 16.5.sp.toDp() }
     FlowRow(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(FieldGap),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         fields.forEach { field ->
             Row(
                 modifier = Modifier.copyOnClick(field.alt, field.value),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val isMaterial = field.icon == InfoIconId.POSITION || field.icon == InfoIconId.CREDIT
                 Icon(
                     imageVector = infoIconVector(field.icon),
                     contentDescription = null,
                     tint = tint,
-                    modifier = Modifier.size(iconSize),
+                    modifier = Modifier.size(if (isMaterial) iconSize else glassIconSize),
                 )
-                Spacer(modifier = Modifier.width(IconTextGap))
+                Spacer(modifier = Modifier.width(3.dp))
                 Text(
                     text = field.value,
                     style = MiuixTheme.textStyles.body2,

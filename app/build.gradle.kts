@@ -42,6 +42,7 @@ tasks.matching {
 android {
     namespace = "com.hyperschedule.app"
     compileSdk = 37
+    compileSdkMinor = 2
 
     defaultConfig {
         applicationId = "com.hyperschedule.app"
@@ -154,9 +155,10 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.miuix.ui)
-    implementation(libs.miuix.icons)
     implementation(libs.miuix.preference)
     implementation(libs.miuix.blur)
+    implementation(libs.miuix.glass)
+    implementation(libs.miuix.glass.icons)
     implementation(libs.miuix.nav)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.aboutlibraries.core)

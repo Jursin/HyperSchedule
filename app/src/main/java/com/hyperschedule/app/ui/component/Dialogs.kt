@@ -31,19 +31,20 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.useLargeScreenWindow
-import com.hyperschedule.app.ui.effect.WindowBlurEffect
+import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassDialogButton
+import top.yukonga.miuix.kmp.glass.GlassDialogButtonRole
+import top.yukonga.miuix.kmp.glass.GlassDialogDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.glass.Delete
 import top.yukonga.miuix.kmp.theme.LocalDismissState
 import top.yukonga.miuix.kmp.theme.MiuixTheme
-import top.yukonga.miuix.kmp.window.WindowDialog
 
 /** 确认对话框，底部一排等宽按钮，[actions] 可整排替换成自定义按钮 */
 @Composable
@@ -65,70 +66,74 @@ fun ConfirmDialog(
     actions: (@Composable RowScope.() -> Unit)? = null,
     content: (@Composable ColumnScope.() -> Unit)? = null,
 ) {
-    WindowDialog(
+    GlassDialog(
         show = show,
         onDismissRequest = onDismiss,
         onDismissFinished = onDismissFinished,
+        // 玻璃面从页面层取样，没开模糊时退回纯材质
+        backdrop = if (appBlur) LocalPageGlassBackdrop.current else null,
+        material = GlassDialogDefaults.material(),
+        stroke = GlassDialogDefaults.stroke(),
         title = if (endAction == null) title else null,
         summary = if (endAction == null) summary else null,
         summaryColor = summaryColor,
         // 平板居中、手机贴底，按宽屏判定选位置
         largeScreen = useLargeScreenWindow(),
-        content = {
-            WindowBlurEffect(useBlur = appBlur)
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clearFocusOnPress(LocalFocusManager.current),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+        ) {
+            if (endAction != null) {
+                DialogTitleRow(title = title, summary = summary, summaryColor = summaryColor, action = endAction)
+            }
+            if (message != null) Text(text = message)
+            // 正文区用权重占掉剩余高度，超出时自己滚动，按钮行始终拿得到高度
             Column(
                 modifier =
                     Modifier
                         .fillMaxWidth()
-                        .clearFocusOnPress(LocalFocusManager.current),
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(SectionSpacing),
             ) {
-                if (endAction != null) {
-                    DialogTitleRow(title = title, summary = summary, summaryColor = summaryColor, action = endAction)
-                }
-                if (message != null) Text(text = message)
-                // 正文区用权重占掉剩余高度，超出时自己滚动，按钮行始终拿得到高度
-                Column(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .weight(1f, fill = false)
-                            .verticalScroll(rememberScrollState()),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
-                ) {
-                    content?.invoke(this)
-                }
-                DialogActionRow {
-                    if (actions != null) {
-                        actions()
-                    } else {
-                        if (cancelText != null) {
-                            val dismiss = LocalDismissState.current
-                            TextButton(
-                                modifier = Modifier.weight(1f),
-                                onClick = { dismiss?.invoke() },
-                                text = cancelText,
-                            )
-                        }
-                        TextButton(
+                content?.invoke(this)
+            }
+            DialogActionRow {
+                if (actions != null) {
+                    actions()
+                } else {
+                    if (cancelText != null) {
+                        val dismiss = LocalDismissState.current
+                        GlassDialogButton(
                             modifier = Modifier.weight(1f),
-                            onClick = onConfirm,
-                            text = confirmText,
-                            enabled = confirmEnabled,
-                            colors =
-                                if (destructive) {
-                                    ButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error)
-                                } else {
-                                    ButtonDefaults.textButtonColorsPrimary()
-                                },
-                        )
+                            onClick = { dismiss?.invoke() },
+                        ) {
+                            Text(text = cancelText, style = MiuixTheme.textStyles.button)
+                        }
+                    }
+                    GlassDialogButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onConfirm,
+                        enabled = confirmEnabled,
+                        role =
+                            if (destructive) {
+                                GlassDialogButtonRole.Destructive
+                            } else {
+                                GlassDialogButtonRole.Primary
+                            },
+                    ) {
+                        Text(text = confirmText, style = MiuixTheme.textStyles.button)
                     }
                 }
             }
-        },
-    )
+        }
+    }
 }
 
 /** 纯选择对话框，若干等宽按钮，用于「多选一」的确认场景 */
@@ -148,21 +153,22 @@ fun ChoiceDialog(
         message = message,
         actions = {
             choices.forEach { choice ->
-                TextButton(
+                GlassDialogButton(
                     modifier = Modifier.weight(1f),
                     onClick = {
                         onDismiss()
                         choice.onClick()
                     },
-                    text = choice.text,
                     enabled = choice.enabled,
-                    colors =
+                    role =
                         if (choice.destructive) {
-                            ButtonDefaults.textButtonColors(textColor = MiuixTheme.colorScheme.error)
+                            GlassDialogButtonRole.Destructive
                         } else {
-                            ButtonDefaults.textButtonColors()
+                            GlassDialogButtonRole.Normal
                         },
-                )
+                ) {
+                    Text(text = choice.text, style = MiuixTheme.textStyles.button)
+                }
             }
         },
     )
@@ -320,7 +326,7 @@ fun ShareCodeDialog(
 fun DialogDeleteAction(onClick: () -> Unit) {
     IconButton(onClick = onClick) {
         Icon(
-            imageVector = MiuixIcons.Delete,
+            imageVector = MiuixIcons.Glass.Delete,
             contentDescription = "删除",
             modifier = Modifier.size(24.dp),
             tint = MiuixTheme.colorScheme.error,

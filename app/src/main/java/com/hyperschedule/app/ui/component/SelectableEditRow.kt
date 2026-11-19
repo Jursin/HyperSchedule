@@ -16,8 +16,8 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.RadioButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Delete
-import top.yukonga.miuix.kmp.icon.extended.Edit
+import top.yukonga.miuix.kmp.icon.glass.Delete
+import top.yukonga.miuix.kmp.icon.glass.Edit
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 单选行，[radioAtEnd] 为真时单选放到右侧，编辑删除按钮始终在右侧 */
@@ -53,7 +53,7 @@ fun SelectableEditRow(
                 if (onEdit != null) {
                     IconButton(onClick = onEdit) {
                         Icon(
-                            imageVector = MiuixIcons.Edit,
+                            imageVector = MiuixIcons.Glass.Edit,
                             contentDescription = "编辑",
                             modifier = Modifier.size(24.dp),
                             tint = MiuixTheme.colorScheme.onSurface,
@@ -63,7 +63,7 @@ fun SelectableEditRow(
                 if (onDelete != null) {
                     IconButton(onClick = onDelete) {
                         Icon(
-                            imageVector = MiuixIcons.Delete,
+                            imageVector = MiuixIcons.Glass.Delete,
                             contentDescription = "删除",
                             modifier = Modifier.size(24.dp),
                             tint = MiuixTheme.colorScheme.error,

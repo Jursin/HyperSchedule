@@ -49,8 +49,8 @@ import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.ChevronBackward
-import top.yukonga.miuix.kmp.icon.extended.ChevronForward
+import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
+import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -317,7 +317,7 @@ private fun CalendarFrame(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             MonthNavButton(
-                imageVector = MiuixIcons.ChevronBackward,
+                imageVector = MiuixIcons.Glass.ChevronBackward,
                 contentDescription = "上一月",
                 onClick = { onShiftMonth(-1) },
             )
@@ -330,7 +330,7 @@ private fun CalendarFrame(
                 color = MiuixTheme.colorScheme.onSurface,
             )
             MonthNavButton(
-                imageVector = MiuixIcons.ChevronForward,
+                imageVector = MiuixIcons.Glass.ChevronForward,
                 contentDescription = "下一月",
                 onClick = { onShiftMonth(1) },
             )

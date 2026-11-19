@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -42,7 +43,7 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
@@ -244,7 +245,7 @@ internal fun DayGridColumn(
                                 if (hasWallpaper) {
                                     Modifier
                                         .clip(pendingShape)
-                                        .cardSurface(pendingShape)
+                                        .cardSurface(CornerSize(style.cardCorner.dp))
                                         .background(pendingColor)
                                 } else {
                                     Modifier
@@ -261,7 +262,7 @@ internal fun DayGridColumn(
                 ) {
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         Icon(
-                            imageVector = MiuixIcons.Add,
+                            imageVector = MiuixIcons.Glass.Add,
                             contentDescription = "添加",
                             modifier = Modifier.size(22.dp),
                         )

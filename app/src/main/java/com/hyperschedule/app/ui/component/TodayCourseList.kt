@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.data.db.entity.CourseWithWeeks
@@ -30,6 +32,7 @@ import com.hyperschedule.app.data.local.TodayStyle
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.timeRangeText
 import com.hyperschedule.app.theme.CardCornerRadius
+import com.hyperschedule.app.theme.CardInsidePadding
 import com.hyperschedule.app.theme.TimeLabelFontSize
 import com.hyperschedule.app.ui.effect.cardSurface
 import com.hyperschedule.app.ui.effect.wallpaperVisible
@@ -92,7 +95,7 @@ fun TodayCourseList(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 groups.forEach { (title, items) ->
                     if (items.isEmpty()) return@forEach
-                    SectionPill(title)
+                    SectionPill(title, inset = CardInsidePadding)
                     Spacer(modifier = Modifier.height(2.dp))
                     TodayCourseCard {
                         Column {
@@ -141,9 +144,8 @@ fun TodayCourseList(
 
 @Composable
 private fun TodayCourseCard(content: @Composable () -> Unit) {
-    val shape = RoundedCornerShape(CardCornerRadius)
     if (wallpaperVisible()) {
-        Box(modifier = Modifier.fillMaxWidth().cardSurface(shape)) {
+        Box(modifier = Modifier.fillMaxWidth().cardSurface(CornerSize(CardCornerRadius))) {
             content()
         }
     } else {
@@ -318,6 +320,7 @@ internal fun SectionPill(
     modifier: Modifier = Modifier,
     textAlign: TextAlign? = null,
     style: TextStyle = MiuixTheme.textStyles.body1,
+    inset: Dp = 10.dp,
 ) {
     val shape = RoundedCornerShape(percent = 50)
     val hasWallpaper = wallpaperVisible()
@@ -332,12 +335,12 @@ internal fun SectionPill(
                 .padding(vertical = 6.dp)
                 .then(
                     if (hasWallpaper) {
-                        Modifier.cardSurface(shape)
+                        Modifier.cardSurface(CornerSize(percent = 50))
                     } else {
                         Modifier.background(color = CardDefaults.defaultColors().color, shape = shape)
                     },
                 )
-                .padding(horizontal = 10.dp, vertical = 4.dp),
+                .padding(horizontal = inset, vertical = 4.dp),
     )
 }
 

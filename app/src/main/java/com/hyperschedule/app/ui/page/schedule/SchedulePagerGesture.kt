@@ -31,8 +31,6 @@ internal class PagerSettleSlot {
 }
 
 private const val PositionalThresholdRatio = 0.25f
-private val PositionalThresholdCap = 120.dp
-private val FlickVelocity = 100.dp
 
 /** 松手后的横向落页 */
 private suspend fun settleSchedulePager(
@@ -95,8 +93,8 @@ internal fun Modifier.schedulePagerGesture(
     val scope = rememberCoroutineScope()
     return this.pointerInput(pagerState) {
         val touchSlop = viewConfiguration.touchSlop
-        val flickPx = FlickVelocity.toPx()
-        val thresholdCapPx = PositionalThresholdCap.toPx()
+        val flickPx = 100.dp.toPx()
+        val thresholdCapPx = 120.dp.toPx()
         awaitEachGesture {
             val viewportPx = size.width.toFloat().coerceAtLeast(1f)
             var down = awaitFirstDown(requireUnconsumed = false)

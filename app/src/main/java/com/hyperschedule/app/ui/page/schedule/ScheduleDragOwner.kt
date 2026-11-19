@@ -29,8 +29,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
-private val EdgeHotZone = 32.dp
-
 private const val EdgeDwellMs = 500L
 
 private const val PagerSettleMs = 500L
@@ -139,7 +137,7 @@ internal class EdgeAutoPager(
 internal fun rememberEdgeAutoPager(): EdgeAutoPager {
     val scope = rememberCoroutineScope()
     val haptic = LocalHapticFeedback.current
-    val zone = with(LocalDensity.current) { EdgeHotZone.toPx() }
+    val zone = with(LocalDensity.current) { 32.dp.toPx() }
     return remember(scope, haptic, zone) { EdgeAutoPager(scope, haptic, zone) }
 }
 

@@ -27,6 +27,7 @@ import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.local.WebDavSettings
 import com.hyperschedule.app.schedule.cjkDigitGap
+import com.hyperschedule.app.ui.component.JoinedGlassTabs
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.toast
 import com.hyperschedule.app.ui.page.settings.backup.BackupSource
@@ -49,7 +50,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
 
 private const val TAB_LOCAL = 0
 private const val TAB_WEBDAV = 1
@@ -417,10 +417,10 @@ fun BackupPage(
             onBack()
         },
     ) {
-        TabRowWithContour(
+        JoinedGlassTabs(
             tabs = listOf("本地", "WebDAV", "S3"),
-            selectedTabIndex = selectedTab,
-            onTabSelected = { selectedTab = it },
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
         )
         when (selectedTab) {
             TAB_LOCAL ->

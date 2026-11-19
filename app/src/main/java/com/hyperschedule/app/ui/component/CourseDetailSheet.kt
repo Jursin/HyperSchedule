@@ -39,7 +39,7 @@ import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
+import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 
@@ -80,7 +80,7 @@ fun CourseDetailSheet(
                     },
                 ) {
                     Icon(
-                        imageVector = MiuixIcons.Add,
+                        imageVector = MiuixIcons.Glass.Add,
                         contentDescription = "添加课程",
                         modifier = Modifier.size(24.dp),
                         tint = MiuixTheme.colorScheme.onSurface,
@@ -101,11 +101,17 @@ fun CourseDetailSheet(
                 Modifier
                     .fillMaxWidth()
                     .heightIn(max = SheetMaxHeight),
-            contentPadding = PaddingValues(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         ) {
             items(items, key = { it.course.id }) { item ->
-                CourseDetailCard(item, mark = mark, onEdit = { onEdit(item.course) })
+                CourseDetailCard(
+                    item = item,
+                    mark = mark,
+                    onEdit = {
+                        onDismiss()
+                        onEdit(item.course)
+                    },
+                )
             }
         }
     }

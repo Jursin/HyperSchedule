@@ -34,14 +34,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
-import com.hyperschedule.app.R
 import com.hyperschedule.app.data.importer.edu.EduScriptRepository
 import com.hyperschedule.app.data.importer.edu.SchoolRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
@@ -60,20 +57,22 @@ import com.hyperschedule.app.ui.component.EduSelectionDialog
 import com.hyperschedule.app.ui.component.EduSelectionState
 import com.hyperschedule.app.ui.component.EduSslState
 import com.hyperschedule.app.ui.component.EduWebBridge
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.ImportTablePickerDialog
 import com.hyperschedule.app.ui.component.TopBarIconButton
 import com.hyperschedule.app.ui.component.interceptPostRequest
 import com.hyperschedule.app.ui.component.toast
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Download
-import top.yukonga.miuix.kmp.icon.extended.Refresh
+import top.yukonga.miuix.kmp.icon.glass.Download
+import top.yukonga.miuix.kmp.icon.glass.PadDevice
+import top.yukonga.miuix.kmp.icon.glass.PhoneBackupRestore
+import top.yukonga.miuix.kmp.icon.glass.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 教务系统网页导入，右下角切换电脑模式与导入 */
@@ -295,7 +294,7 @@ fun EduImportWebPage(
                 onBack = ::goBack,
                 actions = {
                     TopBarIconButton(onClick = { if (!rendererGone) webView.reload() }) {
-                        Icon(imageVector = MiuixIcons.Refresh, contentDescription = "刷新")
+                        Icon(imageVector = MiuixIcons.Glass.Refresh, contentDescription = "刷新")
                     }
                 },
                 // 网页页用紧凑顶栏，把高度让给网页
@@ -330,20 +329,21 @@ fun EduImportWebPage(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(SectionSpacing),
                 ) {
-                    FloatingActionButton(
+                    GlassFab(
                         onClick = ::toggleDesktopMode,
-                        containerColor = MiuixTheme.colorScheme.secondaryVariant,
+                        color = MiuixTheme.colorScheme.secondaryVariant,
                     ) {
                         Icon(
-                            imageVector = ImageVector.vectorResource(R.drawable.ic_devices),
+                            imageVector =
+                                if (desktopMode) MiuixIcons.Glass.PhoneBackupRestore else MiuixIcons.Glass.PadDevice,
                             contentDescription = if (desktopMode) "切换到手机模式" else "切换到电脑模式",
                             modifier = Modifier.size(22.dp),
                             tint = MiuixTheme.colorScheme.onSecondaryVariant,
                         )
                     }
-                    FloatingActionButton(
+                    GlassFab(
                         onClick = ::askTargetTable,
-                        containerColor =
+                        color =
                             if (pageReady) {
                                 MiuixTheme.colorScheme.primary
                             } else {
@@ -351,7 +351,7 @@ fun EduImportWebPage(
                             },
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Download,
+                            imageVector = MiuixIcons.Glass.Download,
                             contentDescription = "执行导入脚本",
                             modifier = Modifier.size(24.dp),
                             tint =

@@ -1,42 +1,40 @@
 package com.hyperschedule.app.ui.page.schedule
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
+import com.hyperschedule.app.ui.component.ScheduleDayColumnStart
 import com.hyperschedule.app.ui.component.TopBarIconButton
+import com.hyperschedule.app.ui.component.TopBarLeadingLabel
 import com.hyperschedule.app.ui.component.WeekdayRow
-import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.IconButtonDefaults
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TooltipBox
-import top.yukonga.miuix.kmp.basic.TopAppBarDefaults
+import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
+import top.yukonga.miuix.kmp.glass.GlassPopupAnchor
+import top.yukonga.miuix.kmp.glass.GlassPopupItem
+import top.yukonga.miuix.kmp.glass.GlassTransformPopup
+import top.yukonga.miuix.kmp.glass.glassPopupAnchor
+import top.yukonga.miuix.kmp.glass.glassPopupAnchorContent
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowUpDown
-import top.yukonga.miuix.kmp.icon.extended.Background
-import top.yukonga.miuix.kmp.icon.extended.Backup
-import top.yukonga.miuix.kmp.icon.extended.ConvertFile
-import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.icon.glass.Background
+import top.yukonga.miuix.kmp.icon.glass.ConvertFile
+import top.yukonga.miuix.kmp.icon.glass.GridView
+import top.yukonga.miuix.kmp.icon.glass.JumpPrevious
+import top.yukonga.miuix.kmp.icon.glass.More
+import java.time.LocalDate
 
-/** 课表顶栏，周次标题（可点开跳转）、星期行与三个入口按钮 */
+/** 菜单收起时缩回按钮的那枚图标尺寸 */
+private val MenuIconSize = 24.dp
+
+/** 课表顶栏 */
 @Composable
 internal fun ScheduleTopBar(
     startDate: LocalDate?,
@@ -47,88 +45,114 @@ internal fun ScheduleTopBar(
     gridLines: Boolean,
     blurBackdrop: LayerBackdrop?,
     scrollBehavior: ScrollBehavior,
-    onManageTables: () -> Unit,
-    onManageCourses: () -> Unit,
-    onAppearanceClick: () -> Unit,
+    menuAnchor: GlassPopupAnchor,
+    onMenuOpenChange: (Boolean) -> Unit,
     onJumpClick: (week: Int) -> Unit,
 ) {
-    val title =
+    val weekLabel =
         when {
             startDate == null -> "未设置开学日期"
             pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
             else -> "第${pageWeek}周".cjkDigitGap()
         }
-    // 跳转按钮的图标与文字取同一尺寸
-    val titleFontSize = MiuixTheme.textStyles.title3.fontSize
-    val titleIconSize = with(LocalDensity.current) { titleFontSize.toDp() }
-
-    Box {
-        BlurredTopAppBar(
-            title = "",
-            blurBackdrop = blurBackdrop,
-            scrollBehavior = scrollBehavior,
-            leading = {
-                TopBarIconButton(onClick = onManageTables, tooltip = "课表切换") {
-                    Icon(MiuixIcons.ConvertFile, contentDescription = "课表切换")
+    BlurredTopAppBar(
+        title = "本周课程",
+        blurBackdrop = blurBackdrop,
+        scrollBehavior = scrollBehavior,
+        leading = { TopBarLeadingLabel(weekLabel) },
+        // 与下方网格第一列右侧的竖线对齐
+        leadingStart = ScheduleDayColumnStart,
+        actions = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // 没设开学日期就没有可跳转的周
+                TopBarIconButton(
+                    onClick = { onJumpClick(pageWeek) },
+                    enabled = startDate != null,
+                    tooltip = "跳转周数",
+                ) {
+                    Icon(MiuixIcons.Glass.JumpPrevious, contentDescription = "跳转周数")
                 }
-            },
-            actions = {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TopBarIconButton(onClick = onManageCourses, tooltip = "课程管理") {
-                        Icon(MiuixIcons.Backup, contentDescription = "课程管理")
-                    }
-                    TopBarIconButton(onClick = onAppearanceClick, tooltip = "课程表外观") {
-                        Icon(MiuixIcons.Background, contentDescription = "课程表外观")
-                    }
-                }
-            },
-            // 星期行与课表列共用同一套网格线
-            bottomContent = {
-                // 没设开学日期时按今天所在周显示日期
-                WeekdayRow(
-                    startDate = startDate ?: today,
-                    week = pageWeek,
-                    currentWeek = currentWeek,
-                    today = today,
-                    gridLines = gridLines,
-                )
-            },
-            pinnedTitle = true,
-        )
-        // 周次标题固定在正中，跳转按钮在文字右侧留一点空隙
-        Row(
-            modifier =
-                Modifier
-                    .align(Alignment.TopCenter)
-                    .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
-                    .height(TopAppBarDefaults.CollapsedHeight),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = title,
-                fontSize = titleFontSize,
-                fontWeight = FontWeight.Medium,
-                color = MiuixTheme.colorScheme.onSurface,
-            )
-            // 没设开学日期就没有可跳转的周，不显示按钮
-            if (startDate != null) {
-                TooltipBox(text = "跳转周数") {
-                    IconButton(
-                        onClick = { onJumpClick(pageWeek) },
-                        modifier = Modifier.padding(start = 4.dp),
-                        minWidth = 32.dp,
-                        minHeight = 32.dp,
-                    ) {
-                        Icon(
-                            imageVector = MiuixIcons.Basic.ArrowUpDown,
-                            contentDescription = "跳转周数",
-                            modifier = Modifier.size(titleIconSize),
-                            tint = MiuixTheme.colorScheme.onSurface,
-                        )
-                    }
+                TopBarIconButton(
+                    onClick = { onMenuOpenChange(true) },
+                    modifier =
+                        Modifier.glassPopupAnchor(
+                            anchor = menuAnchor,
+                            cornerRadius = IconButtonDefaults.MinWidth / 2f,
+                            floating = true,
+                        ),
+                    tooltip = "更多",
+                ) {
+                    Icon(
+                        imageVector = MiuixIcons.Glass.More,
+                        contentDescription = "更多",
+                        modifier = Modifier.size(MenuIconSize).glassPopupAnchorContent(menuAnchor),
+                    )
                 }
             }
-        }
+        },
+        bottomContent = {
+            // 星期行与课表列共用同一套网格线
+            WeekdayRow(
+                // 没设开学日期时按今天所在周显示日期
+                startDate = startDate ?: today,
+                week = pageWeek,
+                currentWeek = currentWeek,
+                today = today,
+                gridLines = gridLines,
+            )
+        },
+        pinnedTitle = true,
+    )
+}
+
+/** 顶栏「更多」菜单 */
+@Composable
+internal fun BoxScope.ScheduleTopBarMenu(
+    show: Boolean,
+    onDismissRequest: () -> Unit,
+    anchor: GlassPopupAnchor,
+    blurBackdrop: Backdrop?,
+    onAppearanceClick: () -> Unit,
+    onManageTables: () -> Unit,
+    onManageCourses: () -> Unit,
+) {
+    GlassTransformPopup(
+        show = show,
+        onDismissRequest = onDismissRequest,
+        anchor = anchor,
+        backdrop = blurBackdrop,
+        anchorContent = {
+            Icon(
+                imageVector = MiuixIcons.Glass.More,
+                contentDescription = null,
+                modifier = Modifier.size(MenuIconSize),
+            )
+        },
+    ) {
+        GlassPopupItem(
+            text = "外观设置",
+            icon = MiuixIcons.Glass.Background,
+            onClick = {
+                onDismissRequest()
+                onAppearanceClick()
+            },
+        )
+        GlassPopupItem(
+            text = "课表切换",
+            icon = MiuixIcons.Glass.ConvertFile,
+            onClick = {
+                onDismissRequest()
+                onManageTables()
+            },
+        )
+        GlassPopupItem(
+            text = "课程管理",
+            icon = MiuixIcons.Glass.GridView,
+            onClick = {
+                onDismissRequest()
+                onManageCourses()
+            },
+        )
     }
 }

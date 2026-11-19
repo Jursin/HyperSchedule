@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -19,6 +20,7 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.R
 import com.hyperschedule.app.data.backup.BACKUP_FOLDER
@@ -40,11 +42,12 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Folder
-import top.yukonga.miuix.kmp.icon.extended.Hide
-import top.yukonga.miuix.kmp.icon.extended.Lock
-import top.yukonga.miuix.kmp.icon.extended.MapAlbum
-import top.yukonga.miuix.kmp.icon.extended.Show
+import top.yukonga.miuix.kmp.icon.glass.Contacts
+import top.yukonga.miuix.kmp.icon.glass.FolderOutline
+import top.yukonga.miuix.kmp.icon.glass.Hide
+import top.yukonga.miuix.kmp.icon.glass.LockOutline
+import top.yukonga.miuix.kmp.icon.glass.MapAlbum
+import top.yukonga.miuix.kmp.icon.glass.Show
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 远端备份页的输入项，WebDAV 与 S3 只有字段不同 */
@@ -52,6 +55,7 @@ private class RemoteField(
     val label: String,
     val value: String,
     val icon: ImageVector? = null,
+    val iconSize: Dp = 24.dp,
     val secret: Boolean = false,
     val error: String? = null,
     /** 失焦时为空就回填这个值，路径类字段用它 */
@@ -83,14 +87,15 @@ internal fun WebDavBackupTab(
                     icon = ImageVector.vectorResource(R.drawable.ic_cloud),
                     error = serverUrlError(draft.serverUrl),
                 ) { draft.serverUrl = it },
-                RemoteField(label = "用户名", value = draft.username, icon = ImageVector.vectorResource(R.drawable.ic_person)) { draft.username = it },
-                RemoteField(label = "密码", value = draft.password, icon = MiuixIcons.Lock, secret = true) {
+                RemoteField(label = "用户名", value = draft.username, icon = MiuixIcons.Glass.Contacts, iconSize = 26.dp) { draft.username = it },
+                RemoteField(label = "密码", value = draft.password, icon = MiuixIcons.Glass.LockOutline, iconSize = 26.dp, secret = true) {
                     draft.password = it
                 },
                 RemoteField(
                     label = "备份路径",
                     value = draft.folder,
-                    icon = MiuixIcons.Folder,
+                    icon = MiuixIcons.Glass.FolderOutline,
+                    iconSize = 26.dp,
                     error = backupFolderError(draft.folder),
                     blankFallback = BACKUP_FOLDER,
                 ) { draft.folder = it },
@@ -128,13 +133,14 @@ internal fun S3BackupTab(
                     icon = ImageVector.vectorResource(R.drawable.ic_cloud),
                     error = serverUrlError(draft.endpoint),
                 ) { draft.endpoint = it },
-                RemoteField(label = "访问密钥 ID", value = draft.accessKeyId, icon = ImageVector.vectorResource(R.drawable.ic_person)) {
+                RemoteField(label = "访问密钥 ID", value = draft.accessKeyId, icon = MiuixIcons.Glass.Contacts, iconSize = 26.dp) {
                     draft.accessKeyId = it
                 },
                 RemoteField(
                     label = "机密访问密钥",
                     value = draft.secretAccessKey,
-                    icon = MiuixIcons.Lock,
+                    icon = MiuixIcons.Glass.LockOutline,
+                    iconSize = 26.dp,
                     secret = true,
                 ) { draft.secretAccessKey = it },
                 RemoteField(
@@ -146,14 +152,16 @@ internal fun S3BackupTab(
                 RemoteField(
                     label = "区域",
                     value = draft.region,
-                    icon = MiuixIcons.MapAlbum,
+                    icon = MiuixIcons.Glass.MapAlbum,
+                    iconSize = 26.dp,
                     error = s3RegionError(draft.region),
                     blankFallback = S3_DEFAULT_REGION,
                 ) { draft.region = it },
                 RemoteField(
                     label = "备份路径",
                     value = draft.folder,
-                    icon = MiuixIcons.Folder,
+                    icon = MiuixIcons.Glass.FolderOutline,
+                    iconSize = 26.dp,
                     error = backupFolderError(draft.folder),
                     blankFallback = BACKUP_FOLDER,
                 ) { draft.folder = it },
@@ -240,7 +248,7 @@ private fun RemoteFieldRow(field: RemoteField) {
     }
     val icon = field.icon
     val leadingIcon: (@Composable () -> Unit)? =
-        icon?.let { vector -> { FieldLeadingIcon(vector, field.label) } }
+        icon?.let { vector -> { FieldLeadingIcon(vector, field.label, field.iconSize) } }
     val trailingIcon: (@Composable () -> Unit)? =
         if (field.secret) {
             {
@@ -249,7 +257,7 @@ private fun RemoteFieldRow(field: RemoteField) {
                     modifier = Modifier.padding(end = 12.dp),
                 ) {
                     Icon(
-                        imageVector = if (revealed) MiuixIcons.Show else MiuixIcons.Hide,
+                        imageVector = if (revealed) MiuixIcons.Glass.Show else MiuixIcons.Glass.Hide,
                         contentDescription = if (revealed) "隐藏" else "显示",
                     )
                 }
@@ -288,6 +296,10 @@ private fun RemoteFieldRow(field: RemoteField) {
 }
 
 @Composable
-private fun FieldLeadingIcon(icon: ImageVector, description: String) {
-    Icon(imageVector = icon, contentDescription = description, modifier = Modifier.padding(horizontal = 12.dp))
+private fun FieldLeadingIcon(icon: ImageVector, description: String, iconSize: Dp) {
+    Icon(
+        imageVector = icon,
+        contentDescription = description,
+        modifier = Modifier.padding(horizontal = 12.dp).size(iconSize),
+    )
 }

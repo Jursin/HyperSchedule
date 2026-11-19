@@ -6,11 +6,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.hyperschedule.app.theme.SectionSpacing
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
+import com.hyperschedule.app.ui.component.GlassFab
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Redo
-import top.yukonga.miuix.kmp.icon.extended.Undo
+import top.yukonga.miuix.kmp.icon.glass.Redo
+import top.yukonga.miuix.kmp.icon.glass.Undo
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 撤销/重做按钮，栈为空时对应按钮不出现 */
@@ -28,24 +28,24 @@ internal fun HistoryFabColumn(
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
     ) {
         if (canUndo) {
-            FloatingActionButton(
+            GlassFab(
                 onClick = onUndo,
-                containerColor = MiuixTheme.colorScheme.secondaryVariant,
+                color = MiuixTheme.colorScheme.secondaryVariant,
             ) {
                 Icon(
-                    imageVector = MiuixIcons.Undo,
+                    imageVector = MiuixIcons.Glass.Undo,
                     contentDescription = "撤销",
                     tint = MiuixTheme.colorScheme.onSecondaryVariant,
                 )
             }
         }
         if (canRedo) {
-            FloatingActionButton(
+            GlassFab(
                 onClick = onRedo,
-                containerColor = MiuixTheme.colorScheme.secondaryVariant,
+                color = MiuixTheme.colorScheme.secondaryVariant,
             ) {
                 Icon(
-                    imageVector = MiuixIcons.Redo,
+                    imageVector = MiuixIcons.Glass.Redo,
                     contentDescription = "重做",
                     tint = MiuixTheme.colorScheme.onSecondaryVariant,
                 )

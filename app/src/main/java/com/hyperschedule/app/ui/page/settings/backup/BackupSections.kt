@@ -18,7 +18,7 @@ import com.hyperschedule.app.theme.accentBlueColor
 import com.hyperschedule.app.ui.component.ConfirmDialog
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
@@ -80,7 +80,7 @@ internal fun BackupActionsSection(
         title = "启动时自动备份",
         summary = "启动时检查一次，内容有变化时新增备份",
     )
-    OverlayDropdownPreference(
+    DropdownPreference(
         title = "备份保留数量",
         summary = "超出后删除最旧的一份",
         items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },

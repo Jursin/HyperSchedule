@@ -9,11 +9,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -23,8 +21,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +36,7 @@ import com.hyperschedule.app.schedule.cjkDigitGap
 import com.hyperschedule.app.schedule.currentWeekOf
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.theme.PageBottomInset
+import com.hyperschedule.app.theme.PageTextStart
 import com.hyperschedule.app.theme.subtleFillColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.DatePickerDialog
@@ -51,12 +48,14 @@ import com.hyperschedule.app.ui.component.SectionPill
 import com.hyperschedule.app.ui.component.TodayAppearanceSheet
 import com.hyperschedule.app.ui.component.TodayCourseList
 import com.hyperschedule.app.ui.component.TopBarIconButton
+import com.hyperschedule.app.ui.component.TopBarLeadingLabel
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.markOrNull
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.pageContainerColor
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import com.hyperschedule.app.ui.navigation.LocalMainTabNavigating
+import com.hyperschedule.app.ui.navigation.LocalPageCovered
 import com.hyperschedule.app.ui.navigation.LocalPageIsCurrent
 import com.hyperschedule.app.ui.navigation.ProvideOverlay
 import com.hyperschedule.app.ui.state.CourseTableData
@@ -71,8 +70,8 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.ArrowUpDown
-import top.yukonga.miuix.kmp.icon.extended.Background
+import top.yukonga.miuix.kmp.icon.glass.Background
+import top.yukonga.miuix.kmp.icon.glass.JumpPrevious
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -97,11 +96,6 @@ fun TodayPage(
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val scope = rememberCoroutineScope()
     val dateState = rememberDatePagerState()
-    val density = LocalDensity.current
-    // 空状态居中的文案有多高：内容被拉上来时，文案顶端到栏底还有一段看不到的距离
-    var hintHeight by remember { mutableStateOf(0.dp) }
-    // 当前这一页的内容顶端离栏底多远才算出材质的起点
-    var materialStart by remember { mutableStateOf(TodayContentStart) }
 
     val tableId = table?.tableId
     val slots = table?.slots.orEmpty()
@@ -125,12 +119,21 @@ fun TodayPage(
 
     val pageDate = dateState.date
     val pageWeek = startDate?.let { currentWeekOf(it, pageDate) }
+    // 与本周课程页同一套文案
+    val weekLabel =
+        when {
+            startDate == null -> "未设置开学日期"
+            pageWeek == null || pageWeek < 1 -> "未开学"
+            pageWeek > totalWeeks -> "学期已结束"
+            else -> "第${pageWeek}周".cjkDigitGap()
+        }
     val pagePlan =
         remember(holidayPlan, pageWeek, pageDate.dayOfWeek.value) {
             pageWeek?.let { holidayPlan.of(it, pageDate.dayOfWeek.value) } ?: HolidayDay()
         }
 
     val pageIsCurrent = LocalPageIsCurrent.current
+    val pageCovered = LocalPageCovered.current
     val tabNavigating = LocalMainTabNavigating.current
     // 离开过就记一笔，切回那一刻或导航结束时复位
     var pendingReset by remember { mutableStateOf(false) }
@@ -140,6 +143,14 @@ fun TodayPage(
         if (pendingReset && (pageIsCurrent || !tabNavigating)) {
             dateState.snapToDate(dateState.today)
             pendingReset = false
+        }
+    }
+
+    // 切到别的 Tab 或被二级页盖住时抽屉跟着收起
+    LaunchedEffect(pageIsCurrent, pageCovered) {
+        if (!pageIsCurrent || pageCovered) {
+            appearanceVisible = false
+            appearanceMounted = false
         }
     }
 
@@ -157,33 +168,36 @@ fun TodayPage(
         containerColor = pageContainerColor(),
         topBar = {
             BlurredTopAppBar(
-                title = "今日课表",
+                title = "今日课程",
                 blurBackdrop = blurBackdrop,
                 scrollBehavior = scrollBehavior,
+                leading = { TopBarLeadingLabel(weekLabel) },
+                leadingStart = PageTextStart,
                 actions = {
+                    TopBarIconButton(
+                        onClick = {
+                            dateDraft = pageDate
+                            showJumpDialog = true
+                        },
+                        tooltip = "跳转日期",
+                    ) {
+                        Icon(MiuixIcons.Glass.JumpPrevious, contentDescription = "跳转日期")
+                    }
                     TopBarIconButton(
                         onClick = {
                             appearanceVisible = true
                             appearanceMounted = true
                         },
-                        tooltip = "今日课表外观",
+                        modifier = Modifier.padding(start = 8.dp),
+                        tooltip = "今日课程外观",
                     ) {
-                        Icon(MiuixIcons.Background, contentDescription = "今日课表外观")
+                        Icon(MiuixIcons.Glass.Background, contentDescription = "今日课程外观")
                     }
                 },
                 bottomContent = {
-                    DateTitleRow(
-                        date = pageDate,
-                        plan = pagePlan,
-                        onJumpClick = {
-                            dateDraft = pageDate
-                            showJumpDialog = true
-                        },
-                    )
+                    DateTitleRow(date = pageDate, plan = pagePlan)
                 },
                 pinnedTitle = true,
-                // 内容顶端贴着栏底，只有列表自己那段留白要先滚过去（空状态另算，见下）
-                materialStart = materialStart,
             )
         },
     ) { paddingValues ->
@@ -219,14 +233,6 @@ fun TodayPage(
                 val courses by coursesFlow.collectAsState(emptyList())
                 val mark = dayPlan.markOrNull()
                 val emptyDay = courses.isEmpty() || dayPlan.holiday
-                // 文案在内容区正中，上面那半截是空的：拉伸到文案之前不该出材质
-                val emptyStart =
-                    if (hintHeight > 0.dp) ((contentHeight - hintHeight) / 2).coerceAtLeast(0.dp) else 0.dp
-                SideEffect {
-                    if (date == dateState.date) {
-                        materialStart = if (emptyDay) emptyStart else TodayContentStart
-                    }
-                }
 
                 PageScrollColumn(
                     // 采样点在外层，每页不再各自录制
@@ -246,7 +252,7 @@ fun TodayPage(
                             style = style,
                             mark = mark,
                             preClassMinutes = preClassMinutes,
-                            modifier = Modifier.padding(top = TodayContentStart),
+                            modifier = Modifier.padding(top = 8.dp),
                             onCourseClick = { course -> shownWeek?.let { onCourseClick(course.name, it) } },
                         )
                     } else {
@@ -259,10 +265,6 @@ fun TodayPage(
                                 isToday = date == dateState.today,
                                 isHoliday = dayPlan.holiday,
                                 noStartDate = startDate == null,
-                                modifier =
-                                    Modifier.onSizeChanged {
-                                        hintHeight = with(density) { it.height.toDp() }
-                                    },
                             )
                         }
                     }
@@ -296,7 +298,11 @@ fun TodayPage(
                 onDismissFinished = { appearanceMounted = false },
                 wallpaper = wallpaper,
                 wallpaperBlur = wallpaperBlur,
-                onWallpaperPick = onWallpaperPick,
+                onWallpaperPick = { uri ->
+                    appearanceVisible = false
+                    appearanceMounted = false
+                    onWallpaperPick(uri)
+                },
                 onWallpaperClear = onWallpaperClear,
                 onWallpaperBlurChange = onWallpaperBlurChange,
                 onWallpaperBlurCommit = onWallpaperBlurCommit,
@@ -306,12 +312,12 @@ fun TodayPage(
 }
 
 @Composable
-private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> Unit) {
+private fun DateTitleRow(date: LocalDate, plan: HolidayDay) {
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .padding(start = 28.dp, end = 16.dp, top = 2.dp, bottom = 8.dp),
+                .padding(start = PageTextStart, end = 16.dp, top = 2.dp, bottom = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
@@ -321,23 +327,9 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
             color = MiuixTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
-            // 日期太长时省略，别把后面的按钮和角标挤走
+            // 日期太长时省略，别把后面的角标挤走
             modifier = Modifier.weight(1f, fill = false),
         )
-        TopBarIconButton(
-            onClick = onJumpClick,
-            modifier = Modifier.padding(start = 6.dp),
-            minWidth = 34.dp,
-            minHeight = 34.dp,
-            tooltip = "跳转日期",
-        ) {
-            Icon(
-                imageVector = MiuixIcons.Basic.ArrowUpDown,
-                contentDescription = "跳转日期",
-                modifier = Modifier.size(20.dp),
-                tint = MiuixTheme.colorScheme.onSurface,
-            )
-        }
         // 放假/调休标在日期旁边，整页都是同一天，标在这里比每行重复更清楚
         if (plan.holiday || plan.workSwap) {
             val accent = plan.workSwap
@@ -365,9 +357,6 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay, onJumpClick: () -> U
         }
     }
 }
-
-/** 课程列表自带的顶留白：内容要滚过这一段才真正压到栏下 */
-private val TodayContentStart = 8.dp
 
 /** 空状态文案，垂直位置由调用方的剩余区域居中决定 */
 @Composable

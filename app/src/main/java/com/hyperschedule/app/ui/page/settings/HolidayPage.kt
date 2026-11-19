@@ -23,6 +23,7 @@ import com.hyperschedule.app.schedule.formatDate
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.ui.component.ConfirmDialog
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.DateRangeCalendar
 import com.hyperschedule.app.ui.component.DialogDeleteAction
 import com.hyperschedule.app.ui.component.DualDateCalendar
@@ -31,19 +32,18 @@ import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.SectionTitle
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import java.time.LocalDate
 import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Refresh
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Refresh
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 private val HolidayYears = 2024..2035
@@ -73,7 +73,7 @@ fun HolidayPage(
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            FloatingActionButton(
+            GlassFab(
                 onClick = {
                     if (!loading) {
                         loading = true
@@ -100,7 +100,7 @@ fun HolidayPage(
                     )
                 } else {
                     Icon(
-                        imageVector = MiuixIcons.Refresh,
+                        imageVector = MiuixIcons.Glass.Refresh,
                         contentDescription = "更新",
                         tint = MiuixTheme.colorScheme.onPrimary,
                     )
@@ -109,7 +109,7 @@ fun HolidayPage(
         },
     ) {
         PreferenceSection {
-            OverlayDropdownPreference(
+            DropdownPreference(
                 title = "年份",
                 items = years.map { it.toString() },
                 selectedIndex = years.indexOf(year),
@@ -208,7 +208,7 @@ private fun HolidayGroup(
             }
         }
     }
-    WideActionButton(text = addText, icon = MiuixIcons.Add, onClick = onAdd)
+    WideActionButton(text = addText, icon = MiuixIcons.Glass.Add, onClick = onAdd)
 }
 
 @Composable

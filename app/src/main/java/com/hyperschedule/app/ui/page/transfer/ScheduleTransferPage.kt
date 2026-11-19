@@ -9,9 +9,9 @@ import com.hyperschedule.app.data.local.ReminderSettings
 import com.hyperschedule.app.data.repository.HolidayRepository
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
+import com.hyperschedule.app.ui.component.JoinedGlassTabs
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.state.CourseTableData
-import top.yukonga.miuix.kmp.basic.TabRowWithContour
 
 private const val TAB_IMPORT = 0
 
@@ -32,10 +32,10 @@ fun ScheduleTransferPage(
     var selectedTab by remember { mutableIntStateOf(TAB_IMPORT) }
 
     PreferenceScreen(title = "导入与导出", appBlur = appBlur, onBack = onBack) {
-        TabRowWithContour(
+        JoinedGlassTabs(
             tabs = listOf("导入", "导出"),
-            selectedTabIndex = selectedTab,
-            onTabSelected = { selectedTab = it },
+            selectedIndex = selectedTab,
+            onSelect = { selectedTab = it },
         )
         if (selectedTab == TAB_IMPORT) {
             ImportTab(

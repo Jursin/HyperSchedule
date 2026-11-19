@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +34,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.R
 import com.hyperschedule.app.data.db.entity.CourseWithWeeks
@@ -44,23 +46,25 @@ import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.rememberCourseColor
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.ConfirmDialog
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.text.Collator
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.basic.FloatingActionButton
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.basic.Close
-import top.yukonga.miuix.kmp.icon.extended.Add
-import top.yukonga.miuix.kmp.icon.extended.Delete
+import top.yukonga.miuix.kmp.icon.glass.Add
+import top.yukonga.miuix.kmp.icon.glass.Close
+import top.yukonga.miuix.kmp.icon.glass.Contacts
+import top.yukonga.miuix.kmp.icon.glass.Delete
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
@@ -104,38 +108,43 @@ fun CourseManagePage(
     Scaffold(
         topBar = { BlurredTopAppBar("课程管理", blurBackdrop, scrollBehavior, onBack = onBack) },
         floatingActionButton = {
-            Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(SectionSpacing)) {
-                if (selecting) {
-                    FloatingActionButton(
-                        onClick = { deleteConfirm = true },
-                        containerColor = MiuixTheme.colorScheme.error,
+            CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                ) {
+                    if (selecting) {
+                        GlassFab(
+                            onClick = { deleteConfirm = true },
+                            color = MiuixTheme.colorScheme.error,
+                        ) {
+                            Icon(
+                                imageVector = MiuixIcons.Glass.Delete,
+                                contentDescription = "删除",
+                                tint = MiuixTheme.colorScheme.onError,
+                            )
+                        }
+                    }
+                    GlassFab(
+                        onClick = { if (selecting) selected = emptySet() else onAddCourse() },
+                        color =
+                            if (selecting) {
+                                MiuixTheme.colorScheme.secondaryVariant
+                            } else {
+                                MiuixTheme.colorScheme.primary
+                            },
                     ) {
                         Icon(
-                            imageVector = MiuixIcons.Delete,
-                            contentDescription = "删除",
-                            tint = MiuixTheme.colorScheme.onError,
+                            imageVector = if (selecting) MiuixIcons.Glass.Close else MiuixIcons.Glass.Add,
+                            contentDescription = if (selecting) "取消" else "添加课程",
+                            tint =
+                                if (selecting) {
+                                    MiuixTheme.colorScheme.onSecondaryVariant
+                                } else {
+                                    MiuixTheme.colorScheme.onPrimary
+                                },
                         )
                     }
-                }
-                FloatingActionButton(
-                    onClick = { if (selecting) selected = emptySet() else onAddCourse() },
-                    containerColor =
-                        if (selecting) {
-                            MiuixTheme.colorScheme.secondaryVariant
-                        } else {
-                            MiuixTheme.colorScheme.primary
-                        },
-                ) {
-                    Icon(
-                        imageVector = if (selecting) MiuixIcons.Basic.Close else MiuixIcons.Add,
-                        contentDescription = if (selecting) "取消" else "添加课程",
-                        tint =
-                            if (selecting) {
-                                MiuixTheme.colorScheme.onSecondaryVariant
-                            } else {
-                                MiuixTheme.colorScheme.onPrimary
-                            },
-                    )
                 }
             }
         },
@@ -266,7 +275,7 @@ private fun CourseManageCard(
                 }
                 if (teacher.isNotBlank()) {
                     Spacer(modifier = Modifier.height(10.dp))
-                    MetaRow(icon = ImageVector.vectorResource(R.drawable.ic_person), text = teacher)
+                    MetaRow(icon = MiuixIcons.Glass.Contacts, text = teacher, iconSize = 16.dp)
                 }
                 if (credit != null) {
                     Spacer(modifier = Modifier.height(if (teacher.isNotBlank()) 4.dp else 10.dp))
@@ -288,12 +297,12 @@ private fun CourseManageCard(
 
 /** 教师/学分这类次要信息，小图标给出语义锚点，超长一律单行省略 */
 @Composable
-private fun MetaRow(icon: ImageVector, text: String) {
+private fun MetaRow(icon: ImageVector, text: String, iconSize: Dp = 14.dp) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Icon(
             imageVector = icon,
             contentDescription = null,
-            modifier = Modifier.size(14.dp),
+            modifier = Modifier.size(iconSize),
             tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
         )
         Spacer(modifier = Modifier.width(6.dp))

@@ -35,7 +35,6 @@ import androidx.compose.ui.graphics.shadow.Shadow
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.PanelCorner
-import com.hyperschedule.app.theme.WidePageContentInset
 import com.hyperschedule.app.theme.WidePageMaxWidth
 import com.hyperschedule.app.theme.pageWindowColor
 import com.hyperschedule.app.theme.panelOutlineColor
@@ -148,7 +147,7 @@ private fun WindowContent(
 ) {
     val windowed: @Composable () -> Unit = {
         CompositionLocalProvider(
-            LocalPageHorizontalMargin provides WidePageContentInset,
+            LocalPageHorizontalMargin provides 20.dp,
             LocalPageTopPadding provides 0.dp,
         ) { content() }
     }

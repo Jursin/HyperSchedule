@@ -33,7 +33,7 @@ import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.ValueLabel
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
-import com.hyperschedule.app.ui.component.pref.OverlayDropdownPreference
+import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -158,7 +158,7 @@ fun CourseReminderPage(
             )
             // 总开关关掉时子项都不可用，档位跟着一起收起
             if (master && reminder.autoDnd) {
-                OverlayDropdownPreference(
+                DropdownPreference(
                     title = "勿扰模式档位",
                     items = ReminderSettings.DND_MODE_LABELS,
                     selectedIndex = reminder.dndMode,

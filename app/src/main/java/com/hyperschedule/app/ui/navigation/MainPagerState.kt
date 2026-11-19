@@ -1,11 +1,10 @@
 package com.hyperschedule.app.ui.navigation
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
-import androidx.compose.foundation.MutatePriority
-import androidx.compose.foundation.pager.PagerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -13,8 +12,10 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.job
@@ -33,10 +34,16 @@ private val MainTabPagerCrossPageAnimSpec =
     )
 
 class MainPagerState(
-    val pagerState: PagerState,
+    val pageCount: Int,
+    initialPage: Int,
     private val coroutineScope: CoroutineScope,
 ) {
-    var selectedPage by mutableIntStateOf(pagerState.currentPage)
+    private val offset = Animatable(initialPage.toFloat())
+
+    val position: Float
+        get() = offset.value
+
+    var selectedPage by mutableIntStateOf(initialPage)
         private set
 
     var isNavigating by mutableStateOf(false)
@@ -45,80 +52,61 @@ class MainPagerState(
     var reselectTick by mutableIntStateOf(0)
         private set
 
+    private var settledPage by mutableIntStateOf(initialPage)
+
     private var navJob: Job? = null
 
-    /** 底栏应跟随的页码，导航中取目标页，否则取实际页 */
+    /** 底栏应跟随的页码，导航中取目标页，否则取停稳的页 */
     val targetPage: State<Int> =
         derivedStateOf {
-            if (isNavigating) selectedPage else pagerState.currentPage
+            if (isNavigating) selectedPage else settledPage
         }
 
     fun animateToPage(targetIndex: Int) {
-        if (targetIndex == selectedPage) {
+        val target = targetIndex.coerceIn(0, pageCount - 1)
+        if (target == selectedPage) {
             reselectTick++
             return
         }
 
         navJob?.cancel()
-
-        selectedPage = targetIndex
+        selectedPage = target
         isNavigating = true
 
         navJob =
             coroutineScope.launch {
                 val myJob = coroutineContext.job
                 try {
-                    // PreventUserInput，避免动画途中起手的滑动把它顶掉
-                    pagerState.scroll(MutatePriority.PreventUserInput) {
-                        val spec =
-                            if (abs(targetIndex - pagerState.currentPage) > 1) {
-                                MainTabPagerCrossPageAnimSpec
-                            } else {
-                                MainTabPagerAnimSpec
-                            }
-                        val layoutInfo = pagerState.layoutInfo
-                        val pageSize = layoutInfo.pageSize + layoutInfo.pageSpacing
-                        val currentDistanceInPages =
-                            targetIndex - pagerState.currentPage - pagerState.currentPageOffsetFraction
-                        val scrollPixels = currentDistanceInPages * pageSize
-
-                        var previousValue = 0f
-                        animate(
-                            initialValue = 0f,
-                            targetValue = scrollPixels,
-                            animationSpec = spec,
-                        ) { currentValue, _ ->
-                            previousValue += scrollBy(currentValue - previousValue)
+                    val spec =
+                        if (abs(target - settledPage) > 1) {
+                            MainTabPagerCrossPageAnimSpec
+                        } else {
+                            MainTabPagerAnimSpec
                         }
-                    }
-
-                    if (pagerState.currentPage != targetIndex ||
-                        abs(pagerState.currentPageOffsetFraction) > 0.001f
-                    ) {
-                        pagerState.scrollToPage(targetIndex)
-                    }
+                    offset.animateTo(target.toFloat(), spec)
                 } finally {
                     if (navJob == myJob) {
+                        settledPage = offset.value.roundToInt()
+                        selectedPage = settledPage
                         isNavigating = false
-                        if (pagerState.currentPage != targetIndex) {
-                            selectedPage = pagerState.currentPage
-                        }
                     }
                 }
             }
-    }
-
-    fun syncPage() {
-        if (!isNavigating && selectedPage != pagerState.currentPage) {
-            selectedPage = pagerState.currentPage
-        }
     }
 }
 
 @Composable
 fun rememberMainPagerState(
-    pagerState: PagerState,
-    coroutineScope: CoroutineScope = rememberCoroutineScope(),
-) = remember(pagerState, coroutineScope) {
-    MainPagerState(pagerState, coroutineScope)
+    pageCount: Int,
+    initialPage: Int = 0,
+): MainPagerState {
+    val coroutineScope = rememberCoroutineScope()
+    val startPage = initialPage.coerceIn(0, (pageCount - 1).coerceAtLeast(0))
+    // 停留的 Tab 跨配置变化保留
+    var savedPage by rememberSaveable { mutableIntStateOf(startPage) }
+    val state = remember(pageCount, coroutineScope) {
+        MainPagerState(pageCount, savedPage, coroutineScope)
+    }
+    SideEffect { savedPage = state.selectedPage }
+    return state
 }

@@ -8,15 +8,17 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.theme.CardInsidePadding
-import com.hyperschedule.app.theme.PageHorizontalMargin
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.theme.SectionTitleVerticalPadding
 import com.hyperschedule.app.theme.useLargeScreenWindow
+import com.hyperschedule.app.ui.effect.LocalFabBackdrop
+import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardDefaults
@@ -43,7 +45,6 @@ fun PreferenceScreen(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
-    val titlePadding = LocalPageHorizontalMargin.current + (TopBarTitlePadding - PageHorizontalMargin)
     // 平板上标题常驻，不随滚动从大标题收成小标题
     val pinnedTitle = useLargeScreenWindow()
     Scaffold(
@@ -55,22 +56,25 @@ fun PreferenceScreen(
                 onBack = onBack,
                 actions = actions,
                 pinnedTitle = pinnedTitle,
-                titlePadding = titlePadding,
             )
         },
         floatingActionButton = {
-            Box(Modifier.clearFocusOnPress(LocalFocusManager.current)) {
-                floatingActionButton()
+            CompositionLocalProvider(LocalFabBackdrop provides blurBackdrop) {
+                Box(Modifier.clearFocusOnPress(LocalFocusManager.current)) {
+                    floatingActionButton()
+                }
             }
         },
     ) { paddingValues ->
         val page: @Composable () -> Unit = {
-            PageScrollColumn(
-                blurBackdrop = blurBackdrop,
-                scrollBehavior = scrollBehavior,
-                topInset = paddingValues.calculateTopPadding(),
-                content = content,
-            )
+            CompositionLocalProvider(LocalPageGlassBackdrop provides blurBackdrop) {
+                PageScrollColumn(
+                    blurBackdrop = blurBackdrop,
+                    scrollBehavior = scrollBehavior,
+                    topInset = paddingValues.calculateTopPadding(),
+                    content = content,
+                )
+            }
         }
         if (onRefresh == null) {
             page()

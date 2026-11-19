@@ -36,7 +36,12 @@ fun WideActionButton(
                 contentColor = contentColor,
             ),
     ) {
-        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(20.dp), tint = contentColor)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp),
+            tint = contentColor,
+        )
         Spacer(modifier = Modifier.width(4.dp))
         Text(text = text, style = MiuixTheme.textStyles.headline1, fontWeight = FontWeight.Medium, color = contentColor)
     }
