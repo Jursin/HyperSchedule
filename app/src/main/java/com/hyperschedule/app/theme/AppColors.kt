@@ -37,28 +37,22 @@ private val DangerContainerDark = Color(0xFF3D1A1A)
 /** 浮窗与弹层的遮罩强度 */
 val WindowScrimColor = Color.Black.copy(alpha = 0.6f)
 
-/** 动态取色时取 [dynamic]，否则用实测底色 */
+/** 整页浮窗的底色，Monet 取色时跟随主题 */
 @Composable
-private fun panelColor(dynamic: Color): Color =
+fun pageWindowColor(): Color =
     when {
-        MiuixTheme.isDynamicColor -> dynamic
+        MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surface
         isDarkTheme() -> SurfaceDark
         else -> SurfaceLight
     }
 
-@Composable
-fun pageWindowColor(): Color = panelColor(MiuixTheme.colorScheme.surface)
-
-@Composable
-fun sheetPanelColor(): Color = panelColor(MiuixTheme.colorScheme.surfaceContainer)
-
-/** 抽屉里的卡片，动态取色跟随主题 */
+/** 抽屉里的卡片，Monet 取色时跟随主题 */
 @Composable
 fun sheetCardColor(): Color =
     when {
         MiuixTheme.isDynamicColor -> MiuixTheme.colorScheme.surfaceContainerHigh
         isDarkTheme() -> SurfaceRaisedDark
-        else -> Color.White
+        else -> MiuixTheme.colorScheme.secondaryContainer
     }
 
 @Composable

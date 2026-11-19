@@ -11,13 +11,12 @@ val PageHorizontalMargin = 12.dp
 
 val CardInsidePadding = 16.dp
 
+/** 标题类文字的左起点 */
+val PageTextStart = PageHorizontalMargin + CardInsidePadding
+
 val CardCornerRadius = 20.dp
 
-val CardItemVerticalPadding = 14.dp
-
-val CardItemPadding = PaddingValues(horizontal = CardInsidePadding, vertical = CardItemVerticalPadding)
-
-val PageTopPadding = 10.dp
+val CardItemPadding = PaddingValues(horizontal = CardInsidePadding, vertical = 14.dp)
 
 val PageBottomInset = 80.dp
 
@@ -27,9 +26,6 @@ val SectionSpacing = 12.dp
 val SectionTitleVerticalPadding = 8.dp
 
 val SheetMaxHeight = 420.dp
-val ShortSheetMaxHeight = 320.dp
-
-val SheetLargeMaxWidth = 420.dp
 
 /** 宽屏阈值，侧栏按宽度、浮窗按短边，都取这个值 */
 val WideLayoutMinWidth = 600.dp
@@ -39,8 +35,6 @@ val PanelCorner = 32.dp
 
 val WidePageMaxWidth = 512.dp
 const val WidePageHeightFraction = 0.8f
-
-val WidePageContentInset = 20.dp
 
 fun widePageHeight(
     width: Dp,

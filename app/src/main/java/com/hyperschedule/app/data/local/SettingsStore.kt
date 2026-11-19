@@ -138,12 +138,12 @@ private val Prefs =
             backedUp = false,
         ) { s, v -> s.copy(wallpaperBlur = v) },
         boolSetting("predictiveBack", { it.predictiveBack }) { s, v -> s.copy(predictiveBack = v) },
-        boolSetting("customColor", { it.customColor }) { s, v -> s.copy(customColor = v) },
-        boolSetting("dynamicColor", { it.dynamicColor }) { s, v -> s.copy(dynamicColor = v) },
+        boolSetting("useMonet", { it.useMonet }) { s, v -> s.copy(useMonet = v) },
+        boolSetting("pureBlack", { it.pureBlack }) { s, v -> s.copy(pureBlack = v) },
         intSetting("launchPage", { it.launchPage }, coerce = { it.coerceIn(0, 1) }) { s, v ->
             s.copy(launchPage = v)
         },
-        intSetting("seedColor", { it.seedColor }) { s, v -> s.copy(seedColor = v) },
+        enumSetting("accentColor", { it.accentColor }) { s, v -> s.copy(accentColor = v) },
         boolSetting("checkUpdateOnStart", { it.checkUpdateOnStart }) { s, v -> s.copy(checkUpdateOnStart = v) },
         boolSetting("acceptPrerelease", { it.acceptPrerelease }) { s, v -> s.copy(acceptPrerelease = v) },
         stringSetting("lastUpdateCheck", { it.lastUpdateCheck }, backedUp = false) { s, v ->
@@ -294,29 +294,6 @@ class SettingsStore private constructor(context: Context) {
 
     /** 密码单独存一份，系统自动备份带走整个 sharedpref 时也不会泄露 */
     private val secrets = context.getSharedPreferences("secret", Context.MODE_PRIVATE)
-
-    init {
-        // 旧版本把密码写在 settings 里，搬到 secret 后清掉
-        preferences.getString("webdavPassword", null)?.takeIf { it.isNotEmpty() }?.let { old ->
-            if (secrets.getString("webdavPassword", null).isNullOrEmpty()) {
-                secrets.edit { putString("webdavPassword", old) }
-            }
-            preferences.edit { remove("webdavPassword") }
-        }
-        // 旧版只有一个加速地址，搬进更新源并记成自定义镜像
-        preferences.getString("githubProxyUrl", null)?.let { legacy ->
-            val host = legacy.trim().removePrefix("https://").removePrefix("http://").substringBefore('/')
-            if (host.isNotEmpty() && preferences.getString("updateSource", null).isNullOrEmpty()) {
-                val mirrors =
-                    preferences.getString(UPDATE_MIRRORS_KEY, null)?.split('\n').orEmpty().filter { it.isNotBlank() }
-                preferences.edit {
-                    putString("updateSource", "https://$host")
-                    putString(UPDATE_MIRRORS_KEY, (mirrors + host).distinct().joinToString("\n"))
-                }
-            }
-            preferences.edit { remove("githubProxyUrl") }
-        }
-    }
 
     var state by mutableStateOf(load())
         private set

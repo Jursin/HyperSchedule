@@ -5,6 +5,7 @@ import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
 import com.hyperschedule.app.data.db.entity.Course
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 默认色板，即 Material 500 原色 */
 private val MaterialLightPalette: List<Color> =
@@ -25,52 +26,42 @@ private val MaterialLightPalette: List<Color> =
     ).also { check(it.size == Course.COLOR_COUNT) { "色板数量要与 Course.COLOR_COUNT 一致" } }
         .map { Color(it) }
 
-/** 深色档明度 */
-private const val DarkLightness = 0.78f
-
-/** 提亮时彩度按比例收敛 */
-private const val DarkChromaScale = 0.68f
-
 /** 默认色板的深色档 */
 private val MaterialDarkPalette: List<Color> by lazy {
     MaterialLightPalette.map { color ->
         val (chroma, hue) = chromaHueOf(color)
         // oklchColor 越界时会自己按色域收彩度，这里不用再夹一次
-        oklchColor(DarkLightness, chroma * DarkChromaScale, hue)
+        oklchColor(0.78f, chroma * 0.68f, hue)
     }
 }
 
-/** 开启「自定义颜色」后用的色板 */
+/** Monet 取色用的 13 个色相，均分保证彼此好区分 */
 private val CourseHues =
     listOf(25, 164, 302, 80, 219, 358, 136, 274, 53, 192, 330, 108, 247)
         .also { check(it.size == Course.COLOR_COUNT) { "课程色相数量要与 Course.COLOR_COUNT 一致" } }
 
-/** 浅色档明度，对应 Material tone 40 */
-private const val TonalLightLightness = 0.48f
-
-/** 彩度取该色相在当前明度下能到的最大彩度的 75% */
-private const val ChromaRatio = 0.75f
-
-private fun tonalPalette(lightness: Float) =
-    CourseHues.map { hue ->
+/** 色相均分，彩度取主题主色那一档并夹在柔和区间 */
+private fun monetPalette(seed: Color, isDark: Boolean): List<Color> {
+    val lightness = if (isDark) 0.80f else 0.56f
+    val chroma = chromaHueOf(seed).first.coerceIn(0.055f, 0.1f)
+    return CourseHues.map { hue ->
         val h = hue.toFloat()
-        oklchColor(lightness, maxChroma(lightness, h) * ChromaRatio, h)
+        oklchColor(lightness, minOf(chroma, maxChroma(lightness, h) * 0.7f), h)
     }
+}
 
-private val TonalLightPalette by lazy { tonalPalette(TonalLightLightness) }
-
-private val TonalDarkPalette by lazy { tonalPalette(DarkLightness) }
-
-/** 主题是否开启了「自定义颜色」 */
-internal val LocalCustomCourseColors = compositionLocalOf { false }
+/** 主题是否开启了「Monet 取色」 */
+internal val LocalMonetCourseColors = compositionLocalOf { false }
 
 /** 按主题模式取当前生效的色板 */
 @Composable
 internal fun rememberCoursePalette(isDark: Boolean): List<Color> {
-    val custom = LocalCustomCourseColors.current
-    return remember(isDark, custom) {
+    val monet = LocalMonetCourseColors.current
+    // Monet 下课程色跟着主题主色的彩度走，换强调色整块色板一起变
+    val themePrimary = MiuixTheme.colorScheme.primary
+    return remember(isDark, monet, themePrimary) {
         when {
-            custom -> if (isDark) TonalDarkPalette else TonalLightPalette
+            monet -> monetPalette(themePrimary, isDark)
             isDark -> MaterialDarkPalette
             else -> MaterialLightPalette
         }

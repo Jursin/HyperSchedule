@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
+import com.hyperschedule.app.data.local.AccentColor
 import com.hyperschedule.app.data.local.PaletteStyle
 import com.hyperschedule.app.data.local.SettingsState
 import com.hyperschedule.app.data.local.ThemeMode
@@ -55,47 +56,56 @@ fun AppTheme(
         ThemeMode.Light -> false
         ThemeMode.Dark -> true
     }
-    val mode = if (isDark) ColorSchemeMode.MonetDark else ColorSchemeMode.MonetLight
-    val keyColor = if (settings.customColor) {
-        if (settings.dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            colorResource(android.R.color.system_accent1_500)
-        } else {
-            Color(settings.seedColor.toLong())
+    val monet = settings.useMonet
+    val mode =
+        when {
+            monet && isDark -> ColorSchemeMode.MonetDark
+            monet -> ColorSchemeMode.MonetLight
+            isDark -> ColorSchemeMode.Dark
+            else -> ColorSchemeMode.Light
         }
-    } else {
-        null
-    }
-    val controller = remember(mode, keyColor, settings.paletteStyle, isDark, settings.customColor) {
-        if (settings.customColor) {
-            ThemeController(
-                colorSchemeMode = mode,
-                keyColor = keyColor,
-                paletteStyle = settings.paletteStyle.toMiuixStyle(),
-                colorSpec = ThemeColorSpec.Spec2025,
-                isDark = isDark,
-            )
-        } else {
-            ThemeController(if (isDark) ColorSchemeMode.Dark else ColorSchemeMode.Light)
+    val keyColor =
+        when {
+            !monet -> null
+            settings.accentColor != AccentColor.Default -> Color(settings.accentColor.seedColor)
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> colorResource(android.R.color.system_accent1_500)
+            else -> Color(AccentColor.Default.seedColor)
         }
+    val controller = remember(mode, keyColor, settings.paletteStyle) {
+        ThemeController(
+            colorSchemeMode = mode,
+            keyColor = keyColor,
+            colorSpec = ThemeColorSpec.Spec2025,
+            paletteStyle = settings.paletteStyle.toMiuixStyle(),
+        )
     }
-    // 再套一层只为覆盖遮罩强度，弹窗和抽屉都读这个值
+    val colors = controller.currentColors()
+    val themedColors = remember(colors, isDark, settings.pureBlack) {
+        val usePureBlack = settings.useMonet && isDark && settings.pureBlack
+        val base = if (usePureBlack) colors.copy(background = Color.Black, surface = Color.Black) else colors
+        base.copy(windowDimming = WindowScrimColor)
+    }
     MiuixTheme(controller = controller, textStyles = TabularTextStyles) {
-        MiuixTheme(colors = MiuixTheme.colorScheme.copy(windowDimming = WindowScrimColor)) {
-            // 课程色板跟着「自定义颜色」切换，与主题配色保持同一风格
-            CompositionLocalProvider(LocalCustomCourseColors provides settings.customColor) {
+        MiuixTheme(colors = themedColors) {
+            CompositionLocalProvider(LocalMonetCourseColors provides settings.useMonet) {
                 content()
             }
         }
     }
 }
 
-fun PaletteStyle.toMiuixStyle(): ThemePaletteStyle = when (this) {
+private fun PaletteStyle.toMiuixStyle(): ThemePaletteStyle = when (this) {
     PaletteStyle.TonalSpot -> ThemePaletteStyle.TonalSpot
     PaletteStyle.Neutral -> ThemePaletteStyle.Neutral
     PaletteStyle.Vibrant -> ThemePaletteStyle.Vibrant
     PaletteStyle.Expressive -> ThemePaletteStyle.Expressive
+    PaletteStyle.Rainbow -> ThemePaletteStyle.Rainbow
+    PaletteStyle.FruitSalad -> ThemePaletteStyle.FruitSalad
+    PaletteStyle.Monochrome -> ThemePaletteStyle.Monochrome
+    PaletteStyle.Fidelity -> ThemePaletteStyle.Fidelity
+    PaletteStyle.Content -> ThemePaletteStyle.Content
 }
 
-/** 当前是否深色主题，按背景亮度判断，动态取色下同样成立 */
+/** 当前是否深色主题，按背景亮度判断，Monet 取色下同样成立 */
 @Composable
 fun isDarkTheme(): Boolean = MiuixTheme.colorScheme.background.luminance() < 0.5f

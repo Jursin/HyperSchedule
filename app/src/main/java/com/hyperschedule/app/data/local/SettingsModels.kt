@@ -12,8 +12,8 @@ data class SettingsState(
     val wallpaper: String = "",
     val wallpaperBlur: Int = 0,
     val predictiveBack: Boolean = true,
-    val customColor: Boolean = false,
-    val dynamicColor: Boolean = true,
+    val useMonet: Boolean = false,
+    val pureBlack: Boolean = false,
     val launchPage: Int = 0,
     val checkUpdateOnStart: Boolean = true,
     val acceptPrerelease: Boolean = false,
@@ -21,7 +21,7 @@ data class SettingsState(
     val updateSource: String = "",
     val updateMirrors: List<String> = emptyList(),
     val paletteStyle: PaletteStyle = PaletteStyle.TonalSpot,
-    val seedColor: Int = 0xFF6750A4.toInt(),
+    val accentColor: AccentColor = AccentColor.Default,
     val showNonCurrentWeek: Boolean = true,
     val currentTableId: String? = null,
     val style: ScheduleStyle = ScheduleStyle(),
@@ -189,8 +189,28 @@ enum class ThemeMode(val title: String) {
 }
 
 enum class PaletteStyle(val title: String) {
-    TonalSpot("TonalSpot"),
-    Neutral("Neutral"),
-    Vibrant("Vibrant"),
-    Expressive("Expressive"),
+    TonalSpot("色调点（TonalSpot）"),
+    Neutral("中性（Neutral）"),
+    Vibrant("鲜明（Vibrant）"),
+    Expressive("表现力（Expressive）"),
+    Rainbow("彩虹（Rainbow）"),
+    FruitSalad("水果沙拉（FruitSalad）"),
+    Monochrome("单色（Monochrome）"),
+    Fidelity("保真（Fidelity）"),
+    Content("内容（Content）"),
+}
+
+private const val BlueSeed = 0xFF3482FF.toInt()
+
+/** 强调色的种子色，Default 表示跟随系统取色 */
+enum class AccentColor(val title: String, val seedColor: Int) {
+    Default("系统取色", BlueSeed),
+    Blue("蓝色", BlueSeed),
+    Purple("紫色", 0xFF6750A4.toInt()),
+    Pink("粉色", 0xFFB0006D.toInt()),
+    Red("红色", 0xFFBA1A1A.toInt()),
+    Orange("橙色", 0xFFB65D00.toInt()),
+    Yellow("黄色", 0xFF7D5700.toInt()),
+    Green("绿色", 0xFF006D3B.toInt()),
+    Teal("青色", 0xFF006A6A.toInt()),
 }
