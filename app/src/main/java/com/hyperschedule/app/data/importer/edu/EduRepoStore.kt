@@ -95,10 +95,9 @@ class EduRepoStore private constructor(
         if (state.repo == EduRepo.Custom) state.customBranch.trim().ifBlank { "main" } else "main"
 
     private fun load(): EduRepoConfig {
-        val repo =
-            preferences.getString("repo", null)
-                ?.let { saved -> EduRepo.entries.firstOrNull { it.name == saved } }
-                ?: EduRepo.Gitee
+        val saved = preferences.getString("repo", null)
+        val repo = EduRepo.entries.firstOrNull { it.name.equals(saved, ignoreCase = true) } ?: EduRepo.Gitee
+        if (saved != null && saved != repo.name) preferences.edit { putString("repo", repo.name) }
         return EduRepoConfig(
             autoSync = preferences.getBoolean("autoSync", true),
             repo = repo,

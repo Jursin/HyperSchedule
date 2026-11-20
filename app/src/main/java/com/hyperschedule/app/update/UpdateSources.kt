@@ -25,12 +25,14 @@ data class UpdateSource(
 ) {
     val title: String get() = if (prefix.isEmpty()) "$host（直连）" else host
 
+    val key: String get() = prefix.removePrefix("https://")
+
     companion object {
         val Direct = UpdateSource(host = "github.com", prefix = "", builtIn = true)
         val BuiltIns: List<UpdateSource> =
             listOf(Direct) +
                 listOf("ghfast.top", "gh.dpik.top", "gh-proxy.net").map {
-                    UpdateSource(host = it, prefix = "https://$it", builtIn = true)
+                    UpdateSource(host = it, prefix = proxyPrefix(it), builtIn = true)
                 }
     }
 }
@@ -42,7 +44,7 @@ fun sourcesOf(custom: List<String>): List<UpdateSource> {
             .map { it.trim().lowercase() }
             .filter { it.isNotEmpty() && it !in builtInHosts }
             .distinct()
-            .map { UpdateSource(host = it, prefix = "https://$it", builtIn = false) }
+            .map { UpdateSource(host = it, prefix = proxyPrefix(it), builtIn = false) }
     return UpdateSource.BuiltIns + mirrors
 }
 
@@ -56,6 +58,8 @@ fun mirrorHost(input: String): String? =
         .removePrefix("http://")
         .trimEnd('/')
         .takeIf { DomainPattern.matches(it) }
+
+fun proxyPrefix(key: String): String = if (key.isEmpty()) "" else "https://$key"
 
 sealed interface SourceSpeed {
     data object Untested : SourceSpeed

@@ -26,6 +26,7 @@ import com.hyperschedule.app.ui.navigation.MainScaffold
 import com.hyperschedule.app.ui.navigation.RootOverlayHost
 import com.hyperschedule.app.ui.page.settings.UpdateDialogs
 import com.hyperschedule.app.update.AppForeground
+import com.hyperschedule.app.update.proxyPrefix
 import java.time.LocalDate
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
@@ -74,7 +75,7 @@ class MainActivity : ComponentActivity() {
                     store.update { it.copy(lastUpdateCheck = today) }
                     updateController.checkForUpdate(
                         settings.acceptPrerelease,
-                        settings.updateSource,
+                        proxyPrefix(settings.updateSource),
                         silent = true,
                     )
                 }

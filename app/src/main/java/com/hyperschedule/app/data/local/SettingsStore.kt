@@ -67,7 +67,9 @@ private inline fun <reified T : Enum<T>> enumSetting(
     write = { editor, state -> editor.putString(key, get(state).name) },
     read = { prefs, state ->
         val saved = prefs.getString(key, null)
-        set(state, saved?.let { runCatching { enumValueOf<T>(it) }.getOrNull() } ?: get(state))
+        val value = enumValues<T>().firstOrNull { it.name.equals(saved, ignoreCase = true) } ?: get(state)
+        if (saved != null && saved != value.name) prefs.edit { putString(key, value.name) }
+        set(state, value)
     },
 )
 

@@ -46,6 +46,7 @@ import com.hyperschedule.app.update.UpdateDialogState
 import com.hyperschedule.app.update.UpdateSource
 import com.hyperschedule.app.update.UpdateSpeed
 import com.hyperschedule.app.update.mirrorHost
+import com.hyperschedule.app.update.proxyPrefix
 import com.hyperschedule.app.update.sourcesOf
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
@@ -92,7 +93,7 @@ fun UpdatePage(
                 onClick = {
                     // 手动检查也记一次日期，避免重启后再静默查一遍
                     store.update { it.copy(lastUpdateCheck = LocalDate.now().toString()) }
-                    controller.checkForUpdate(state.acceptPrerelease, state.updateSource)
+                    controller.checkForUpdate(state.acceptPrerelease, proxyPrefix(state.updateSource))
                 },
             )
             ArrowPreference(
@@ -120,8 +121,8 @@ fun UpdatePage(
                     title = source.title,
                     summary = speedText(speed),
                     summaryColor = speedColor(speed),
-                    selected = source.host == current.host,
-                    onSelect = { store.update { it.copy(updateSource = source.prefix) } },
+                    selected = source == current,
+                    onSelect = { store.update { it.copy(updateSource = source.key) } },
                     onEdit = if (custom) ({ openEditor(source) }) else null,
                     onDelete = if (custom) ({ pendingDelete = source }) else null,
                 )
@@ -174,7 +175,7 @@ fun UpdatePage(
                         val keeping = previous != null && isSelected(previous, s.updateSource)
                         s.copy(
                             updateMirrors = if (host in mirrors) mirrors else mirrors + host,
-                            updateSource = if (keeping) "https://$host" else s.updateSource,
+                            updateSource = if (keeping) host else s.updateSource,
                         )
                     }
                     showMirrorDialog = false
@@ -229,9 +230,7 @@ fun UpdatePage(
     }
 }
 
-/** 当前选中的源，忽略尾部斜杠 */
-private fun isSelected(source: UpdateSource, current: String): Boolean =
-    source.prefix.trimEnd('/') == current.trim().trimEnd('/')
+private fun isSelected(source: UpdateSource, current: String): Boolean = source.key == current
 
 private fun speedText(speed: SourceSpeed): String =
     when (speed) {
