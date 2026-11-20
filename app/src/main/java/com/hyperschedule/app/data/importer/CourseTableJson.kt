@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 data class CourseTableJson(
     val courses: List<CourseJson> = emptyList(),
     val timeSlots: List<TimeSlotJson>? = null,
+    val specials: List<SpecialJson>? = null,
     val config: CourseTableConfigJson? = null,
     val comboSchedule: ComboScheduleJson? = null,
 )
@@ -41,6 +42,15 @@ data class TimeSlotJson(
     val alias: String? = null,
 )
 
+/** 特殊节次 */
+@Serializable
+data class SpecialJson(
+    val name: String,
+    val startTime: String,
+    val endTime: String,
+    val days: String = "",
+)
+
 @Serializable
 data class CourseTableConfigJson(
     val semesterStartDate: String? = null,
@@ -56,7 +66,7 @@ data class ComboScheduleJson(
 )
 
 /** 公共作息缺单节时长时的兜底 */
-private const val FALLBACK_CLASS_DURATION = 45
+private const val FALLBACK_CLASS_DURATION = 90
 
 @Serializable
 data class PublicScheduleJson(
@@ -65,6 +75,8 @@ data class PublicScheduleJson(
     val endDate: String,
     val defaultClassDuration: Int = FALLBACK_CLASS_DURATION,
     val timeSlots: List<TimeSlotJson> = emptyList(),
+    /** null 表示源数据没有这项，导入时不动目标作息原有的特殊节次 */
+    val specials: List<SpecialJson>? = null,
 )
 
 object CourseTableJsonParser {
@@ -98,6 +110,7 @@ fun CourseTableJson.requireValidForImport() {
         it.requireValidCustomTime()
     }
     timeSlots.orEmpty().requireValidSlots()
+    specials.orEmpty().requireValidSpecials()
     comboSchedule?.publicSchedules?.forEach { it.requireValidSchedule() }
 }
 
@@ -148,4 +161,26 @@ private fun PublicScheduleJson.requireValidSchedule() {
     require(start != null && end != null) { "「$name」的生效日期格式不正确，应为 yyyy-MM-dd" }
     require(!end.isBefore(start)) { "「$name」的生效结束日期不能早于开始日期" }
     timeSlots.requireValidSlots()
+    specials.orEmpty().requireValidSpecials()
+}
+
+private fun List<SpecialJson>.requireValidSpecials() {
+    forEach { special ->
+        require(special.name.isNotBlank()) { "特殊节次缺少名称" }
+        require(TimePattern.matches(special.startTime) && TimePattern.matches(special.endTime)) {
+            "「${special.name}」的时间格式不正确"
+        }
+        val start = parseMinutes(special.startTime)
+        val end = parseMinutes(special.endTime)
+        require(start != null && end != null && start < end) {
+            "「${special.name}」的开始时间必须早于结束时间"
+        }
+        special.days
+            .split(',')
+            .filter { it.isNotBlank() }
+            .forEach { day ->
+                val number = day.trim().toIntOrNull()
+                require(number != null && number in 1..7) { "「${special.name}」的生效星期不正确" }
+            }
+    }
 }

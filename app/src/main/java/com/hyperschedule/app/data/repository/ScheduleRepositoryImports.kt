@@ -5,6 +5,7 @@ import com.hyperschedule.app.data.db.entity.Course
 import com.hyperschedule.app.data.db.entity.CourseTableConfig
 import com.hyperschedule.app.data.db.entity.CourseTimeBinding
 import com.hyperschedule.app.data.db.entity.CourseWeek
+import com.hyperschedule.app.data.db.entity.SpecialTimeBlock
 import com.hyperschedule.app.data.db.entity.TimeSlot
 import com.hyperschedule.app.data.db.entity.TimeTable
 import com.hyperschedule.app.data.db.entity.TimeTableCombo
@@ -15,6 +16,7 @@ import com.hyperschedule.app.data.importer.CourseTableConfigJson
 import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.CourseTableJsonParser
 import com.hyperschedule.app.data.importer.IcsImport
+import com.hyperschedule.app.data.importer.SpecialJson
 import com.hyperschedule.app.data.importer.TimeSlotJson
 import com.hyperschedule.app.data.importer.normalizePosition
 import com.hyperschedule.app.data.importer.requireValidForImport
@@ -115,6 +117,7 @@ private suspend fun ScheduleRepository.importParsed(
     db.withTransaction {
         ensureSideTables(tableId)
         importSlots(tableId, data)
+        importSpecials(tableId, data.specials)
         // 文件里没有组合作息（或公共作息为空）就不动现有组合
         data.comboSchedule?.takeIf { it.publicSchedules.isNotEmpty() }?.let { importCombo(tableId, it) }
         importCourses(tableId, data.courses)
@@ -136,6 +139,30 @@ private suspend fun ScheduleRepository.importSlots(tableId: String, data: Course
     timeTableDao.deleteSlotsByTimeTableId(tableId)
     timeTableDao.upsertSlots(slots.map { TimeSlot(tableId, it.number, it.startTime, it.endTime, it.alias) })
 }
+
+/** 文件里的特殊节次覆盖目标作息，不带这项（null）时保持原样 */
+private suspend fun ScheduleRepository.importSpecials(
+    tableId: String,
+    specials: List<SpecialJson>?,
+) {
+    if (specials == null) return
+    timeTableDao.deleteSpecialsByTimeTableId(tableId)
+    if (specials.isNotEmpty()) timeTableDao.upsertSpecials(specials.map { it.toEntity(tableId) })
+}
+
+private fun SpecialJson.toEntity(timeTableId: String) =
+    SpecialTimeBlock(
+        id = UUID.randomUUID().toString(),
+        timeTableId = timeTableId,
+        name = name,
+        startTime = startTime,
+        endTime = endTime,
+        // 归一成标准逗号串，全周写空串
+        days =
+            SpecialTimeBlock.encodeDays(
+                days.split(',').mapNotNull { it.trim().toIntOrNull() }.filter { it in 1..7 }.toSet()
+            ),
+    )
 
 /** 覆盖课程与周次，颜色按课程名首次出现顺序分配，超出色板循环取色 */
 private suspend fun ScheduleRepository.importCourses(tableId: String, courses: List<CourseJson>) {
@@ -206,6 +233,8 @@ private suspend fun ScheduleRepository.importCombo(tableId: String, json: ComboS
             timeTableDao.upsertSlots(
                 schedule.timeSlots.map { TimeSlot(targetId, it.number, it.startTime, it.endTime, it.alias) }
             )
+            // 每套公共作息带自己的特殊节次，源没带就保留目标原有的
+            importSpecials(targetId, schedule.specials)
             TimeTableComboRule(
                 id = UUID.randomUUID().toString(),
                 comboId = comboId,

@@ -24,6 +24,13 @@ enum class ShareCodeSource(
     Nexio("Nexio 课程表", "分享口令", "粘贴分享口令"),
 }
 
+/** 口令取回的结果 */
+data class ShareCodePayload(
+    val table: CourseTableJson,
+    val warnings: List<String> = emptyList(),
+    val showNonCurrentWeek: Boolean? = null,
+)
+
 /** 三种来源共用一套宽松解码 */
 internal val ShareJson =
     Json {
@@ -45,17 +52,18 @@ object ShareCodeImport {
     suspend fun fetch(
         source: ShareCodeSource,
         input: String,
-    ): CourseTableJson =
+    ): ShareCodePayload =
         withContext(Dispatchers.IO) {
             val code = extractCode(source, input)
             require(code.isNotBlank()) { "没有识别到${source.label}的${source.codeName}" }
             val payload =
                 when (source) {
-                    ShareCodeSource.WakeUp -> WakeUpShare.fetch(code)
-                    ShareCodeSource.StarLink -> StarLinkShare.fetch(code)
+                    ShareCodeSource.WakeUp -> ShareCodePayload(WakeUpShare.fetch(code))
+                    ShareCodeSource.StarLink -> ShareCodePayload(StarLinkShare.fetch(code))
                     ShareCodeSource.Nexio -> NexioShare.fetch(code)
                 }
-            payload.also { it.requireValidForImport() }
+            payload.table.requireValidForImport()
+            payload
         }
 
     /** 从整段分享文本里挑出口令本体，识别不出时按原文处理 */

@@ -6,8 +6,11 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/** 非 2xx 时抛出，调用方按状态码区分「口令不存在」之类的情况 */
-internal class ShareHttpException(val code: Int) : IllegalStateException("服务器返回 HTTP $code")
+/** 非 2xx 时抛出 */
+internal class ShareHttpException(
+    val code: Int,
+    val body: String = "",
+) : IllegalStateException("服务器返回 HTTP $code")
 
 /** 分享码导入用的最小 HTTP 封装 */
 internal object ShareHttp {
@@ -32,8 +35,9 @@ internal object ShareHttp {
         val builder = Request.Builder().url(url).method(method, payload)
         headers.forEach { (key, value) -> builder.header(key, value) }
         AppHttp.newCall(builder.build()).execute().use { response ->
-            if (!response.isSuccessful) throw ShareHttpException(response.code)
-            return response.body.readCapped().decodeToString()
+            val text = runCatching { response.body.readCapped().decodeToString() }.getOrDefault("")
+            if (!response.isSuccessful) throw ShareHttpException(response.code, text)
+            return text
         }
     }
 }

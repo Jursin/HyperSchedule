@@ -9,9 +9,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
-import com.hyperschedule.app.data.importer.CourseTableJson
 import com.hyperschedule.app.data.importer.share.ShareCodeImport
+import com.hyperschedule.app.data.importer.share.ShareCodePayload
 import com.hyperschedule.app.data.importer.share.ShareCodeSource
+import com.hyperschedule.app.data.local.SettingsStore
 import com.hyperschedule.app.data.remote.readCapped
 import com.hyperschedule.app.data.repository.ScheduleRepository
 import com.hyperschedule.app.data.repository.TableSummary
@@ -40,7 +41,7 @@ private enum class ImportSource {
 private sealed interface PendingImport {
     data class File(val source: ImportSource, val text: String) : PendingImport
 
-    data class Share(val payload: CourseTableJson) : PendingImport
+    data class Share(val payload: ShareCodePayload) : PendingImport
 }
 
 /** 课表导入，选好文件后先选目标课表，可直接新建一张再导入 */
@@ -88,16 +89,32 @@ internal fun ImportTab(
                                     ImportSource.JSON -> repository.importCourseTableJson(item.text, tableId)
                                     ImportSource.ICS -> repository.importIcs(item.text, tableId)
                                 }
-                            is PendingImport.Share -> repository.importShareCode(item.payload, tableId)
+                            is PendingImport.Share -> repository.importShareCode(item.payload.table, tableId)
                         }
                     }
                 }
             busy = false
             pending = null
             result.fold(
-                onSuccess = {
+                onSuccess = { count ->
                     onSwitchTable(tableId)
-                    context.toast("已导入${it}门课程".cjkDigitGap(), long = true)
+                    val share = item as? PendingImport.Share
+                    share?.payload?.showNonCurrentWeek?.let { value ->
+                        val settings = SettingsStore.get(context)
+                        if (settings.state.showNonCurrentWeek != value) {
+                            settings.update { it.copy(showNonCurrentWeek = value) }
+                        }
+                    }
+                    val warnings = share?.payload?.warnings.orEmpty()
+                    val skipped =
+                        if (warnings.isEmpty()) {
+                            ""
+                        } else {
+                            val head = warnings.take(2).joinToString("；")
+                            val tail = if (warnings.size > 2) "…" else ""
+                            "，跳过${warnings.size}门（$head$tail）"
+                        }
+                    context.toast("已导入${count}门课程$skipped".cjkDigitGap(), long = true)
                 },
                 onFailure = { context.toast("导入失败：${it.message ?: "内容格式不正确"}", long = true) },
             )
