@@ -18,6 +18,7 @@ import com.xiaomi.xms.wearable.exception.AppNotInstalledException
 import com.xiaomi.xms.wearable.exception.DeviceDisconnectedException
 import com.xiaomi.xms.wearable.exception.PermissionDeniedException
 import com.xiaomi.xms.wearable.exception.SignatureVerifyFailedException
+import com.xiaomi.xms.wearable.message.OnMessageReceivedListener
 import com.xiaomi.xms.wearable.node.Node
 import com.xiaomi.xms.wearable.tasks.Task
 import java.time.LocalDate
@@ -26,6 +27,10 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private const val TAG = "WearPush"
 
@@ -76,6 +81,28 @@ private val WearJson =
     }
 
 fun encodeWearSchedule(schedule: WearSchedule): String = WearJson.encodeToString(WearSchedule.serializer(), schedule)
+
+/** 穿戴设备回传的设备信息，字段缺失时留空 */
+data class WearDeviceInfo(
+    val deviceType: String = "",
+    val screenShape: String = "",
+    val versionName: String = "",
+    val versionCode: Int = 0,
+)
+
+/** 只认 device_info 包，字段按容错读取，坏数据返回 null */
+fun parseWearDeviceInfo(bytes: ByteArray): WearDeviceInfo? =
+    runCatching {
+        val root = WearJson.parseToJsonElement(bytes.decodeToString()).jsonObject
+        if (root["type"]?.jsonPrimitive?.contentOrNull != "device_info") return@runCatching null
+        fun text(key: String) = root[key]?.jsonPrimitive?.contentOrNull.orEmpty()
+        WearDeviceInfo(
+            deviceType = text("deviceType"),
+            screenShape = text("screenShape"),
+            versionName = text("versionName"),
+            versionCode = root["versionCode"]?.jsonPrimitive?.intOrNull ?: 0,
+        )
+    }.getOrNull()
 
 /** 统一格式并把非法值当作未设置 */
 private fun String?.normalizedClock(): String? {
@@ -211,6 +238,7 @@ class WearSync(context: Context) {
     private val nodeApi by lazy { Wearable.getNodeApi(appContext) }
     private val messageApi by lazy { Wearable.getMessageApi(appContext) }
     private val authApi by lazy { Wearable.getAuthApi(appContext) }
+    private var listenedNodeId: String? = null
 
     /** 当前连接的第一台设备，未连接时为 null */
     suspend fun connectedNode(): Node? = nodeApi.connectedNodes.await()?.firstOrNull()
@@ -238,6 +266,26 @@ class WearSync(context: Context) {
         payload: String,
     ) {
         messageApi.sendMessage(nodeId, payload.toByteArray()).await()
+    }
+
+    /** 向设备请求它的型号与快应用版本 */
+    suspend fun queryDevice(nodeId: String) = send(nodeId, "{\"type\":\"query_device\"}")
+
+    /** 注册设备信息回传监听，SDK 按 nodeId 只挂一个监听，先无条件解绑，避免页面重建后旧监听残留 */
+    suspend fun listenDeviceInfo(
+        nodeId: String,
+        onInfo: (WearDeviceInfo) -> Unit,
+    ) {
+        runCatching { messageApi.removeListener(nodeId).await() }
+        val listener = OnMessageReceivedListener { _, bytes -> parseWearDeviceInfo(bytes)?.let(onInfo) }
+        messageApi.addListener(nodeId, listener).await()
+        listenedNodeId = nodeId
+    }
+
+    /** 页面退出时解绑，避免 SDK 持有已离开页面的回调；同步调用，不依赖协程作用域 */
+    fun clearDeviceInfoListener() {
+        listenedNodeId?.let { messageApi.removeListener(it) }
+        listenedNodeId = null
     }
 }
 

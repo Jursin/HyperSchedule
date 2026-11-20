@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -29,6 +30,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.hyperschedule.app.data.local.ReminderSettings
 import com.hyperschedule.app.data.local.WearPushSettings
+import com.hyperschedule.app.data.push.WearDeviceInfo
 import com.hyperschedule.app.data.push.WearSchedule
 import com.hyperschedule.app.data.push.WearSync
 import com.hyperschedule.app.data.push.buildWearSchedule
@@ -54,6 +56,7 @@ import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -149,6 +152,7 @@ fun WearPushPage(
 
     var deviceId by remember { mutableStateOf<String?>(null) }
     var deviceName by remember { mutableStateOf("") }
+    var deviceInfo by remember { mutableStateOf<WearDeviceInfo?>(null) }
     // null 表示还没查（未连接或刚进页面），false 才是设备上确实没装
     var appInstalled by remember { mutableStateOf<Boolean?>(null) }
     var pushing by remember { mutableStateOf(false) }
@@ -163,12 +167,37 @@ fun WearPushPage(
         Toast.makeText(context, text, Toast.LENGTH_LONG).show()
     }
 
-    // 拉起快应用，签名不一致、未安装等失败原因都提示出来
+    // 拉起快应用后查设备信息，快应用首启来不及注册监听，隔一会儿补发
+    fun requestDeviceInfo(nodeId: String) {
+        scope.launch {
+            val gotInfo = AtomicBoolean(false)
+            runCatching {
+                wear.listenDeviceInfo(nodeId) {
+                    gotInfo.set(true)
+                    deviceInfo = it
+                }
+                repeat(3) {
+                    if (gotInfo.get()) return@repeat
+                    wear.queryDevice(nodeId)
+                    delay(1500.milliseconds)
+                }
+            }
+        }
+    }
+
+    DisposableEffect(wear) {
+        onDispose { wear.clearDeviceInfoListener() }
+    }
+
     suspend fun openWearAppSafely(nodeId: String) {
         runCatching { wear.openWearApp(nodeId) }
             .onSuccess { installed ->
                 appInstalled = installed
-                if (!installed) toast(WEAR_APP_MISSING_HINT)
+                if (installed) {
+                    requestDeviceInfo(nodeId)
+                } else {
+                    toast(WEAR_APP_MISSING_HINT)
+                }
             }
             .onFailure { toast(describeWearError(it)) }
     }
@@ -188,8 +217,10 @@ fun WearPushPage(
                 if (node == null) {
                     lastNodeId = null
                     appInstalled = null
+                    deviceInfo = null
                 } else if (node.id != lastNodeId) {
                     lastNodeId = node.id
+                    deviceInfo = null
                     runCatching { wear.ensurePermission(node.id) }.fold(
                         onSuccess = { granted ->
                             if (granted) {
@@ -203,6 +234,7 @@ fun WearPushPage(
                     )
                 } else if (!wasResumed) {
                     appInstalled = runCatching { wear.isWearAppInstalled(node.id) }.getOrNull()
+                    if (appInstalled == true) requestDeviceInfo(node.id)
                 }
             }
             wasResumed = resumed
@@ -283,6 +315,7 @@ fun WearPushPage(
         ConnectionStatusCard(
             isConnected = deviceId != null,
             deviceName = deviceName,
+            deviceInfo = deviceInfo,
             onOpenApp = { deviceId?.let { device -> scope.launch { openWearAppSafely(device) } } },
         )
 
@@ -338,6 +371,7 @@ fun WearPushPage(
 private fun ConnectionStatusCard(
     isConnected: Boolean,
     deviceName: String,
+    deviceInfo: WearDeviceInfo?,
     onOpenApp: () -> Unit,
 ) {
     val scheme = MiuixTheme.colorScheme
@@ -378,7 +412,7 @@ private fun ConnectionStatusCard(
                 Icon(
                     modifier = Modifier.size(170.dp),
                     imageVector =
-                        if (isConnected) wearableIcon(deviceName) else MiuixIcons.Glass.Error,
+                        if (isConnected) wearableIcon(deviceInfo, deviceName) else MiuixIcons.Glass.Error,
                     tint = iconColor,
                     contentDescription = null,
                 )
@@ -404,21 +438,39 @@ private fun ConnectionStatusCard(
                     fontWeight = FontWeight.Medium,
                     color = textColor.copy(alpha = 0.8f),
                 )
-                Spacer(Modifier.height(36.dp))
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    modifier = Modifier.fillMaxWidth(),
+                    text = if (isConnected && deviceInfo != null && deviceInfo.versionName.isNotEmpty()) {
+                        "快应用版本：v${deviceInfo.versionName}(${deviceInfo.versionCode})"
+                    } else {
+                        ""
+                    },
+                    fontSize = 12.sp,
+                    color = textColor.copy(alpha = 0.6f),
+                )
+                Spacer(Modifier.height(20.dp))
             }
         }
     }
 }
 
-/** 按设备名称挑机型，Pro 显示方表，手表显示圆表，手环显示胶囊，其他用通用图标 */
-private fun wearableIcon(name: String): ImageVector {
-    val pro = name.contains("pro", ignoreCase = true)
-    val watch = name.contains("手表") || name.contains("Watch", ignoreCase = true)
-    val band = name.contains("手环") || name.contains("Band", ignoreCase = true)
+/** 按屏幕形状、名称、设备类型依次回退 */
+private fun wearableIcon(
+    info: WearDeviceInfo?,
+    name: String,
+): ImageVector {
+    val shape = info?.screenShape.orEmpty()
+    val type = info?.deviceType.orEmpty()
     return when {
-        pro -> MiuixIcons.Glass.WatchSquare
-        watch -> MiuixIcons.Glass.WatchRound
-        band -> MiuixIcons.Glass.WatchCapsule
+        shape.equals("pill-shaped", ignoreCase = true) -> MiuixIcons.Glass.WatchCapsule
+        shape.equals("circle", ignoreCase = true) -> MiuixIcons.Glass.WatchRound
+        shape.equals("rect", ignoreCase = true) -> MiuixIcons.Glass.WatchSquare
+        name.contains("pro", ignoreCase = true) -> MiuixIcons.Glass.WatchSquare
+        name.contains("手表") || name.contains("Watch", ignoreCase = true) -> MiuixIcons.Glass.WatchRound
+        name.contains("手环") || name.contains("Band", ignoreCase = true) -> MiuixIcons.Glass.WatchCapsule
+        type.equals("watch", ignoreCase = true) -> MiuixIcons.Glass.WatchRound
+        type.equals("band", ignoreCase = true) -> MiuixIcons.Glass.WatchCapsule
         else -> MiuixIcons.Glass.WearableUniversal
     }
 }
