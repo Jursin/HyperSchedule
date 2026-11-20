@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -43,6 +44,8 @@ import com.hyperschedule.app.theme.subtleFillColor
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.dayLabel
 import com.hyperschedule.app.ui.component.formatWeeks
+import com.hyperschedule.app.ui.component.maxLengthInput
+import com.hyperschedule.app.ui.component.rememberSyncedInput
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
@@ -59,6 +62,9 @@ import top.yukonga.miuix.kmp.icon.glass.Years
 import top.yukonga.miuix.kmp.squircle.squircleBorder
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** 备注长度上限 */
+private const val RemarkMaxLength = 300
 
 @Composable
 internal fun GroupCard(
@@ -123,14 +129,14 @@ internal fun GroupCard(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Text(
-                        text = "${group.remark.length} / 300",
+                        text = "${group.remark.length} / $RemarkMaxLength",
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
                 }
                 RemarkField(
                     value = group.remark,
-                    onValueChange = { onChange(group.copy(remark = it.take(300))) },
+                    onValueChange = { onChange(group.copy(remark = it)) },
                     modifier = Modifier.fillMaxWidth().padding(start = 44.dp, end = 16.dp, top = 8.dp, bottom = 17.dp),
                 )
             }
@@ -229,28 +235,23 @@ internal fun InlineField(
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier.fillMaxWidth(),
-        textStyle =
-            MiuixTheme.textStyles.headline1.copy(
-                fontWeight = FontWeight.Medium,
-                color = MiuixTheme.colorScheme.onSurface,
-                textAlign = TextAlign.End,
-            ),
-        singleLine = true,
-        keyboardOptions = keyboardOptions,
-        cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-        decorationBox = { innerTextField ->
-            Box(contentAlignment = Alignment.CenterEnd) {
-                if (value.isEmpty()) {
-                    ValueText(hint, placeholder = true)
-                }
-                innerTextField()
-            }
-        },
-    )
+    val state = rememberSyncedInput(value, onValueChange)
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+        if (state.text.isEmpty()) ValueText(hint, placeholder = true)
+        BasicTextField(
+            state = state,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle =
+                MiuixTheme.textStyles.headline1.copy(
+                    fontWeight = FontWeight.Medium,
+                    color = MiuixTheme.colorScheme.onSurface,
+                    textAlign = TextAlign.End,
+                ),
+            keyboardOptions = keyboardOptions,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
+        )
+    }
 }
 
 @Composable
@@ -259,27 +260,24 @@ internal fun RemarkField(
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        textStyle = MiuixTheme.textStyles.body1.copy(color = MiuixTheme.colorScheme.onSurface),
-        minLines = 2,
-        maxLines = 4,
-        cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
-        decorationBox = { innerTextField ->
-            Box {
-                if (value.isEmpty()) {
-                    Text(
-                        text = "选填",
-                        style = MiuixTheme.textStyles.body1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-                innerTextField()
-            }
-        },
-    )
+    val state = rememberSyncedInput(value, onValueChange)
+    Box(modifier = modifier) {
+        if (state.text.isEmpty()) {
+            Text(
+                text = "选填",
+                style = MiuixTheme.textStyles.body1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+        BasicTextField(
+            state = state,
+            modifier = Modifier.fillMaxWidth(),
+            textStyle = MiuixTheme.textStyles.body1.copy(color = MiuixTheme.colorScheme.onSurface),
+            lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 2, maxHeightInLines = 4),
+            inputTransformation = maxLengthInput(RemarkMaxLength),
+            cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
+        )
+    }
 }
 
 @Composable

@@ -4,6 +4,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -34,6 +37,7 @@ import com.hyperschedule.app.ui.component.SaveFab
 import com.hyperschedule.app.ui.component.TimeRangeDialog
 import com.hyperschedule.app.ui.component.ValueLabel
 import com.hyperschedule.app.ui.component.formatWeekdays
+import com.hyperschedule.app.ui.component.maxLengthInput
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.rememberEditBackGuard
 import com.hyperschedule.app.ui.component.toast
@@ -95,7 +99,7 @@ private fun PlanEditContent(
     // 节次别名（如「早自习」）编辑页不展示，保存时按序号原样带回
     val aliasByNumber = remember(detail) { detail.slots.associate { it.number to it.alias } }
 
-    var name by remember { mutableStateOf(seed.name) }
+    val nameInput = rememberTextFieldState(seed.name)
     var sectionCount by remember { mutableIntStateOf(seed.sectionCount) }
     var splitAM by remember { mutableStateOf(seed.splitMorningAfternoon) }
     var splitAE by remember { mutableStateOf(seed.splitAfternoonEvening) }
@@ -105,7 +109,7 @@ private fun PlanEditContent(
 
     fun snapshot() =
         PlanDraft(
-            name = name,
+            name = nameInput.text.toString(),
             sectionCount = sectionCount,
             splitMorningAfternoon = splitAM,
             splitAfternoonEvening = splitAE,
@@ -136,7 +140,7 @@ private fun PlanEditContent(
     val splitAMValue = parseMinutes(splitAM)
     val splitAEValue = parseMinutes(splitAE)
     val canSave =
-        (isExclusive || name.isNotBlank()) &&
+        (isExclusive || nameInput.text.isNotBlank()) &&
             splitAMValue != null &&
             splitAEValue != null &&
             splitAEValue > splitAMValue &&
@@ -144,7 +148,8 @@ private fun PlanEditContent(
 
     val onSave: () -> Unit = {
         if (canSave) {
-            name = name.trim()
+            // 去掉首尾空格后再取快照，保存后基线才与输入框一致
+            nameInput.setTextAndPlaceCursorAtEnd(nameInput.text.toString().trim())
             val draft = snapshot()
             // 名称被清空的特殊课程不入库，从基线里消失即视为删除
             val kept = draft.specials.filter { it.name.isNotBlank() }
@@ -204,10 +209,10 @@ private fun PlanEditContent(
     ) {
         if (!isExclusive) {
             TextField(
-                value = name,
-                onValueChange = { name = it.take(20) },
+                state = nameInput,
                 label = "作息名称",
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
+                inputTransformation = maxLengthInput(20),
                 textStyle = MiuixTheme.textStyles.main.copy(fontWeight = FontWeight.Medium),
                 modifier = Modifier.fillMaxWidth(),
             )

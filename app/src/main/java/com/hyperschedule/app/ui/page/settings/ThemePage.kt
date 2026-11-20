@@ -8,6 +8,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import com.hyperschedule.app.data.local.AccentColor
 import com.hyperschedule.app.data.local.PaletteStyle
@@ -25,6 +26,14 @@ fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
     // 各开关依赖的系统能力不同，不支持的版本直接不显示
     val supportsBlur = isRuntimeShaderSupported()
     val supportsPredictiveBack = Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE
+    // Android 12 以下不支持，隐藏系统取色
+    val accents = remember {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            AccentColor.entries
+        } else {
+            AccentColor.entries.filter { it != AccentColor.Default }
+        }
+    }
     PreferenceScreen(title = "外观与主题", appBlur = state.blur, onBack = onBack) {
         PreferenceSection("颜色与主题") {
             EnumDropdown("主题模式", ThemeMode.entries, state.themeMode, ThemeMode::title) { mode ->
@@ -44,7 +53,7 @@ fun ThemePage(store: SettingsStore, onBack: () -> Unit) {
                     EnumDropdown("色彩风格", PaletteStyle.entries, state.paletteStyle, PaletteStyle::title) { style ->
                         store.update { it.copy(paletteStyle = style) }
                     }
-                    EnumDropdown("强调色", AccentColor.entries, state.accentColor, AccentColor::title) { accent ->
+                    EnumDropdown("强调色", accents, state.accentColor, AccentColor::title) { accent ->
                         store.update { it.copy(accentColor = accent) }
                     }
                     SwitchPreference(

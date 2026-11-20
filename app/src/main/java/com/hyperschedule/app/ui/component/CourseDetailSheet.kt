@@ -38,6 +38,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
+import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -182,13 +183,15 @@ private fun CourseDetailCard(item: CourseDetailItem, mark: String?, onEdit: () -
 /** 编辑入口 */
 @Composable
 private fun EditPill(onClick: () -> Unit) {
+    val interaction = remember { MutableInteractionSource() }
     Box(
         modifier =
             Modifier
+                .glassPress(interaction)
                 .clip(RoundedCornerShape(percent = 50))
                 .background(MiuixTheme.colorScheme.primary.copy(alpha = 0.1f))
                 .clickable(
-                    interactionSource = remember { MutableInteractionSource() },
+                    interactionSource = interaction,
                     indication = null,
                     onClick = onClick,
                 )

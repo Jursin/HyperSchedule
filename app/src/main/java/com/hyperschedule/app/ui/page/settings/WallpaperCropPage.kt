@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -44,11 +46,12 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import com.hyperschedule.app.data.local.WallpaperStore
+import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.component.BlurredTopAppBar
 import com.hyperschedule.app.ui.component.SaveFab
 import com.hyperschedule.app.ui.effect.LocalFabBackdrop
 import com.hyperschedule.app.ui.effect.captureForBlur
-import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
+import com.hyperschedule.app.ui.effect.rememberPageBackdrop
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.roundToInt
@@ -75,7 +78,7 @@ fun WallpaperCropPage(
 ) {
     val context = LocalContext.current
     val scrollBehavior = MiuixScrollBehavior()
-    val blurBackdrop = rememberAppBlurBackdrop(appBlur)
+    val blurBackdrop = rememberPageBackdrop(appBlur, null)
     val scope = rememberCoroutineScope()
     // 裁剪比例取当前窗口，转屏与分屏变化时跟着换
     val window = LocalWindowInfo.current.containerDpSize
@@ -110,8 +113,7 @@ fun WallpaperCropPage(
                 pinnedTitle = true,
                 // 裁剪区一直压在栏下且不滚动，按钮底色得常驻
                 materialPinned = true,
-                // 和框外压暗同一层遮罩，栏与下方不会出现色差
-                color = Color.Black.copy(alpha = OUTSIDE_SCRIM_ALPHA),
+                color = MiuixTheme.colorScheme.surface,
                 onBack = if (saving) null else onBack,
             )
         },
@@ -171,6 +173,7 @@ private fun CropArea(
     val marginPx = with(density) { 24.dp.toPx() }
     val fabSpan = with(density) { 96.dp.toPx() }
     val zoomJob = remember { mutableStateOf<Job?>(null) }
+    val lineColor = if (isDarkTheme()) Color.White else Color.Black
 
     BoxWithConstraints(
         modifier =
@@ -207,6 +210,7 @@ private fun CropArea(
                 modifier =
                     Modifier
                         .fillMaxSize()
+                        .clipToBounds()
                         .pointerInput(shown, frame, frameTop) {
                             detectTransformGestures(panZoomLock = true) { centroid, pan, zoom, _ ->
                                 zoomJob.value?.cancel()
@@ -261,6 +265,7 @@ private fun CropArea(
                 drawCropOverlay(
                     frame = Rect(left = frameLeft, top = frameTop, right = frameLeft + frame.width, bottom = frameTop + frame.height),
                     image = Rect(offset = origin, size = display),
+                    lineColor = lineColor,
                 )
             }
         }
@@ -283,7 +288,7 @@ private fun CropArea(
 }
 
 /** 裁剪框叠层 */
-private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
+private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect, lineColor: Color) {
     val scrim = Color.Black.copy(alpha = OUTSIDE_SCRIM_ALPHA)
     clipRect(image.left, image.top, image.right, image.bottom) {
         drawRect(scrim, topLeft = Offset.Zero, size = Size(size.width, frame.top))
@@ -292,6 +297,7 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
         drawRect(scrim, topLeft = Offset(frame.right, frame.top), size = Size(size.width - frame.right, frame.height))
     }
 
+    val halo = if (lineColor.luminance() > 0.5f) Color.Black else Color.White
     val gridStroke = 0.6.dp.toPx()
     val guides = buildList {
         for (i in 1..2) {
@@ -301,8 +307,8 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
             add(Offset(frame.left, y) to Offset(frame.right, y))
         }
     }
-    guides.forEach { (from, to) -> drawLine(Color.Black.copy(alpha = 0.15f), from, to, gridStroke * 1.8f) }
-    guides.forEach { (from, to) -> drawLine(Color.White.copy(alpha = 0.45f), from, to, gridStroke) }
+    guides.forEach { (from, to) -> drawLine(halo.copy(alpha = 0.15f), from, to, gridStroke * 1.8f) }
+    guides.forEach { (from, to) -> drawLine(lineColor.copy(alpha = 0.45f), from, to, gridStroke) }
 
     // 折角整体在裁剪区域外侧，内缘贴着框边
     val arm = (frame.width * 0.05f).coerceIn(10.dp.toPx(), 24.dp.toPx())
@@ -324,7 +330,7 @@ private fun DrawScope.drawCropOverlay(frame: Rect, image: Rect) {
             cornerArms(frame.right, frame.top, -1f, 1f) +
             cornerArms(frame.left, frame.bottom, 1f, -1f) +
             cornerArms(frame.right, frame.bottom, -1f, -1f)
-    arms.forEach { drawRect(Color.White, topLeft = it.topLeft, size = it.size) }
+    arms.forEach { drawRect(lineColor, topLeft = it.topLeft, size = it.size) }
 }
 
 /** 按 Cover 铺满裁剪框的基础缩放 */

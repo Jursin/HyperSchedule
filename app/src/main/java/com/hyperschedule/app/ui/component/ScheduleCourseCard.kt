@@ -41,6 +41,7 @@ import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.rememberCourseColor
 import com.hyperschedule.app.ui.effect.cardSurface
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 非本周（该格本周不上）的灰，底色与文字的透明度，深色主题另给一组 */
@@ -67,6 +68,7 @@ fun ScheduleCourseCard(
     // 放假这天不上课，按非本周的灰画
     val colors = rememberCourseCardColors(course, isCurrentWeek && !isHoliday)
     val shape = RoundedCornerShape(style.cardCorner.dp)
+    val interaction = remember { MutableInteractionSource() }
     val scale = 0.84f * style.textScale
     val infoFontSize = 11.sp * scale
     val nameFontSize = 12.7.sp * scale
@@ -123,6 +125,7 @@ fun ScheduleCourseCard(
                 .fillMaxWidth()
                 .height(heightOverride)
                 .padding(style.cardMargin.dp)
+                .then(if (onClick != null) Modifier.glassPress(interaction) else Modifier)
                 .clip(shape)
                 // 先铺一层和 Card 同浓度的底（开了模糊就采样壁纸），课程色压在上面
                 .cardSurface(CornerSize(style.cardCorner.dp))
@@ -134,11 +137,11 @@ fun ScheduleCourseCard(
                         Modifier
                     }
                 )
-                // 无涟漪，卡片本身已经有按压反馈的视觉语言，点按直接弹详情
+                // 无涟漪，点按直接弹详情
                 .then(
                     if (onClick != null) {
                         Modifier.clickable(
-                            interactionSource = remember { MutableInteractionSource() },
+                            interactionSource = interaction,
                             indication = null,
                             onClick = onClick,
                         )

@@ -8,9 +8,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -18,8 +21,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.R
@@ -33,9 +34,11 @@ import com.hyperschedule.app.data.local.RemoteAccountInfo
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.WebDavSettings
 import com.hyperschedule.app.theme.SectionSpacing
+import com.hyperschedule.app.ui.component.PasswordMask
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
+import com.hyperschedule.app.ui.component.rememberSyncedInput
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -202,7 +205,7 @@ private fun RemoteBackupTab(
             modifier = Modifier.fillMaxWidth().padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         ) {
-            fields.forEach { field -> RemoteFieldRow(field) }
+            fields.forEach { field -> key(field.label) { RemoteFieldRow(field) } }
         }
         extraRows?.invoke()
         ArrowPreference(
@@ -241,10 +244,11 @@ private fun RemoteFieldRow(field: RemoteField) {
     val focused by interaction.collectIsFocusedAsState()
     var revealed by remember { mutableStateOf(false) }
     val error = if (focused) null else field.error
+    val input = rememberSyncedInput(field.value, field.onChange)
     // 清空后离开输入框时补回默认值，不留空路径
     LaunchedEffect(focused) {
         val fallback = field.blankFallback
-        if (!focused && field.value.isBlank() && fallback != null) field.onChange(fallback)
+        if (!focused && input.text.isBlank() && fallback != null) input.setTextAndPlaceCursorAtEnd(fallback)
     }
     val icon = field.icon
     val leadingIcon: (@Composable () -> Unit)? =
@@ -267,16 +271,14 @@ private fun RemoteFieldRow(field: RemoteField) {
         }
     Column(modifier = Modifier.fillMaxWidth()) {
         TextField(
-            value = field.value,
-            onValueChange = field.onChange,
+            state = input,
             label = field.label,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.fillMaxWidth(),
             interactionSource = interaction,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
-            visualTransformation =
-                if (field.secret && !revealed) PasswordVisualTransformation() else VisualTransformation.None,
+            outputTransformation = if (field.secret && !revealed) PasswordMask else null,
             keyboardOptions =
                 if (field.secret) KeyboardOptions(keyboardType = KeyboardType.Password) else KeyboardOptions.Default,
             colors =

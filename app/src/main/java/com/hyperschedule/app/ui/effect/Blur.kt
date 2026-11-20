@@ -21,11 +21,14 @@ import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.component.LocalInsideFloatingWindow
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.BackdropEffectScope
+import top.yukonga.miuix.kmp.blur.BlendColorEntry
+import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
+import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glass as miuixGlass
 import top.yukonga.miuix.kmp.glass.glassShadow
 import top.yukonga.miuix.kmp.material.GlassColorBlendMode
@@ -61,11 +64,17 @@ private fun wallpaperGlass(): Backdrop? = LocalWallpaper.current?.glassBackdrop
 fun Modifier.appBarBand(backdrop: Backdrop?): Modifier {
     if (backdrop == null) return this
     val wallpaper = LocalWallpaper.current
+    val surface = MiuixTheme.colorScheme.surface
+    val colors =
+        BlurDefaults.blurColors(
+            blendColors = remember(surface) { listOf(BlendColorEntry(surface.copy(alpha = 0.3f))) },
+        )
     return progressiveTextureBlur(
         backdrop = backdrop,
         shape = RectangleShape,
-        blurRadius = 12f,
-        gradient = ProgressiveBlur.Top,
+        blurRadius = GlassTopAppBarDefaults.ProgressiveBlurRadius.value,
+        gradient = ProgressiveBlur.Top.copy(curve = 0.25f),
+        colors = colors,
     ).then(RepaintElement(wallpaper?.bitmap, wallpaper?.glassEnabled == true))
 }
 

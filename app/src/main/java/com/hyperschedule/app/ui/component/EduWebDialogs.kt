@@ -7,17 +7,21 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
+import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 教务脚本的 alert/prompt/单选对话框，页面只负责状态 */
@@ -61,29 +65,25 @@ internal fun EduPromptDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    var value by remember { mutableStateOf(initial) }
+    val input = rememberTextFieldState(initial)
     var error by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(input) { snapshotFlow { input.text }.collect { error = null } }
     ConfirmDialog(
         title = title,
         appBlur = appBlur,
         onDismiss = onDismiss,
         onConfirm = {
-            validate(value) { message ->
-                if (message == null) onConfirm(value) else error = message
-            }
+            val text = input.text.toString()
+            validate(text) { message -> if (message == null) onConfirm(text) else error = message }
         },
     ) {
         Column(
             modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            TextField(
-                value = value,
-                onValueChange = {
-                    value = it
-                    error = null
-                },
-                singleLine = true,
+            GlassTextField(
+                state = input,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
             )
             if (tip.isNotBlank()) {

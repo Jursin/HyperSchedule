@@ -4,6 +4,8 @@ import android.widget.Toast
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -23,14 +25,15 @@ import com.hyperschedule.app.schedule.formatDate
 import com.hyperschedule.app.schedule.parseDateOrNull
 import com.hyperschedule.app.theme.CardCornerRadius
 import com.hyperschedule.app.ui.component.ConfirmDialog
-import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.DateRangeCalendar
 import com.hyperschedule.app.ui.component.DialogDeleteAction
 import com.hyperschedule.app.ui.component.DualDateCalendar
+import com.hyperschedule.app.ui.component.GlassFab
 import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.SectionTitle
 import com.hyperschedule.app.ui.component.WideActionButton
+import com.hyperschedule.app.ui.component.maxLengthInput
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import java.time.LocalDate
@@ -40,7 +43,7 @@ import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.ProgressIndicatorDefaults
-import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.icon.glass.Refresh
@@ -228,13 +231,13 @@ private fun HolidayEditDialog(
         remember(year) {
             if (year == LocalDate.now().year) LocalDate.now() else LocalDate.of(year, 1, 1)
         }
-    var name by remember { mutableStateOf(entry?.name.orEmpty()) }
+    val nameInput = rememberTextFieldState(entry?.name.orEmpty())
     var startDate by remember { mutableStateOf(parseDateOrNull(entry?.date.orEmpty()) ?: fallbackDate) }
     var endDate by remember { mutableStateOf(parseDateOrNull(entry?.endDate.orEmpty()) ?: startDate) }
     // 调休补哪一天的课，按绝对日期选，未设置时为空
     var followDate by remember { mutableStateOf(parseDateOrNull(entry?.followDate.orEmpty())) }
 
-    val canSave = name.isNotBlank() && (isHoliday.not() || endDate >= startDate)
+    val canSave = nameInput.text.isNotBlank() && (isHoliday.not() || endDate >= startDate)
     val title =
         when {
             isNewEntry && isHoliday -> "添加节假日"
@@ -261,7 +264,7 @@ private fun HolidayEditDialog(
             onSave(
                 HolidayEntry(
                     date = startDate.toString(),
-                    name = name.trim().ifBlank { if (isHoliday) "节假日" else "调休工作日" },
+                    name = nameInput.text.toString().trim().ifBlank { if (isHoliday) "节假日" else "调休工作日" },
                     type = type,
                     endDate = if (isHoliday) endDate.toString() else "",
                     followDate = if (isHoliday) "" else followDate?.toString().orEmpty(),
@@ -270,11 +273,11 @@ private fun HolidayEditDialog(
             )
         },
     ) {
-        TextField(
-            value = name,
-            onValueChange = { name = it.take(20) },
+        GlassTextField(
+            state = nameInput,
             label = "名称",
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = maxLengthInput(20),
             modifier = Modifier.fillMaxWidth(),
         )
 

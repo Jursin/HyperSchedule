@@ -263,7 +263,7 @@ private fun TodayCourseRow(
         }
         if (progress != null) {
             Spacer(modifier = Modifier.height(10.dp))
-            LinearProgressIndicator(progress = progress.fraction, modifier = Modifier.fillMaxWidth())
+            LinearProgressIndicator(progress = { progress.fraction }, modifier = Modifier.fillMaxWidth())
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = progress.label,

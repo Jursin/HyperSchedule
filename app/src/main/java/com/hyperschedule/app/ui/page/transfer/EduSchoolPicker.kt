@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,8 +62,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.hyperschedule.app.data.importer.edu.Adapter
 import com.hyperschedule.app.theme.CardCornerRadius
-import com.hyperschedule.app.theme.dangerColor
 import com.hyperschedule.app.theme.SheetMaxHeight
+import com.hyperschedule.app.theme.dangerColor
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.ConfirmDialog
@@ -76,7 +78,7 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
-import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Contacts
 import top.yukonga.miuix.kmp.icon.glass.FavoriteFill
@@ -91,21 +93,20 @@ internal fun UrlInputDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    var url by remember { mutableStateOf("") }
+    val urlInput = rememberTextFieldState()
     ConfirmDialog(
         title = "输入网址",
         message = "请输入要访问的学校教务系统网址",
         appBlur = appBlur,
-        confirmEnabled = url.isNotBlank(),
+        confirmEnabled = urlInput.text.isNotBlank(),
         onDismiss = onDismiss,
-        onConfirm = { onConfirm(url.trim()) },
+        onConfirm = { onConfirm(urlInput.text.toString().trim()) },
     ) {
-        TextField(
-            value = url,
-            onValueChange = { url = it },
+        GlassTextField(
+            state = urlInput,
             label = "网址",
             useLabelAsPlaceholder = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             modifier = Modifier.fillMaxWidth(),
         )

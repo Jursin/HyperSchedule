@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -20,7 +22,8 @@ import com.hyperschedule.app.ui.component.DialogDeleteAction
 import com.hyperschedule.app.ui.component.TimeRangeRow
 import com.hyperschedule.app.ui.component.TimeWheelLabel
 import com.hyperschedule.app.ui.component.WeekdaySelectGrid
-import top.yukonga.miuix.kmp.basic.TextField
+import com.hyperschedule.app.ui.component.maxLengthInput
+import top.yukonga.miuix.kmp.glass.GlassTextField
 
 /** 新增/编辑特殊节次，名称、起止时间、上课星期依次往下排 */
 @Composable
@@ -32,7 +35,7 @@ internal fun SpecialBlockDialog(
     onConfirm: (SpecialDraft) -> Unit,
     onDelete: () -> Unit,
 ) {
-    var name by remember(initial.id) { mutableStateOf(initial.name) }
+    val nameInput = remember(initial.id) { TextFieldState(initial.name) }
     var days by remember(initial.id) { mutableStateOf(initial.days) }
     val startMinutes = parseMinutes(initial.start) ?: DefaultSpecialStart
     val endMinutes = parseMinutes(initial.end) ?: (startMinutes + DefaultSpecialSpan)
@@ -54,13 +57,13 @@ internal fun SpecialBlockDialog(
     ConfirmDialog(
         title = if (canDelete) "编辑特殊节次" else "添加特殊节次",
         appBlur = appBlur,
-        confirmEnabled = name.isNotBlank() && days.isNotEmpty() && end > start,
+        confirmEnabled = nameInput.text.isNotBlank() && days.isNotEmpty() && end > start,
         endAction = deleteAction,
         onDismiss = onDismiss,
         onConfirm = {
             onConfirm(
                 initial.copy(
-                    name = name.trim(),
+                    name = nameInput.text.toString().trim(),
                     start = formatMinutes(start),
                     end = formatMinutes(end),
                     days = days,
@@ -68,12 +71,12 @@ internal fun SpecialBlockDialog(
             )
         },
     ) {
-        TextField(
-            value = name,
-            onValueChange = { name = it.take(12) },
+        GlassTextField(
+            state = nameInput,
             label = "名称",
             useLabelAsPlaceholder = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = maxLengthInput(12),
             modifier = Modifier.fillMaxWidth(),
         )
         // 滚轮与「上课星期」自成一组，组内间距小一档，末尾留白

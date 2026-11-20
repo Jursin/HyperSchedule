@@ -1,6 +1,7 @@
 package com.hyperschedule.app.ui.component
 
 import android.net.Uri
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,7 +25,8 @@ fun WallpaperPreferences(
     onBlurCommit: () -> Unit,
 ) {
     WallpaperPreference(wallpaper = wallpaper, onPick = onPick, onClear = onClear)
-    if (wallpaper.isNotEmpty()) {
+    // 模糊走 Modifier.blur，Android 12 以下不支持，直接隐藏
+    if (wallpaper.isNotEmpty() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         WallpaperBlurPreference(
             blur = blur,
             onBlurChange = onBlurChange,

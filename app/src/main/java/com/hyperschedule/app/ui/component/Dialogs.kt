@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,11 +38,11 @@ import kotlinx.coroutines.launch
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.glass.GlassDialog
 import top.yukonga.miuix.kmp.glass.GlassDialogButton
 import top.yukonga.miuix.kmp.glass.GlassDialogButtonRole
 import top.yukonga.miuix.kmp.glass.GlassDialogDefaults
+import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Delete
 import top.yukonga.miuix.kmp.theme.LocalDismissState
@@ -231,20 +233,20 @@ fun TableNameDialog(
     onDismiss: () -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    var name by remember { mutableStateOf(initialName) }
+    val nameInput = rememberTextFieldState(initialName)
     ConfirmDialog(
         title = title,
         appBlur = appBlur,
-        confirmEnabled = name.isNotBlank(),
+        confirmEnabled = nameInput.text.isNotBlank(),
         onDismiss = onDismiss,
-        onConfirm = { onConfirm(name.trim()) },
+        onConfirm = { onConfirm(nameInput.text.toString().trim()) },
     ) {
-        TextField(
-            value = name,
-            onValueChange = { name = it.take(20) },
+        GlassTextField(
+            state = nameInput,
             label = "课表名称",
             useLabelAsPlaceholder = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = maxLengthInput(20),
             modifier = Modifier.fillMaxWidth(),
         )
     }
@@ -292,20 +294,20 @@ fun ShareCodeDialog(
     onDismiss: () -> Unit,
     onSubmit: (String) -> Unit,
 ) {
-    var input by remember { mutableStateOf("") }
+    val inputState = rememberTextFieldState()
     ConfirmDialog(
         title = title,
         appBlur = appBlur,
-        confirmEnabled = input.isNotBlank() && !busy,
+        confirmEnabled = inputState.text.isNotBlank() && !busy,
         onDismiss = onDismiss,
-        onConfirm = { onSubmit(input.trim()) },
+        onConfirm = { onSubmit(inputState.text.toString().trim()) },
     ) {
-        TextField(
-            value = input,
-            onValueChange = { input = it.take(2000) },
+        GlassTextField(
+            state = inputState,
             label = hint,
             useLabelAsPlaceholder = true,
-            maxLines = 4,
+            lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 4),
+            inputTransformation = maxLengthInput(2000),
             modifier = Modifier.fillMaxWidth(),
         )
         if (busy) {

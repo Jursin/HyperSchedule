@@ -2,6 +2,7 @@ package com.hyperschedule.app.ui.component
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -16,7 +17,7 @@ import com.hyperschedule.app.theme.SheetMaxHeight
 import com.hyperschedule.app.theme.sheetCardColor
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.glass.GlassTextField
 
 /** 学校页的更多设置 */
 @Composable
@@ -57,20 +58,20 @@ fun EduRepoSheet(
             }
 
             if (draft.repo == EduRepo.Custom) {
+                val urlInput = rememberSyncedInput(draft.customUrl) { draft = draft.copy(customUrl = it) }
+                val branchInput = rememberSyncedInput(draft.customBranch) { draft = draft.copy(customBranch = it) }
                 PreferenceItemSection {
-                    TextField(
-                        value = draft.customUrl,
-                        onValueChange = { draft = draft.copy(customUrl = it) },
+                    GlassTextField(
+                        state = urlInput,
                         label = "仓库 URL",
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
                         modifier = Modifier.fillMaxWidth(),
                     )
-                    TextField(
-                        value = draft.customBranch,
-                        onValueChange = { draft = draft.copy(customBranch = it) },
+                    GlassTextField(
+                        state = branchInput,
                         label = "分支",
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth(),
                     )
                 }

@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -40,6 +42,7 @@ import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.SaveFab
 import com.hyperschedule.app.ui.component.ValueLabel
 import com.hyperschedule.app.ui.component.WideActionButton
+import com.hyperschedule.app.ui.component.maxLengthInput
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.rememberEditBackGuard
@@ -133,11 +136,11 @@ private fun ComboEditContent(
                 }
             ComboDraft(detail.combo.name, detail.combo.baseTimeTableId, rules)
         }
-    var name by remember { mutableStateOf(seed.name) }
+    val nameInput = rememberTextFieldState(seed.name)
     var baseId by remember { mutableStateOf(seed.baseId) }
     val rules = remember { mutableStateListOf<TimeTableComboRule>().apply { addAll(seed.rules) } }
 
-    val dirty = ComboDraft(name, baseId, rules.toList()) != seed
+    val dirty = ComboDraft(nameInput.text.toString(), baseId, rules.toList()) != seed
 
     var dateRuleIndex by remember { mutableIntStateOf(-1) }
     var dateIsStart by remember { mutableStateOf(true) }
@@ -155,7 +158,7 @@ private fun ComboEditContent(
     }
 
     val canSave =
-        name.isNotBlank() &&
+        nameInput.text.isNotBlank() &&
             rules.isNotEmpty() &&
             rules.all {
                 it.targetTimeTableId.isNotBlank() &&
@@ -172,7 +175,7 @@ private fun ComboEditContent(
                 val sorted = rules.sortedBy { it.startDate }
                 scope.launch {
                     repository.saveCombo(
-                        combo = detail.combo.copy(name = name.trim(), baseTimeTableId = baseId),
+                        combo = detail.combo.copy(name = nameInput.text.toString().trim(), baseTimeTableId = baseId),
                         rules = sorted.map { it.copy(comboId = detail.combo.id) },
                     )
                     context.toast("已保存")
@@ -201,10 +204,10 @@ private fun ComboEditContent(
         },
     ) {
         TextField(
-            value = name,
-            onValueChange = { name = it.take(20) },
+            state = nameInput,
             label = "组合作息名称",
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = maxLengthInput(20),
             textStyle = MiuixTheme.textStyles.main.copy(fontWeight = FontWeight.Medium),
             modifier = Modifier.fillMaxWidth(),
         )

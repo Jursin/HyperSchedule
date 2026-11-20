@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -39,6 +40,7 @@ import com.hyperschedule.app.ui.component.SelectableEditRow
 import com.hyperschedule.app.ui.component.WideActionButton
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
+import com.hyperschedule.app.ui.component.rememberSyncedInput
 import com.hyperschedule.app.update.ChangelogEntry
 import com.hyperschedule.app.update.SourceSpeed
 import com.hyperschedule.app.update.UpdateController
@@ -50,8 +52,8 @@ import com.hyperschedule.app.update.proxyPrefix
 import com.hyperschedule.app.update.sourcesOf
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextField
-import top.yukonga.miuix.kmp.basic.TextFieldDefaults
+import top.yukonga.miuix.kmp.glass.GlassTextField
+import top.yukonga.miuix.kmp.glass.GlassTextFieldDefaults
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.icon.glass.SearchDevice
@@ -182,18 +184,19 @@ fun UpdatePage(
                 }
             },
         ) {
+            val input =
+                rememberSyncedInput(mirrorInput) {
+                    mirrorInput = it
+                    problem = null
+                }
             Column(modifier = Modifier.fillMaxWidth()) {
-                TextField(
-                    value = mirrorInput,
-                    onValueChange = {
-                        mirrorInput = it
-                        problem = null
-                    },
+                GlassTextField(
+                    state = input,
                     label = "地址",
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     colors =
-                        TextFieldDefaults.textFieldColors(
+                        GlassTextFieldDefaults.textFieldColors(
                             borderColor = if (problem != null) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.primary,
                         ),
                 )
