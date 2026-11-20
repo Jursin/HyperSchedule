@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import com.hyperschedule.app.ui.effect.LocalWallpaper
 import com.hyperschedule.app.ui.effect.captureForBlur
@@ -12,6 +13,7 @@ import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.glass.GlassSegmentedTabRow
 import top.yukonga.miuix.kmp.glass.GlassTabRow
+import top.yukonga.miuix.kmp.material.GlassDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 @Composable
@@ -40,6 +42,7 @@ internal fun JoinedGlassTabs(
 ) {
     if (tabs.isEmpty()) return
     val wallpaper = LocalWallpaper.current?.glassSample
+    val glassStyle = GlassDefaults.style(isDarkTheme())
     // 关掉模糊就没有玻璃可采，交给内置的描边 Tab
     val blurOn = wallpaper != null || LocalPageGlassBackdrop.current != null
     when {
@@ -49,6 +52,7 @@ internal fun JoinedGlassTabs(
                 selectedIndex = selectedIndex,
                 onSelect = onSelect,
                 backdrop = wallpaper,
+                style = glassStyle,
                 modifier = modifier.fillMaxWidth(),
             )
         blurOn ->
@@ -58,6 +62,7 @@ internal fun JoinedGlassTabs(
                     selectedIndex = selectedIndex,
                     onSelect = onSelect,
                     backdrop = layer,
+                    style = glassStyle,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -81,6 +86,7 @@ internal fun GlassTabs(
 ) {
     if (tabs.isEmpty()) return
     val wallpaper = LocalWallpaper.current?.glassSample
+    val glassStyle = GlassDefaults.style(isDarkTheme())
     val blurOn = wallpaper != null || LocalPageGlassBackdrop.current != null
     when {
         wallpaper != null ->
@@ -89,6 +95,7 @@ internal fun GlassTabs(
                 selectedIndex = selectedIndex,
                 onSelect = onSelect,
                 backdrop = wallpaper,
+                style = glassStyle,
                 modifier = modifier.fillMaxWidth(),
             )
         blurOn ->
@@ -98,6 +105,7 @@ internal fun GlassTabs(
                     selectedIndex = selectedIndex,
                     onSelect = onSelect,
                     backdrop = layer,
+                    style = glassStyle,
                     modifier = Modifier.fillMaxWidth(),
                 )
             }
@@ -108,6 +116,7 @@ internal fun GlassTabs(
                 selectedIndex = selectedIndex,
                 onSelect = onSelect,
                 backdrop = null,
+                style = glassStyle,
                 modifier = modifier.fillMaxWidth(),
             )
     }

@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.PageBottomInset
 import com.hyperschedule.app.theme.PageHorizontalMargin
 import com.hyperschedule.app.theme.PanelCorner
+import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
 import com.hyperschedule.app.ui.effect.appBarBand
@@ -66,6 +67,7 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
 import top.yukonga.miuix.kmp.icon.glass.Ok
+import top.yukonga.miuix.kmp.material.GlassDefaults
 import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -203,6 +205,7 @@ private fun GlassAppBar(
     actions: @Composable RowScope.() -> Unit,
     bottomContent: @Composable () -> Unit,
 ) {
+    val glassStyle = GlassDefaults.style(isDarkTheme())
     // 栏内按钮换成玻璃圆片
     CompositionLocalProvider(LocalTopBarGlass provides true) {
         Box(modifier = modifier.fillMaxWidth()) {
@@ -221,6 +224,7 @@ private fun GlassAppBar(
                     modifier = barModifier,
                     expandable = !singleLine,
                     backdrop = backdrop,
+                    style = glassStyle,
                     scrollBehavior = scrollBehavior,
                     titleAlpha = titleAlpha,
                     backgroundAlpha = backgroundAlpha,
@@ -236,6 +240,7 @@ private fun GlassAppBar(
                     modifier = barModifier,
                     expandable = !singleLine,
                     backdrop = backdrop,
+                    style = glassStyle,
                     scrollBehavior = scrollBehavior,
                     titleAlpha = titleAlpha,
                     backgroundAlpha = backgroundAlpha,
@@ -300,6 +305,7 @@ fun TopBarIconButton(
                 modifier = modifier,
                 inheritTopBarMaterial = false,
                 material = glassTint(MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f), 20f),
+                style = GlassDefaults.style(isDarkTheme()),
             ) {
                 Box(modifier = Modifier.alpha(if (enabled) 1f else 0.4f)) {
                     content()

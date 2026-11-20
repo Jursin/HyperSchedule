@@ -11,7 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.hyperschedule.app.ui.effect.glassTint
+import com.hyperschedule.app.theme.isDarkTheme
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassIconButton
@@ -22,6 +22,8 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Months
 import top.yukonga.miuix.kmp.icon.glass.SettingsOutline
 import top.yukonga.miuix.kmp.icon.glass.Years
+import top.yukonga.miuix.kmp.material.GlassDefaults
+import top.yukonga.miuix.kmp.material.GlassShadows
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 internal data class Tab(val label: String, val icon: ImageVector)
@@ -58,6 +60,7 @@ internal fun BottomNavBar(
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val glassStyle = GlassDefaults.style(isDarkTheme())
     BoxWithConstraints(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.Center,
@@ -76,11 +79,15 @@ internal fun BottomNavBar(
             backdrop = blurBackdrop,
             defaultWindowInsetsPadding = false,
             modifier = Modifier.width(groupWidth),
+            style = glassStyle,
             trailingAction = {
                 GlassIconButton(
                     onClick = onOpenSettings,
                     backdrop = blurBackdrop,
-                    material = glassTint(MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f), 20f),
+                    material = GlassNavigationBarDefaults.material(),
+                    style = glassStyle,
+                    stroke = GlassNavigationBarDefaults.stroke(),
+                    shadow = GlassShadows.Float,
                     size = NavBarMetrics.settingsSize,
                 ) {
                     Icon(
