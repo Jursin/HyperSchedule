@@ -11,8 +11,8 @@ import com.hyperschedule.app.data.backup.ParsedBackup
 import com.hyperschedule.app.data.backup.RemoteBackupClient
 import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.data.backup.backupFolderError
-import com.hyperschedule.app.data.backup.s3BucketError
-import com.hyperschedule.app.data.backup.s3RegionError
+import com.hyperschedule.app.data.backup.normalizeBackupFolder
+import com.hyperschedule.app.data.backup.normalizeS3Name
 import com.hyperschedule.app.data.local.SettingsStore
 import java.net.URI
 
@@ -40,7 +40,7 @@ internal class RemoteList {
 }
 
 internal class WebDavDraft(private val store: SettingsStore) : RemoteDraft {
-    var serverUrl by mutableStateOf(store.state.webDav.serverUrl)
+    var serverUrl by mutableStateOf(store.state.webDav.serverUrl.trimEnd('/'))
     var username by mutableStateOf(store.state.webDav.username)
     var password by mutableStateOf(store.state.webDav.password)
 
@@ -66,7 +66,7 @@ internal class WebDavDraft(private val store: SettingsStore) : RemoteDraft {
                         serverUrl = url,
                         username = user,
                         password = password,
-                        folder = folder,
+                        folder = normalizeBackupFolder(folder),
                         stamp = it.webDav.stamp.copy(lastError = ""),
                     ),
             )
@@ -75,7 +75,7 @@ internal class WebDavDraft(private val store: SettingsStore) : RemoteDraft {
 
     override fun reset() {
         val saved = store.state.webDav
-        serverUrl = saved.serverUrl
+        serverUrl = saved.serverUrl.trimEnd('/')
         username = saved.username
         password = saved.password
         folder = saved.folder.ifBlank { BACKUP_FOLDER }
@@ -83,7 +83,7 @@ internal class WebDavDraft(private val store: SettingsStore) : RemoteDraft {
 }
 
 internal class S3Draft(private val store: SettingsStore) : RemoteDraft {
-    var endpoint by mutableStateOf(store.state.s3.endpoint)
+    var endpoint by mutableStateOf(store.state.s3.endpoint.trimEnd('/'))
     var accessKeyId by mutableStateOf(store.state.s3.accessKeyId)
     var secretAccessKey by mutableStateOf(store.state.s3.secretAccessKey)
     var bucket by mutableStateOf(store.state.s3.bucket)
@@ -93,14 +93,14 @@ internal class S3Draft(private val store: SettingsStore) : RemoteDraft {
     var folder by mutableStateOf(store.state.s3.folder.ifBlank { BACKUP_FOLDER })
 
     override val error: String?
-        get() = serverUrlError(endpoint) ?: s3BucketError(bucket) ?: s3RegionError(region) ?: backupFolderError(folder)
+        get() = serverUrlError(endpoint) ?: backupFolderError(folder)
 
     override fun save() {
         if (error != null) return
         val url = endpoint.trim().trimEnd('/')
         val accessKey = accessKeyId.trim()
-        val bucketName = bucket.trim()
-        val regionName = region.trim().ifBlank { S3_DEFAULT_REGION }
+        val bucketName = normalizeS3Name(bucket)
+        val regionName = normalizeS3Name(region).ifBlank { S3_DEFAULT_REGION }
         val saved = store.state.s3
         if (
             url == saved.endpoint &&
@@ -121,7 +121,7 @@ internal class S3Draft(private val store: SettingsStore) : RemoteDraft {
                         secretAccessKey = secretAccessKey,
                         bucket = bucketName,
                         region = regionName,
-                        folder = folder,
+                        folder = normalizeBackupFolder(folder),
                         stamp = it.s3.stamp.copy(lastError = ""),
                     ),
             )
@@ -130,7 +130,7 @@ internal class S3Draft(private val store: SettingsStore) : RemoteDraft {
 
     override fun reset() {
         val saved = store.state.s3
-        endpoint = saved.endpoint
+        endpoint = saved.endpoint.trimEnd('/')
         accessKeyId = saved.accessKeyId
         secretAccessKey = saved.secretAccessKey
         bucket = saved.bucket
@@ -192,7 +192,7 @@ internal class RemoteAccount(
 /** 地址输入的问题，没填或合法时返回 null */
 internal fun serverUrlError(url: String): String? {
     if (url.isBlank()) return null
-    val uri = runCatching { URI(url.trim()) }.getOrNull() ?: return "地址格式不正确"
-    if (uri.scheme?.lowercase() !in setOf("http", "https")) return "需要以 http:// 或 https:// 开头"
-    return if (uri.host?.contains('.') == true) null else "请输入完整的域名或 IP 地址"
+    val uri = runCatching { URI(url.trim()) }.getOrNull()
+    if (uri != null && uri.scheme?.lowercase() !in setOf("http", "https")) return "需要以 http:// 或 https:// 开头"
+    return if (uri?.host?.contains('.') == true) null else "地址格式不正确"
 }

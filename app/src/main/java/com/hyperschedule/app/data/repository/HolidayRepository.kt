@@ -58,8 +58,16 @@ class HolidayRepository private constructor(context: Context) {
     /** 拉取该年的远端数据并合并，返回远端条目数 */
     suspend fun fetchRemote(year: Int): Int =
         withContext(Dispatchers.IO) {
-            val remote =
-                parseRemote(httpGet("https://unpkg.com/holiday-calendar@1/data/CN/$year.json"))
+            val urls =
+                listOf(
+                    "https://unpkg.com/holiday-calendar/data/CN/$year.json",
+                    "https://gcore.jsdelivr.net/gh/cg-zhou/holiday-calendar@main/data/CN/$year.json",
+                )
+            var remote: List<HolidayEntry> = emptyList()
+            for (url in urls) {
+                remote = runCatching { parseRemote(httpGet(url)) }.getOrNull().orEmpty()
+                if (remote.isNotEmpty()) break
+            }
             if (remote.isEmpty()) error("未获取到 $year 年的节假日数据")
             mergeRemote(year, remote)
             remote.size

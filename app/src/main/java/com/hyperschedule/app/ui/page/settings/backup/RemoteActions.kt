@@ -123,7 +123,7 @@ internal fun RemoteAccount.deleteBackup(
 ) {
     if (!configured()) return
     scope.launch {
-        runCatching { client().delete(fileName) }.onFailure { context.toast(it.message ?: "删除失败") }
+        runCatching { client().delete(fileName) }.onFailure { context.toast(it.message ?: "删除云端备份失败") }
         reload()
     }
 }

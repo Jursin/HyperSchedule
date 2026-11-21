@@ -46,6 +46,7 @@ internal object ReminderNotifier {
 
     /** 课前先试岛，失败再走通知 */
     fun notifyPreClass(context: Context, course: DayCourse, now: LocalDateTime) {
+        if (!ReminderPermissions.notificationsEnabled(context)) return
         ensureChannels(context)
         cancel(context, IN_CLASS_ID)
         if (SuperIsland.canPost() && SuperIsland.notifyPreClass(context, course, now)) {
@@ -58,6 +59,7 @@ internal object ReminderNotifier {
 
     /** 课中先试岛，失败再走通知 */
     fun notifyInClass(context: Context, course: DayCourse) {
+        if (!ReminderPermissions.notificationsEnabled(context)) return
         ensureChannels(context)
         cancel(context, PRE_CLASS_ID)
         cancel(context, LIVE_PRE_CLASS_ID)

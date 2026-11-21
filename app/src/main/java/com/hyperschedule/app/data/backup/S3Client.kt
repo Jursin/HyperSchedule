@@ -29,22 +29,8 @@ private val AUTH_ERRORS = setOf("InvalidAccessKeyId", "SignatureDoesNotMatch", "
 /** 区域默认值，R2 这类服务不区分区域 */
 const val S3_DEFAULT_REGION = "auto"
 
-/** 存储桶名校验，没填不算错误，界面另有未配置提示 */
-internal fun s3BucketError(bucket: String): String? =
-    when {
-        bucket.isBlank() -> null
-        '/' in bucket -> "存储桶名不能包含 /"
-        bucket.any { it.isWhitespace() } -> "存储桶名不能包含空格"
-        else -> null
-    }
-
-/** 区域校验，只挡明显不对的输入 */
-internal fun s3RegionError(region: String): String? =
-    when {
-        region.isBlank() -> null
-        region.any { it.isWhitespace() || it == '/' } -> "区域名不能包含空格或 /"
-        else -> null
-    }
+/** 桶名与区域名输入时去掉空格和斜杠 */
+internal fun normalizeS3Name(value: String): String = value.filter { !it.isWhitespace() && it != '/' }
 
 /** S3 客户端，兼容 AWS S3、R2、MinIO 这类同协议服务，签名现算 */
 class S3Client(

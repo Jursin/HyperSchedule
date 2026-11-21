@@ -192,7 +192,7 @@ fun UpdatePage(
             Column(modifier = Modifier.fillMaxWidth()) {
                 GlassTextField(
                     state = input,
-                    label = "地址",
+                    label = "域名",
                     lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     colors =

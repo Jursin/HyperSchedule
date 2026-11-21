@@ -182,11 +182,7 @@ class UpdateController private constructor(private val context: Context) {
             UpdateNotification.cancel(context)
             dialog = UpdateDialogState.None
             scope.launch {
-                val error = UpdateApk.installSilently(context, file)
-                if (error != null) {
-                    toast("Shizuku 安装失败：$error")
-                    installBySystem(file)
-                }
+                if (UpdateApk.installSilently(context, file) != null) installBySystem(file)
             }
             return
         }
@@ -202,7 +198,7 @@ class UpdateController private constructor(private val context: Context) {
         UpdateNotification.cancel(context)
         if (!UpdateApk.canInstall(context)) {
             dialog = UpdateDialogState.None
-            if (!UpdateApk.openPermissionSettings(context)) toast("请在系统设置中允许安装应用")
+            if (!UpdateApk.openPermissionSettings(context)) toast("请在系统设置中授予本应用安装应用权限")
             return
         }
         if (!UpdateApk.install(context, file)) toast("没有可用的安装程序")

@@ -239,12 +239,12 @@ internal fun timeText(group: GroupDraft): String =
         (if (start == end) "第${start}节" else "第${start}-${end}节").cjkDigitGap()
     }
 
-/** 学分只保留数字与一个小数点，最多一位小数 */
+/** 学分只接受正数数字与一个小数点，最多一位小数 */
 internal fun sanitizeCredit(input: String): String {
     val filtered = input.filter { it.isDigit() || it == '.' }
     val dot = filtered.indexOf('.')
-    if (dot < 0) return filtered.take(3)
-    val intPart = filtered.substring(0, dot).take(2)
+    if (dot < 0) return filtered.trimStart('0').ifEmpty { "0" }.take(3)
+    val intPart = filtered.substring(0, dot).trimStart('0').ifEmpty { "0" }.take(2)
     val decimals = filtered.substring(dot + 1).filter { it.isDigit() }.take(1)
     return "$intPart.$decimals"
 }

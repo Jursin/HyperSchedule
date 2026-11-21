@@ -28,8 +28,8 @@ import com.hyperschedule.app.data.backup.BACKUP_FOLDER
 import com.hyperschedule.app.data.backup.BackupFile
 import com.hyperschedule.app.data.backup.S3_DEFAULT_REGION
 import com.hyperschedule.app.data.backup.backupFolderError
-import com.hyperschedule.app.data.backup.s3BucketError
-import com.hyperschedule.app.data.backup.s3RegionError
+import com.hyperschedule.app.data.backup.normalizeS3Name
+import com.hyperschedule.app.data.backup.trimBackupFolderSpaces
 import com.hyperschedule.app.data.local.RemoteAccountInfo
 import com.hyperschedule.app.data.local.S3Settings
 import com.hyperschedule.app.data.local.WebDavSettings
@@ -63,6 +63,8 @@ private class RemoteField(
     val error: String? = null,
     /** 失焦时为空就回填这个值，路径类字段用它 */
     val blankFallback: String? = null,
+    /** 失焦时去掉空格与斜杠 */
+    val onBlur: ((String) -> String)? = null,
     val onChange: (String) -> Unit,
 )
 
@@ -101,6 +103,7 @@ internal fun WebDavBackupTab(
                     iconSize = 26.dp,
                     error = backupFolderError(draft.folder),
                     blankFallback = BACKUP_FOLDER,
+                    onBlur = ::trimBackupFolderSpaces,
                 ) { draft.folder = it },
             ),
         onTest = onTest,
@@ -150,15 +153,15 @@ internal fun S3BackupTab(
                     label = "存储桶",
                     value = draft.bucket,
                     icon = ImageVector.vectorResource(R.drawable.ic_bucket),
-                    error = s3BucketError(draft.bucket),
+                    onBlur = ::normalizeS3Name,
                 ) { draft.bucket = it },
                 RemoteField(
                     label = "区域",
                     value = draft.region,
                     icon = MiuixIcons.Glass.MapAlbum,
                     iconSize = 26.dp,
-                    error = s3RegionError(draft.region),
                     blankFallback = S3_DEFAULT_REGION,
+                    onBlur = ::normalizeS3Name,
                 ) { draft.region = it },
                 RemoteField(
                     label = "备份路径",
@@ -167,6 +170,7 @@ internal fun S3BackupTab(
                     iconSize = 26.dp,
                     error = backupFolderError(draft.folder),
                     blankFallback = BACKUP_FOLDER,
+                    onBlur = ::trimBackupFolderSpaces,
                 ) { draft.folder = it },
             ),
         extraRows = {
@@ -247,8 +251,11 @@ private fun RemoteFieldRow(field: RemoteField) {
     val input = rememberSyncedInput(field.value, field.onChange)
     // 清空后离开输入框时补回默认值，不留空路径
     LaunchedEffect(focused) {
+        if (focused) return@LaunchedEffect
+        val cleaned = field.onBlur?.invoke(input.text.toString()) ?: input.text.toString()
         val fallback = field.blankFallback
-        if (!focused && input.text.isBlank() && fallback != null) input.setTextAndPlaceCursorAtEnd(fallback)
+        val next = if (cleaned.isBlank() && fallback != null) fallback else cleaned
+        if (next != input.text.toString()) input.setTextAndPlaceCursorAtEnd(next)
     }
     val icon = field.icon
     val leadingIcon: (@Composable () -> Unit)? =

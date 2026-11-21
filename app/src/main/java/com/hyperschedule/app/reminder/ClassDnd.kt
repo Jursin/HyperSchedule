@@ -147,13 +147,10 @@ class ClassDndReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != ACTION_TOGGLE) return
         if (!ReminderPermissions.hasDndAccess(context)) {
-            // 没有勿扰权限时 setInterruptionFilter 会被系统静默丢掉，得说一声
-            Toast.makeText(context, "请先在课程提醒中授予勿扰权限", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "请先授予勿扰权限", Toast.LENGTH_SHORT).show()
             return
         }
-        val applied = ClassDnd.toggle(context, SettingsStore.get(context).state.reminder.dndMode)
-        val text = if (applied) "已开启勿扰" else "开启勿扰失败"
-        Toast.makeText(context, text, Toast.LENGTH_SHORT).show()
+        ClassDnd.toggle(context, SettingsStore.get(context).state.reminder.dndMode)
     }
 
     companion object {

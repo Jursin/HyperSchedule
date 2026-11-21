@@ -68,7 +68,7 @@ class WebDavClient(
                     if (root.code == 401 || root.code == 403) throw BackupException(authMessage(root))
                     if (!root.isSuccessful) throw BackupException("服务器返回 ${root.code}")
                     if (!ensureDir()) throw BackupException("无法创建备份路径 $folderPath")
-                    "连接成功，已创建备份路径 $folderPath"
+                    "连接成功，已创建备份路径 /$folderPath"
                 }
                 else -> throw BackupException("服务器返回 ${response.code}")
             }

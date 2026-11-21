@@ -85,7 +85,7 @@ fun HolidayPage(
                             loading = false
                             Toast.makeText(
                                 context,
-                                result.fold({ "已更新${it}条".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
+                                result.fold({ "已更新${it}条数据".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
                                 Toast.LENGTH_LONG,
                             ).show()
                         }

@@ -141,7 +141,7 @@ fun EduImportWebPage(
             onCompleted = { tableId ->
                 if (!disposed.value) {
                     currentOnSwitchTable(tableId)
-                    context.toast("导入完成")
+                    context.toast("导入成功")
                     currentOnImported()
                 }
             },
@@ -264,7 +264,7 @@ fun EduImportWebPage(
     /** 点导入先选课表，选完才下载并执行脚本 */
     fun askTargetTable() {
         if (!pageReady) {
-            context.toast("页面还在加载，请稍候再试")
+            context.toast("页面正在加载，请稍候重试")
             return
         }
         selectedTableId = currentTableId ?: tables.firstOrNull()?.table?.id
@@ -277,7 +277,7 @@ fun EduImportWebPage(
         scope.launch {
             val js = scriptRepository.script(school.resourceFolder, scriptName)
             if (js == null) {
-                context.toast("导入脚本不存在或下载失败")
+                context.toast("脚本获取失败")
                 return@launch
             }
             // 脚本契约里通过 window.currentTableId 拿目标课表

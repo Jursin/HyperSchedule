@@ -240,7 +240,7 @@ fun BackupPage(
                     }
                     .getOrDefault(false)
             if (!granted) {
-                context.toast("无法长期访问该文件夹，请换一个位置")
+                context.toast("无法持久访问该目录，请重新选择")
                 resumeAfterPick = false
                 return@rememberLauncherForActivityResult
             }
@@ -382,7 +382,7 @@ fun BackupPage(
                 },
                 onFailure = { error ->
                     val reason = error.message
-                    if (reason.isNullOrBlank()) context.toast("数据未改动") else context.toast("恢复失败：$reason")
+                    if (reason.isNullOrBlank()) context.toast("数据未变动") else context.toast("恢复失败：$reason")
                 },
             )
         }

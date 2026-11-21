@@ -195,7 +195,6 @@ fun CourseEditPage(
         when {
             trimmedName.isEmpty() -> context.toast("请填写课程名称")
             groups.any { it.weeks.isEmpty() } -> context.toast("请选择上课周次")
-            credit.isNotBlank() && credit.toFloatOrNull() == null -> context.toast("学分格式不正确")
             conflict != null -> context.toast(conflict)
             else -> {
                 if (tableId == null) {
@@ -203,7 +202,7 @@ fun CourseEditPage(
                 } else {
                     // 保存时规整名称与学分，避免回显值与库里的不一致导致立刻又算「未保存」
                     name = trimmedName
-                    val creditValue = credit.trim().toFloatOrNull()
+                    val creditValue = credit.trim().toFloatOrNull()?.takeIf { it > 0 }
                     credit = creditValue?.let(::formatCredit).orEmpty()
                     val snapshot = currentState()
                     val colorIndex = colorInt ?: 0

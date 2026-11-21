@@ -254,7 +254,7 @@ internal object ReminderScheduler {
                 }
             }.onFailure { error ->
                 Log.w("CourseReminder", "注册提醒闹钟失败 requestCode=$requestCode", error)
-                AppMessages.post("提醒闹钟注册失败，请检查精确闹钟权限")
+                AppMessages.post("精确闹钟注册失败")
             }.isSuccess
         return requestCode.takeIf { scheduled }
     }

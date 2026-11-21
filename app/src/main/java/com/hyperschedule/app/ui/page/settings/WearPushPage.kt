@@ -56,8 +56,6 @@ import com.hyperschedule.app.ui.component.PreferenceScreen
 import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
 import com.hyperschedule.app.ui.component.pref.SwitchPreference
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -76,6 +74,8 @@ import top.yukonga.miuix.kmp.icon.glass.WatchSquare
 import top.yukonga.miuix.kmp.icon.glass.WearableUniversal
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.time.Duration.Companion.milliseconds
 
 private const val PERMISSION_DENIED_HINT = "设备未授权"
 private const val WEAR_APP_MISSING_HINT = "未安装快应用"
@@ -115,7 +115,6 @@ private suspend fun loadWearSchedule(
         } else {
             emptyList()
         }
-    val holidayApplied = entries.isNotEmpty()
     val schedule =
         buildWearSchedule(
             courses = courses,
@@ -126,9 +125,7 @@ private suspend fun loadWearSchedule(
             preClassMinutes = preClassMinutes,
             entries = entries,
         )
-    require(schedule.courses.isNotEmpty()) { if (holidayApplied) "课程都被节假日排除了" else "没有可推送的课程，请检查课程时间" }
-    // 按节次上的课缺了作息时间就排不出来
-    require(schedule.timeSlots.isNotEmpty() || schedule.courses.all { it.isCustomTime }) { "缺少节次时间，请先设置作息" }
+    require(schedule.courses.isNotEmpty()) { "课表为空" }
     return schedule
 }
 
@@ -215,6 +212,7 @@ fun WearPushPage(
                 deviceId = node?.id
                 deviceName = node?.name.orEmpty()
                 if (node == null) {
+                    if (lastNodeId != null) toast("已断开连接")
                     lastNodeId = null
                     appInstalled = null
                     deviceInfo = null
@@ -244,7 +242,7 @@ fun WearPushPage(
 
     fun push() {
         if (pushing) return
-        val tableId = activeId ?: return toast("暂无课表")
+        val tableId = activeId ?: return
         val device = deviceId ?: return toast("未连接设备")
         pushing = true
         scope.launch {
@@ -320,20 +318,12 @@ fun WearPushPage(
         )
 
         PreferenceSection {
-            if (tables.isEmpty()) {
-                Text(
-                    text = "暂无课表",
-                    modifier = Modifier.padding(16.dp),
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            } else {
-                DropdownPreference(
-                    title = "选择课表",
-                    items = tables.map { it.table.name.ifBlank { "未命名" } },
-                    selectedIndex = selectedIndex,
-                    onSelectedIndexChange = { index -> onSettingChange(setting.copy(tableId = ids[index])) },
-                )
-            }
+            DropdownPreference(
+                title = "选择课表",
+                items = tables.map { it.table.name.ifBlank { "无" } },
+                selectedIndex = selectedIndex,
+                onSelectedIndexChange = { index -> onSettingChange(setting.copy(tableId = ids[index])) },
+            )
             SwitchPreference(
                 checked = setting.excludeHoliday,
                 onCheckedChange = { checked -> onSettingChange(setting.copy(excludeHoliday = checked)) },
