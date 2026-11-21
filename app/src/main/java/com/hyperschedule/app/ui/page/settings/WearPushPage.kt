@@ -81,7 +81,7 @@ private const val PERMISSION_DENIED_HINT = "设备未授权"
 private const val WEAR_APP_MISSING_HINT = "未安装快应用"
 
 // 快应用获取链接
-private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=com.schedule.vela&provider=OfficialV2"
+private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=com.hyperschedule.app&provider=OfficialV2"
 
 /** 快应用装了就直接拉起，未安装返回 false；签名不一致等异常交给调用方提示 */
 private suspend fun WearSync.openWearApp(nodeId: String): Boolean {

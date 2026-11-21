@@ -3,20 +3,15 @@ package com.hyperschedule.app.ui.component
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -33,12 +28,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.hyperschedule.app.theme.PageBottomInset
@@ -47,7 +40,6 @@ import com.hyperschedule.app.theme.PanelCorner
 import com.hyperschedule.app.theme.isDarkTheme
 import com.hyperschedule.app.theme.SectionSpacing
 import com.hyperschedule.app.ui.effect.LocalPageGlassBackdrop
-import com.hyperschedule.app.ui.effect.appBarBand
 import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.wallpaperVisible
 import com.hyperschedule.app.ui.effect.glassTint
@@ -159,7 +151,7 @@ fun BlurredTopAppBar(
             title = title,
             topInset = if (insideWindow) windowTopBarInset() else 0.dp,
             modifier = if (barFill != null) Modifier.background(barFill) else Modifier,
-            bandBackdrop = if (barFill == null) glass else null,
+            bandEnabled = barFill == null,
             singleLine = singleLine,
             pinnedMaterial = materialPinned,
             backdrop = glass,
@@ -196,7 +188,7 @@ private fun GlassAppBar(
     title: String,
     modifier: Modifier,
     topInset: Dp,
-    bandBackdrop: Backdrop?,
+    bandEnabled: Boolean,
     singleLine: Boolean,
     pinnedMaterial: Boolean,
     backdrop: Backdrop,
@@ -210,12 +202,9 @@ private fun GlassAppBar(
     // 栏内按钮换成玻璃圆片
     CompositionLocalProvider(LocalTopBarGlass provides true) {
         Box(modifier = modifier.fillMaxWidth()) {
-            if (bandBackdrop != null) {
-                BandLayer(singleLine = singleLine, backdrop = bandBackdrop)
-            }
             val barModifier = Modifier.fillMaxWidth().padding(top = topInset)
-            // 栏体不画底
-            val backgroundAlpha = { 0f }
+            // 浮窗有底色时不叠玻璃带
+            val backgroundAlpha: () -> Float = { if (bandEnabled) 1f else 0f }
             // 没有着色器时的圆片底色
             val buttonFill = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.68f)
             if (pinnedMaterial) {
@@ -224,6 +213,7 @@ private fun GlassAppBar(
                     isContentScrolled = true,
                     modifier = barModifier,
                     expandable = !singleLine,
+                    progressiveBlur = bandEnabled,
                     backdrop = backdrop,
                     style = glassStyle,
                     scrollBehavior = scrollBehavior,
@@ -240,6 +230,7 @@ private fun GlassAppBar(
                     title = title,
                     modifier = barModifier,
                     expandable = !singleLine,
+                    progressiveBlur = bandEnabled,
                     backdrop = backdrop,
                     style = glassStyle,
                     scrollBehavior = scrollBehavior,
@@ -252,39 +243,6 @@ private fun GlassAppBar(
                 )
             }
         }
-    }
-}
-
-/** 顶栏糊带 */
-@Composable
-private fun BoxScope.BandLayer(
-    singleLine: Boolean,
-    backdrop: Backdrop,
-) {
-    if (singleLine) {
-        Box(modifier = Modifier.matchParentSize().appBarBand(backdrop))
-    } else {
-        BandOverlay(
-            height = 72.dp + WindowInsets.statusBars.asPaddingValues().calculateTopPadding(),
-            modifier = Modifier.fillMaxWidth().appBarBand(backdrop),
-        )
-    }
-}
-
-/** 零高度的糊带宿主 */
-@Composable
-private fun BandOverlay(height: Dp, modifier: Modifier) {
-    Box(
-        modifier =
-            Modifier
-                .fillMaxWidth()
-                .layout { measurable, constraints ->
-                    val placeable =
-                        measurable.measure(constraints.copy(minHeight = 0, maxHeight = Constraints.Infinity))
-                    layout(constraints.maxWidth, 0) { placeable.place(0, 0) }
-                },
-    ) {
-        Box(modifier = modifier.height(height))
     }
 }
 

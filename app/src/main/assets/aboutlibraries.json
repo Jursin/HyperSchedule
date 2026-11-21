@@ -884,10 +884,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-common",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle-Common",
             "description": "Android Lifecycle-Common",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -909,10 +909,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-livedata-core",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle LiveData Core",
             "description": "Android Lifecycle LiveData Core",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -934,10 +934,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-process",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle Process",
             "description": "Android Lifecycle Process",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -959,10 +959,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-runtime",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle Runtime",
             "description": "Android Lifecycle Runtime",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -984,10 +984,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-runtime-compose",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle Runtime Compose",
             "description": "Compose integration with Lifecycle",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -1009,10 +1009,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-runtime-ktx",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle Kotlin Extensions",
             "description": "Kotlin extensions for 'lifecycle' artifact",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -1034,10 +1034,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle ViewModel",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -1059,10 +1059,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel-compose",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle ViewModel Compose",
             "description": "Compose integration with Lifecycle ViewModel",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -1084,10 +1084,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel-ktx",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle ViewModel Kotlin Extensions",
             "description": "Kotlin extensions for 'viewmodel' artifact",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -1109,10 +1109,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel-savedstate",
-            "artifactVersion": "2.11.0",
+            "artifactVersion": "2.11.1",
             "name": "Lifecycle ViewModel with SavedState",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.1",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -2536,7 +2536,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-blur",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-blur",
             "description": "Blur effect library for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2558,7 +2558,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-core",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-core",
             "description": "Core utilities for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2580,7 +2580,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-glass-android",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-glass",
             "description": "Glass material library for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2602,7 +2602,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-glass-icons-android",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-glass-icons",
             "description": "Glass icon library for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2624,7 +2624,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-material",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-material",
             "description": "Material and render primitives for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2646,7 +2646,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-nav-android",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-nav",
             "description": "Self-contained navigation runtime for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2668,7 +2668,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-preference-android",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-preference",
             "description": "Preference components for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2690,7 +2690,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-squircle",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-squircle",
             "description": "Squircle corner library for Miuix",
             "website": "https://github.com/compose-miuix-ui/miuix",
@@ -2712,7 +2712,7 @@
         },
         {
             "uniqueId": "top.yukonga.miuix.kmp:miuix-ui",
-            "artifactVersion": "0.9.5-beta02",
+            "artifactVersion": "0.9.5-beta03",
             "name": "miuix-ui",
             "description": "A UI library for Compose Multiplatform",
             "website": "https://github.com/compose-miuix-ui/miuix",
