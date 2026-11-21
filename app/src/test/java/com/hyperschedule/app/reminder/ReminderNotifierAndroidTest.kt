@@ -1,5 +1,7 @@
 package com.hyperschedule.app.reminder
 
+import android.Manifest
+import android.app.Application
 import android.app.Notification
 import android.app.NotificationManager
 import android.content.Context
@@ -21,7 +23,8 @@ import org.robolectric.Shadows.shadowOf
 @RunWith(RobolectricTestRunner::class)
 class ReminderNotifierAndroidTest {
 
-    private val context: Context = ApplicationProvider.getApplicationContext()
+    private val app: Application = ApplicationProvider.getApplicationContext()
+    private val context: Context = app
     private val manager: NotificationManager = context.getSystemService(NotificationManager::class.java)
     private val now: LocalDateTime = LocalDateTime.now()
 
@@ -32,7 +35,11 @@ class ReminderNotifierAndroidTest {
     private val live = DayCourse("c1", "高等数学", "A101", "张老师", now.minusMinutes(20), now.plusMinutes(40))
 
     @Before
-    fun clearPosted() = ReminderNotifier.cancelAll(context)
+    fun setUp() {
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        shadowOf(manager).setNotificationsEnabled(true)
+        ReminderNotifier.cancelAll(context)
+    }
 
     @Test
     fun inClassNotificationCountsDownToTheEnd() {
