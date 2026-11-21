@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBars
@@ -365,6 +366,7 @@ fun PageScrollColumn(
                     .fillMaxSize()
                     .pageScroll(blurBackdrop, scrollBehavior)
                     .clearFocusOnPress(focusManager)
+                    .imePadding()
                     .verticalScroll(scrollState)
                     .padding(
                         start = horizontalPadding,

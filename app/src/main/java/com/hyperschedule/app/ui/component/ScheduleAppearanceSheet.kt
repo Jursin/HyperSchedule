@@ -17,6 +17,8 @@ fun ScheduleAppearanceSheet(
     onStyleCommit: () -> Unit,
     onDismiss: () -> Unit,
     onDismissFinished: () -> Unit,
+    showNonCurrentWeek: Boolean = true,
+    onShowNonCurrentWeekChange: (Boolean) -> Unit = {},
     wallpaper: String = "",
     wallpaperBlur: Int = 0,
     onWallpaperPick: (Uri) -> Unit = {},
@@ -51,6 +53,11 @@ fun ScheduleAppearanceSheet(
                     checked = style.breakDividers,
                     onCheckedChange = { applyStyle(style.copy(breakDividers = it)) },
                     title = "显示午休、晚休分界线",
+                )
+                SwitchPreference(
+                    checked = showNonCurrentWeek,
+                    onCheckedChange = onShowNonCurrentWeekChange,
+                    title = "显示非本周课程",
                 )
                 WallpaperPreferences(
                     wallpaper = wallpaper,

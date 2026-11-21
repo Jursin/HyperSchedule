@@ -81,6 +81,7 @@ fun SchedulePage(
     table: CourseTableData?,
     allCourses: List<CourseWithWeeks>,
     showNonCurrentWeek: Boolean = true,
+    onShowNonCurrentWeekChange: (Boolean) -> Unit = {},
     style: ScheduleStyle = ScheduleStyle.Default,
     onStyleChange: (ScheduleStyle) -> Unit = {},
     onStyleCommit: () -> Unit = {},
@@ -477,6 +478,8 @@ fun SchedulePage(
             if (appearanceMounted) {
                 ScheduleAppearanceSheet(
                     show = appearanceVisible,
+                    showNonCurrentWeek = showNonCurrentWeek,
+                    onShowNonCurrentWeekChange = onShowNonCurrentWeekChange,
                     style = style,
                     onStyleChange = onStyleChange,
                     onStyleCommit = onStyleCommit,

@@ -22,10 +22,12 @@ internal fun maxLengthInput(max: Int): InputTransformation =
         }
     }
 
-/** 密码遮罩，逐字符换成圆点，长度不变，光标位置不受影响 */
+/** 密码遮罩，逐字符替换，保持光标偏移映射不变 */
 internal val PasswordMask: OutputTransformation =
     OutputTransformation {
-        if (length > 0) replace(0, length, "•".repeat(length))
+        for (index in length - 1 downTo 0) {
+            replace(index, index + 1, "•")
+        }
     }
 
 /** 以 [value] 为初值、外部改写时同步进来的输入态，给了 [onChange] 就把编辑结果写回外部值 */

@@ -23,7 +23,6 @@ import com.hyperschedule.app.ui.component.PreferenceSection
 import com.hyperschedule.app.ui.component.ValueLabel
 import com.hyperschedule.app.ui.component.pref.ArrowPreference
 import com.hyperschedule.app.ui.component.pref.DropdownPreference
-import com.hyperschedule.app.ui.component.pref.SwitchPreference
 import com.hyperschedule.app.ui.state.CourseTableData
 import com.hyperschedule.app.ui.state.rememberToday
 import java.time.LocalDate
@@ -111,11 +110,6 @@ fun SettingsPage(
                     totalWeeksDraft = totalWeeks
                     showTotalWeeksDialog = true
                 },
-            )
-            SwitchPreference(
-                checked = state.showNonCurrentWeek,
-                onCheckedChange = { checked -> store.update { it.copy(showNonCurrentWeek = checked) } },
-                title = "显示非本周课程",
             )
             DropdownPreference(
                 title = "启动页面",

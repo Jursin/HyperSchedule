@@ -85,6 +85,7 @@ internal fun HomeTabContent(
                 table = table,
                 allCourses = allCourses,
                 showNonCurrentWeek = settings.showNonCurrentWeek,
+                onShowNonCurrentWeekChange = { checked -> store.update { it.copy(showNonCurrentWeek = checked) } },
                 style = settings.style,
                 onStyleChange = { newStyle -> store.preview { it.copy(style = newStyle) } },
                 onStyleCommit = commitSettings,
