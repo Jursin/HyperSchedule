@@ -51,6 +51,7 @@ import com.hyperschedule.app.ui.component.formatCredit
 import com.hyperschedule.app.ui.component.pageContentPadding
 import com.hyperschedule.app.ui.component.pageScroll
 import com.hyperschedule.app.ui.effect.LocalFabBackdrop
+import com.hyperschedule.app.ui.effect.captureForBlur
 import com.hyperschedule.app.ui.effect.rememberAppBlurBackdrop
 import java.text.Collator
 import java.util.Locale
@@ -151,7 +152,11 @@ fun CourseManagePage(
     ) { paddingValues ->
         if (groups.isEmpty()) {
             Column(
-                modifier = Modifier.fillMaxSize().padding(top = paddingValues.calculateTopPadding()),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(top = paddingValues.calculateTopPadding())
+                        .captureForBlur(blurBackdrop),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {

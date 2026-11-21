@@ -122,7 +122,7 @@ fun TodayPage(
     // 与本周课程页同一套文案
     val weekLabel =
         when {
-            startDate == null -> "未设置开学日期"
+            startDate == null -> ""
             pageWeek == null || pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
             else -> "第${pageWeek}周".cjkDigitGap()

@@ -215,7 +215,8 @@ internal fun ScheduleWeekPage(
         }
         // 学期外的周只隐藏文案，占位高度保持不变
         Spacer(modifier = Modifier.height(SectionSpacing))
-        val countText = "本周共${weekCourseCount}节课".cjkDigitGap()
+        val countText =
+            if (startDate == null) "未设置开学日期" else "本周共${weekCourseCount}节课".cjkDigitGap()
         val countAlpha = if (inSemester) 1f else 0f
         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
             SectionPill(
