@@ -1,0 +1,55 @@
+package top.jursin.hyperschedule.ui.page.schedule
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import top.jursin.hyperschedule.theme.SectionSpacing
+import top.jursin.hyperschedule.ui.component.GlassFab
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.glass.Redo
+import top.yukonga.miuix.kmp.icon.glass.Undo
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** 撤销/重做按钮，栈为空时对应按钮不出现 */
+@Composable
+internal fun HistoryFabColumn(
+    canUndo: Boolean,
+    canRedo: Boolean,
+    onUndo: () -> Unit,
+    onRedo: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.End,
+        verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+    ) {
+        if (canUndo) {
+            GlassFab(
+                onClick = onUndo,
+                color = MiuixTheme.colorScheme.secondaryVariant,
+            ) {
+                Icon(
+                    imageVector = MiuixIcons.Glass.Undo,
+                    contentDescription = "撤销",
+                    tint = MiuixTheme.colorScheme.onSecondaryVariant,
+                )
+            }
+        }
+        if (canRedo) {
+            GlassFab(
+                onClick = onRedo,
+                color = MiuixTheme.colorScheme.secondaryVariant,
+            ) {
+                Icon(
+                    imageVector = MiuixIcons.Glass.Redo,
+                    contentDescription = "重做",
+                    tint = MiuixTheme.colorScheme.onSecondaryVariant,
+                )
+            }
+        }
+    }
+}

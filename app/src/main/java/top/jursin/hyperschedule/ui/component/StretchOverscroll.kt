@@ -1,0 +1,174 @@
+package top.jursin.hyperschedule.ui.component
+
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animate
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.gestures.FlingBehavior
+import androidx.compose.foundation.gestures.ScrollScope
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.CancellationException
+import kotlin.math.abs
+import kotlin.math.min
+
+private const val StretchTracking = 0.3f
+
+private const val MinTrackingRatio = 0.08f
+
+/** 惯性撞边那一帧的余力折算成拉伸的比例 */
+private const val FlingStretchRatio = 0.8f
+
+/** 惯性撞边至少拉伸比例 */
+private const val FlingMinStretch = 0.6f
+
+@Stable
+class StretchOverscrollState(
+    private val maxStretchPx: Float,
+) {
+    var stretchPx by mutableFloatStateOf(0f)
+        private set
+
+    // 不弹过头，拉伸最多回到 0，冲过 0 会换成另一端为锚点，看起来会跳一下
+    private val settleSpec =
+        spring<Float>(
+            dampingRatio = Spring.DampingRatioNoBouncy,
+            stiffness = Spring.StiffnessMediumLow,
+        )
+
+    val connection =
+        object : NestedScrollConnection {
+            // 往回推时先把拉伸收掉，收完了才交给网格正常滚动
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset =
+                shrink(available.y) ?: Offset.Zero
+
+            // 已经在顶端（往下）或底端（往上）还继续拖，位移全吃掉，换成拉伸
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                val delta = available.y
+                if (delta == 0f || source != NestedScrollSource.UserInput) return Offset.Zero
+                // 另一端的残余还没收完，先把那头收回来，这一帧不再继续张
+                shrink(delta)?.let { return it }
+                val dir = if (delta > 0f) 1f else -1f
+                stretchPx = ((abs(stretchPx) + abs(delta) * tracking()).coerceAtMost(maxStretchPx)) * dir
+                return Offset(0f, delta)
+            }
+        }
+
+    fun flingBy(remainder: Float) {
+        val dir = if (remainder > 0f) -1f else 1f
+        // 同向已经拉着就不再叠加，避免一段惯性反复顶
+        if (stretchPx * dir > 0f) return
+        val pull = (abs(remainder) * FlingStretchRatio).coerceAtLeast(maxStretchPx * FlingMinStretch)
+        stretchPx = pull.coerceAtMost(maxStretchPx) * dir
+    }
+
+    /** 反向拖动先收掉已有拉伸并返回被吃掉的位移，同向返回 null */
+    private fun shrink(delta: Float): Offset? {
+        if (delta == 0f || stretchPx == 0f) return null
+        val dir = if (delta > 0f) 1f else -1f
+        if (stretchPx * dir > 0f) return null
+        val used = min(abs(delta), abs(stretchPx))
+        stretchPx += dir * used
+        return Offset(0f, dir * used)
+    }
+
+    private fun tracking(): Float {
+        val room = 1f - abs(stretchPx) / maxStretchPx
+        return StretchTracking * room.coerceIn(MinTrackingRatio, 1f)
+    }
+
+    /** 松手弹回原位，下一次拖动会直接把这段动画打断 */
+    suspend fun settle() {
+        if (stretchPx == 0f) return
+        animate(initialValue = stretchPx, targetValue = 0f, animationSpec = settleSpec) { value, _ ->
+            stretchPx = value
+        }
+        stretchPx = 0f
+    }
+}
+
+/** 每页各来一份，左右邻页的滚动互不影响 */
+@Composable
+fun rememberStretchOverscrollState(): StretchOverscrollState {
+    val density = LocalDensity.current
+    return remember(density) {
+        StretchOverscrollState(with(density) { 40.dp.toPx() })
+    }
+}
+
+fun Modifier.stretchOverscroll(
+    state: StretchOverscrollState,
+    topInset: Dp = 0.dp,
+): Modifier =
+    graphicsLayer {
+        val extra = state.stretchPx
+        val height = size.height
+        // 向下拉以内容起点为锚
+        val anchor =
+            if (extra < 0f) 1f else if (height > 0f) (topInset.toPx() / height).coerceIn(0f, 1f) else 0f
+        // 只拉锚点内侧那一段
+        val span = if (extra < 0f) height else height * (1f - anchor)
+        transformOrigin = TransformOrigin(0.5f, anchor)
+        scaleY = if (extra != 0f && span > 0f) (span + abs(extra)) / span else 1f
+    }
+
+/** 惯性沿用系统实现，只在真实位置不再前进时收尾，余量交给拉伸 */
+private class StretchFlingBehavior(
+    private val delegate: FlingBehavior,
+    private val stretch: StretchOverscrollState,
+    private val position: () -> Int,
+) : FlingBehavior {
+    override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {
+        val outer = this
+        val start = position()
+        var requested = 0f
+        var prevMoved = 0f
+        val probe =
+            object : ScrollScope {
+                override fun scrollBy(pixels: Float): Float {
+                    val consumed = outer.scrollBy(pixels)
+                    requested += pixels
+                    val total = (position() - start).toFloat()
+                    // 累积差越过取整误差的量级，说明已经滚到头
+                    if (abs(requested - total) > 2f) {
+                        stretch.flingBy(pixels - (total - prevMoved))
+                        // 默认实现内部会接住这个取消，当场结束这段衰减
+                        throw CancellationException("fling reached edge")
+                    }
+                    prevMoved = total
+                    return consumed
+                }
+            }
+        return with(delegate) { probe.performFling(initialVelocity) }
+    }
+}
+
+@Composable
+fun rememberStretchFling(
+    stretch: StretchOverscrollState,
+    position: () -> Int,
+): FlingBehavior {
+    val base = ScrollableDefaults.flingBehavior()
+    val latest = rememberUpdatedState(position)
+    return remember(base, stretch) {
+        StretchFlingBehavior(base, stretch) { latest.value() }
+    }
+}

@@ -40,12 +40,12 @@ tasks.matching {
 }
 
 android {
-    namespace = "com.hyperschedule.app"
+    namespace = "top.jursin.hyperschedule"
     compileSdk = 37
     compileSdkMinor = 2
 
     defaultConfig {
-        applicationId = "com.hyperschedule.app"
+        applicationId = "top.jursin.hyperschedule"
         minSdk = 26
         targetSdk = 37
         versionCode = 5

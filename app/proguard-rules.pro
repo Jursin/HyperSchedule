@@ -8,13 +8,13 @@
 -keep class com.hamondev.shevery.** { *; }
 -dontwarn com.hamondev.shevery.**
 # 服务实现由 Shizuku 在 shell 进程里按类名反射实例化；AIDL 接口要保留 Binder 协议
--keep class com.hyperschedule.app.reminder.IPrivilegedService { *; }
--keep class com.hyperschedule.app.reminder.PrivilegedServiceImpl { <init>(); }
+-keep class top.jursin.hyperschedule.reminder.IPrivilegedService { *; }
+-keep class top.jursin.hyperschedule.reminder.PrivilegedServiceImpl { <init>(); }
 
 # WebView 教务脚本桥：方法由 JS 按名调用，混淆后名字必须保持不变
--keepclassmembers class com.hyperschedule.app.ui.component.EduWebBridge {
+-keepclassmembers class top.jursin.hyperschedule.ui.component.EduWebBridge {
     @android.webkit.JavascriptInterface <methods>;
 }
--keepclassmembers class com.hyperschedule.app.ui.component.EduPostBridge {
+-keepclassmembers class top.jursin.hyperschedule.ui.component.EduPostBridge {
     @android.webkit.JavascriptInterface <methods>;
 }

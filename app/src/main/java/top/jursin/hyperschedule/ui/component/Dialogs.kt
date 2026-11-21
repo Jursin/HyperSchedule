@@ -1,0 +1,405 @@
+package top.jursin.hyperschedule.ui.component
+
+import android.content.Context
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
+import top.jursin.hyperschedule.data.repository.ScheduleRepository
+import top.jursin.hyperschedule.theme.SectionSpacing
+import top.jursin.hyperschedule.theme.useLargeScreenWindow
+import top.jursin.hyperschedule.ui.effect.LocalPageGlassBackdrop
+import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassDialogButton
+import top.yukonga.miuix.kmp.glass.GlassDialogButtonRole
+import top.yukonga.miuix.kmp.glass.GlassDialogDefaults
+import top.yukonga.miuix.kmp.glass.GlassTextField
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.glass.Delete
+import top.yukonga.miuix.kmp.theme.LocalDismissState
+import top.yukonga.miuix.kmp.theme.MiuixTheme
+
+/** 确认对话框，底部一排等宽按钮，[actions] 可整排替换成自定义按钮 */
+@Composable
+fun ConfirmDialog(
+    title: String,
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    confirmText: String = "确定",
+    confirmEnabled: Boolean = true,
+    cancelText: String? = "取消",
+    destructive: Boolean = false,
+    message: String? = null,
+    summary: String? = null,
+    summaryColor: Color = MiuixTheme.colorScheme.onSurfaceSecondary,
+    endAction: (@Composable () -> Unit)? = null,
+    show: Boolean = true,
+    onDismissFinished: (() -> Unit)? = null,
+    actions: (@Composable RowScope.() -> Unit)? = null,
+    content: (@Composable ColumnScope.() -> Unit)? = null,
+) {
+    GlassDialog(
+        show = show,
+        onDismissRequest = onDismiss,
+        onDismissFinished = onDismissFinished,
+        // 玻璃面从页面层取样，没开模糊时退回纯材质
+        backdrop = if (appBlur) LocalPageGlassBackdrop.current else null,
+        material = GlassDialogDefaults.material(),
+        stroke = GlassDialogDefaults.stroke(),
+        title = if (endAction == null) title else null,
+        summary = if (endAction == null) summary else null,
+        summaryColor = summaryColor,
+        // 平板居中、手机贴底，按宽屏判定选位置
+        largeScreen = useLargeScreenWindow(),
+    ) {
+        Column(
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .clearFocusOnPress(LocalFocusManager.current),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+        ) {
+            if (endAction != null) {
+                DialogTitleRow(title = title, summary = summary, summaryColor = summaryColor, action = endAction)
+            }
+            if (message != null) Text(text = message)
+            // 正文区用权重占掉剩余高度，超出时自己滚动，按钮行始终拿得到高度
+            Column(
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f, fill = false)
+                        .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+            ) {
+                content?.invoke(this)
+            }
+            DialogActionRow {
+                if (actions != null) {
+                    actions()
+                } else {
+                    if (cancelText != null) {
+                        val dismiss = LocalDismissState.current
+                        GlassDialogButton(
+                            modifier = Modifier.weight(1f),
+                            onClick = { dismiss?.invoke() },
+                        ) {
+                            Text(text = cancelText, style = MiuixTheme.textStyles.button)
+                        }
+                    }
+                    GlassDialogButton(
+                        modifier = Modifier.weight(1f),
+                        onClick = onConfirm,
+                        enabled = confirmEnabled,
+                        role =
+                            if (destructive) {
+                                GlassDialogButtonRole.Destructive
+                            } else {
+                                GlassDialogButtonRole.Primary
+                            },
+                    ) {
+                        Text(text = confirmText, style = MiuixTheme.textStyles.button)
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** 纯选择对话框，若干等宽按钮，用于「多选一」的确认场景 */
+@Composable
+fun ChoiceDialog(
+    title: String,
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    choices: List<DialogChoice>,
+    message: String? = null,
+) {
+    ConfirmDialog(
+        title = title,
+        appBlur = appBlur,
+        onDismiss = onDismiss,
+        onConfirm = {},
+        message = message,
+        actions = {
+            choices.forEach { choice ->
+                GlassDialogButton(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        onDismiss()
+                        choice.onClick()
+                    },
+                    enabled = choice.enabled,
+                    role =
+                        if (choice.destructive) {
+                            GlassDialogButtonRole.Destructive
+                        } else {
+                            GlassDialogButtonRole.Normal
+                        },
+                ) {
+                    Text(text = choice.text, style = MiuixTheme.textStyles.button)
+                }
+            }
+        },
+    )
+}
+
+/** [ChoiceDialog] 的一个选项，[destructive] 用错误色，[enabled] 为 false 时置灰 */
+data class DialogChoice(
+    val text: String,
+    val onClick: () -> Unit,
+    val enabled: Boolean = true,
+    val destructive: Boolean = false,
+)
+
+/** 有未保存改动时返回，确认后丢弃并退出编辑 */
+@Composable
+fun DiscardChangesDialog(
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    onDiscard: () -> Unit,
+) {
+    ConfirmDialog(
+        title = "放弃修改",
+        message = "本次编辑尚未保存，返回后修改将丢失。",
+        appBlur = appBlur,
+        destructive = true,
+        confirmText = "放弃",
+        onDismiss = onDismiss,
+        onConfirm = onDiscard,
+    )
+}
+
+/** 拖动落点冲突，覆盖或交换，取消靠返回键，不占按钮位 */
+@Composable
+fun ConflictDialog(
+    appBlur: Boolean,
+    canSwap: Boolean,
+    onDismiss: () -> Unit,
+    onSwap: () -> Unit,
+    onOverwrite: () -> Unit,
+) {
+    ChoiceDialog(
+        title = "位置冲突",
+        appBlur = appBlur,
+        onDismiss = onDismiss,
+        message = "目标位置已有课程，请选择操作",
+        choices =
+            listOf(
+                DialogChoice(text = "交换", onClick = onSwap, enabled = canSwap),
+                DialogChoice(text = "覆盖", onClick = onOverwrite, destructive = true),
+            ),
+    )
+}
+
+/** 添加/重命名课表，名称为空时确定按钮不可点，最多 20 字 */
+@Composable
+fun TableNameDialog(
+    title: String,
+    initialName: String = "",
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit,
+) {
+    val nameInput = rememberTextFieldState(initialName)
+    ConfirmDialog(
+        title = title,
+        appBlur = appBlur,
+        confirmEnabled = nameInput.text.isNotBlank(),
+        onDismiss = onDismiss,
+        onConfirm = { onConfirm(nameInput.text.toString().trim()) },
+    ) {
+        GlassTextField(
+            state = nameInput,
+            label = "课表名称",
+            useLabelAsPlaceholder = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
+            inputTransformation = maxLengthInput(20),
+            modifier = Modifier.fillMaxWidth(),
+        )
+    }
+}
+
+@Composable
+fun CreateTableDialog(
+    repository: ScheduleRepository,
+    appBlur: Boolean,
+    onDismiss: () -> Unit,
+    onCreated: (tableId: String) -> Unit,
+    onFailed: () -> Unit,
+) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var creating by remember { mutableStateOf(false) }
+    TableNameDialog(
+        title = "添加课表",
+        appBlur = appBlur,
+        onDismiss = { if (!creating) onDismiss() },
+        onConfirm = { name ->
+            if (creating) return@TableNameDialog
+            creating = true
+            scope.launch {
+                runCatching { repository.createTable(name) }
+                    .onSuccess(onCreated)
+                    .onFailure {
+                        creating = false
+                        context.toast("添加课表失败：${it.message ?: "未知错误"}")
+                        onFailed()
+                    }
+            }
+        },
+    )
+}
+
+/** 分享码/口令输入，取回期间禁用确定，失败原因就地显示 */
+@Composable
+fun ShareCodeDialog(
+    title: String,
+    hint: String,
+    appBlur: Boolean,
+    busy: Boolean,
+    error: String?,
+    onDismiss: () -> Unit,
+    onSubmit: (String) -> Unit,
+) {
+    val inputState = rememberTextFieldState()
+    ConfirmDialog(
+        title = title,
+        appBlur = appBlur,
+        confirmEnabled = inputState.text.isNotBlank() && !busy,
+        onDismiss = onDismiss,
+        onConfirm = { onSubmit(inputState.text.toString().trim()) },
+    ) {
+        GlassTextField(
+            state = inputState,
+            label = hint,
+            useLabelAsPlaceholder = true,
+            lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 4),
+            inputTransformation = maxLengthInput(2000),
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (busy) {
+            Text(text = "正在获取课表…", style = MiuixTheme.textStyles.body2)
+        }
+        error?.let {
+            Text(
+                text = it,
+                style = MiuixTheme.textStyles.body2,
+                color = MiuixTheme.colorScheme.error,
+            )
+        }
+    }
+}
+
+/** 对话框标题右侧的删除按钮 */
+@Composable
+fun DialogDeleteAction(onClick: () -> Unit) {
+    IconButton(onClick = onClick) {
+        Icon(
+            imageVector = MiuixIcons.Glass.Delete,
+            contentDescription = "删除",
+            modifier = Modifier.size(24.dp),
+            tint = MiuixTheme.colorScheme.error,
+        )
+    }
+}
+
+/** 底部按钮行，等宽排布，与上方内容留出额外间距 */
+@Composable
+private fun DialogActionRow(content: @Composable RowScope.() -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        content = content,
+    )
+}
+
+/** 带右侧操作的标题行 */
+@Composable
+private fun DialogTitleRow(
+    title: String,
+    summary: String?,
+    summaryColor: Color,
+    action: @Composable () -> Unit,
+) {
+    Box(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().align(Alignment.Center).padding(horizontal = 40.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = title,
+                fontSize = MiuixTheme.textStyles.title4.fontSize,
+                fontWeight = FontWeight.Medium,
+                textAlign = TextAlign.Center,
+                color = MiuixTheme.colorScheme.onBackground,
+            )
+            if (summary != null) {
+                Text(
+                    text = summary,
+                    fontSize = MiuixTheme.textStyles.body1.fontSize,
+                    textAlign = TextAlign.Center,
+                    color = summaryColor,
+                )
+            }
+        }
+        Box(modifier = Modifier.align(Alignment.CenterEnd)) { action() }
+    }
+}
+
+/** 短提示，[long] 为真时用长时长 */
+fun Context.toast(text: String, long: Boolean = false) =
+    Toast.makeText(this, text, if (long) Toast.LENGTH_LONG else Toast.LENGTH_SHORT).show()
+
+/** 编辑页返回守卫，有未保存改动时先确认放弃，返回顶栏与返回键共用的回调 */
+@Composable
+fun rememberEditBackGuard(dirty: Boolean, appBlur: Boolean, onBack: () -> Unit): () -> Unit {
+    var discardDialog by remember { mutableStateOf(false) }
+    val requestBack: () -> Unit = {
+        if (dirty) discardDialog = true else onBack()
+    }
+    BackHandler(enabled = dirty) { discardDialog = true }
+    if (discardDialog) {
+        DiscardChangesDialog(
+            appBlur = appBlur,
+            onDismiss = { discardDialog = false },
+            onDiscard = {
+                discardDialog = false
+                onBack()
+            },
+        )
+    }
+    return requestBack
+}

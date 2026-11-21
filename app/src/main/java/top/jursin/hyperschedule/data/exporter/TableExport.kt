@@ -1,0 +1,122 @@
+package top.jursin.hyperschedule.data.exporter
+
+import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
+import top.jursin.hyperschedule.data.db.entity.TimeSlot
+import top.jursin.hyperschedule.data.importer.ComboScheduleJson
+import top.jursin.hyperschedule.data.importer.CourseJson
+import top.jursin.hyperschedule.data.importer.CourseTableConfigJson
+import top.jursin.hyperschedule.data.importer.CourseTableJson
+import top.jursin.hyperschedule.data.importer.CourseTableJsonParser
+import top.jursin.hyperschedule.data.importer.PublicScheduleJson
+import top.jursin.hyperschedule.data.importer.TimeSlotJson
+import top.jursin.hyperschedule.schedule.parseMinutes
+import top.jursin.hyperschedule.schedule.semesterStartMonday
+import top.jursin.hyperschedule.schedule.startMinutesOf
+import java.time.LocalDate
+
+/** 导出用的整张课表快照，[slotsFor] 给出某一天生效的作息（组合作息按日期切换） */
+data class TableExportData(
+    val startDate: LocalDate?,
+    val totalWeeks: Int,
+    val defaultClassDuration: Int,
+    val courses: List<CourseWithWeeks>,
+    val slots: List<TimeSlot>,
+    val slotsFor: (LocalDate) -> List<TimeSlot>,
+    val combo: ComboScheduleExport? = null,
+)
+
+/** 实际要展开的最后一周，课程周次可能超出总周数 */
+val TableExportData.lastWeek: Int
+    get() = maxOf(totalWeeks, courses.maxOfOrNull { group -> group.weeks.maxOfOrNull { it.weekNumber } ?: 0 } ?: 0)
+
+/** 查假期用的区间，开学日到实际展开的最后一周结束 */
+fun TableExportData.holidayRange(): Pair<LocalDate, LocalDate>? =
+    startDate?.let { start -> start to semesterStartMonday(start).plusWeeks(lastWeek.toLong()).minusDays(1) }
+
+/** 组合作息快照，组合名 + 每条日期规则各带一套公共作息 */
+data class ComboScheduleExport(
+    val name: String?,
+    val publicSchedules: List<PublicScheduleExport>,
+)
+
+data class PublicScheduleExport(
+    val name: String,
+    val startDate: String,
+    val endDate: String,
+    val defaultClassDuration: Int,
+    val slots: List<TimeSlot>,
+) {
+    companion object {
+        const val DEFAULT_NAME = "公共作息"
+    }
+}
+
+fun buildTableJson(data: TableExportData): String =
+    CourseTableJsonParser.encode(
+        CourseTableJson(
+            courses =
+                data.courses
+                    .sortedBySchedule(data.slots)
+                    .map { group ->
+                        val course = group.course
+                        CourseJson(
+                            name = course.name,
+                            teacher = course.teacher,
+                            position = course.position,
+                            day = course.day,
+                            startSection = course.startSection,
+                            endSection = course.endSection,
+                            weeks = group.weeks.map { it.weekNumber }.sorted(),
+                            isCustomTime = course.isCustomTime,
+                            customStartTime = course.customStartTime,
+                            customEndTime = course.customEndTime,
+                            remark = course.remark?.takeIf { it.isNotBlank() },
+                            credit = course.credit,
+                            color = course.colorInt,
+                            colorArgb = course.colorArgb,
+                        )
+                    },
+            timeSlots = data.slots.sortedBy { it.number }.map { it.toJson() },
+            config =
+                CourseTableConfigJson(
+                    semesterStartDate = data.startDate?.toString(),
+                    semesterTotalWeeks = data.totalWeeks,
+                    defaultClassDuration = data.defaultClassDuration,
+                ),
+            comboSchedule =
+                data.combo?.let { combo ->
+                    ComboScheduleJson(
+                        name = combo.name,
+                        publicSchedules = combo.publicSchedules.map { schedule ->
+                            PublicScheduleJson(
+                                name = schedule.name,
+                                startDate = schedule.startDate,
+                                endDate = schedule.endDate,
+                                defaultClassDuration = schedule.defaultClassDuration,
+                                timeSlots = schedule.slots.sortedBy { it.number }.map { it.toJson() },
+                            )
+                        },
+                    )
+                },
+        ),
+    )
+
+private fun TimeSlot.toJson() =
+    TimeSlotJson(
+        number = number,
+        startTime = startTime,
+        endTime = endTime,
+        alias = alias?.takeIf { it.isNotBlank() },
+    )
+
+/** 与编辑页一致的先后 */
+internal fun List<CourseWithWeeks>.sortedBySchedule(slots: List<TimeSlot>): List<CourseWithWeeks> {
+    val sectionStart = slots.associate { slot -> slot.number to (parseMinutes(slot.startTime) ?: (slot.number * 60)) }
+    return sortedWith(
+        compareBy(
+            { it.course.day },
+            { startMinutesOf(it.course.isCustomTime, it.course.customStartTime, it.course.startSection, sectionStart) },
+            { it.weeks.minOfOrNull { week -> week.weekNumber } ?: 0 },
+        )
+    )
+}

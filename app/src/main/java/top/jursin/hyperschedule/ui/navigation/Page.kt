@@ -1,0 +1,79 @@
+package top.jursin.hyperschedule.ui.navigation
+
+import kotlinx.serialization.Serializable
+import top.yukonga.miuix.kmp.nav.core.NavKey
+
+@Serializable
+sealed class Page : NavKey {
+    @Serializable data object Home : Page()
+
+    @Serializable data object Settings : Page()
+
+    @Serializable data object Appearance : Page()
+
+    @Serializable data object Update : Page()
+
+    /** 全部更新日志 */
+    @Serializable data object UpdateLog : Page()
+
+    @Serializable data object About : Page()
+
+    @Serializable data object License : Page()
+
+    /** 课程全部周，week 为进入时浏览到的教学周，用于打开后定位 */
+    @Serializable data class CourseDetail(val name: String, val week: Int) : Page()
+
+    /** 课程管理，按课名聚合所有时段 */
+    @Serializable data object CourseManage : Page()
+
+    /** 课程编辑，name 为空表示新建，day/startSection/endSection 预填第一张卡 */
+    @Serializable
+    data class CourseEdit(
+        val name: String,
+        val day: Int = 0,
+        val startSection: Int = 0,
+        val endSection: Int = 0,
+        val focusId: String = "", // 进入后定位到的时段（课程 id）
+    ) : Page()
+
+    /** 作息管理 */
+    @Serializable data object TimeTableManage : Page()
+
+    /** 课表管理，切换当前课表 */
+    @Serializable data object CourseTableManage : Page()
+
+    /** 导入与导出 */
+    @Serializable data object ScheduleTransfer : Page()
+
+    /** 教务系统导入，选择学校 */
+    @Serializable data object EduImport : Page()
+
+    /** 教务系统网页导入，学校与适配器 id 由选校页跳转，[url] 为通用工具手填的入口 */
+    @Serializable
+    data class EduImportWeb(
+        val schoolId: String,
+        val adapterId: String,
+        val url: String = "",
+    ) : Page()
+
+    /** 备份与恢复 */
+    @Serializable data object Backup : Page()
+
+    /** 节假日与调休 */
+    @Serializable data object Holiday : Page()
+
+    /** 课程提醒 */
+    @Serializable data object Reminder : Page()
+
+    /** 推送到手环 */
+    @Serializable data object WearPush : Page()
+
+    /** 编辑作息方案（专属/公共），[planId] 为空表示新建 */
+    @Serializable data class TimeTableEdit(val planId: String = "") : Page()
+
+    /** 编辑组合作息，[comboId] 为空表示新建 */
+    @Serializable data class ComboEdit(val comboId: String = "") : Page()
+
+    /** 壁纸裁剪，[uri] 是刚选中的原图，存盘后回到来源页 */
+    @Serializable data class WallpaperCrop(val uri: String) : Page()
+}

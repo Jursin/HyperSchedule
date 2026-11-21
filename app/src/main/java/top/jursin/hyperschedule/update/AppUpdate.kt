@@ -1,0 +1,116 @@
+package top.jursin.hyperschedule.update
+
+import top.jursin.hyperschedule.data.remote.httpGet
+import top.jursin.hyperschedule.data.remote.proxiedUrl
+import org.json.JSONArray
+import org.json.JSONObject
+
+private const val GITHUB_API = "https://api.github.com"
+private const val GITHUB_REPO = "Jursin/HyperSchedule"
+
+/** Release 列表接口，按 tag 倒序 */
+internal fun releasesUrl(perPage: Int): String =
+    "$GITHUB_API/repos/$GITHUB_REPO/releases?per_page=$perPage&direction=desc"
+
+data class ReleaseAsset(
+    val name: String,
+    val url: String,
+    val size: Long,
+    val sha256: String?,
+)
+
+data class ReleaseInfo(
+    val version: String,
+    val assets: List<ReleaseAsset>,
+    val notes: List<ChangelogEntry>,
+)
+
+object AppUpdate {
+    fun fetchRelease(
+        acceptPrerelease: Boolean,
+        proxy: String,
+        currentVersion: String,
+    ): ReleaseInfo {
+        // 统一拉列表再本地挑选，只按版本号取出最大的一条
+        val body = httpGet(releasesUrl(perPage = 30), accept = "application/vnd.github+json")
+        val array = JSONArray(body.trimStart())
+        val releases =
+            (0 until array.length())
+                .mapNotNull { array.optJSONObject(it) }
+                .filter { acceptPrerelease || !isPrerelease(it) }
+                // 没有 tag_name 的发布无法比较版本，直接排除
+                .filter { versionOf(it).isNotBlank() }
+        val latest =
+            releases.maxWithOrNull { left, right -> compareVersions(versionOf(left), versionOf(right)) }
+                ?: error("未获取到发布版本")
+        val notes =
+            releases
+                .filter { compareVersions(versionOf(it), currentVersion) > 0 }
+                .sortedWith { left, right -> compareVersions(versionOf(right), versionOf(left)) }
+                .map { ChangelogEntry(versionOf(it), it.optString("body").trim()) }
+                .filter { it.body.isNotEmpty() }
+        return ReleaseInfo(versionOf(latest), parseAssets(latest, proxy), notes)
+    }
+
+    private fun versionOf(node: JSONObject): String = node.optString("tag_name").removePrefix("v").trim()
+
+    /** tag 包括 beta.N 后缀或勾了预发布，都按测试版处理 */
+    private fun isPrerelease(node: JSONObject): Boolean =
+        node.optBoolean("prerelease") || versionOf(node).contains('-')
+
+    /** 按本机 ABI 顺序选包 */
+    fun selectAsset(assets: List<ReleaseAsset>, abis: List<String>): ReleaseAsset? =
+        abis.firstNotNullOfOrNull { abi -> assets.firstOrNull { it.name.contains(abi, ignoreCase = true) } }
+
+    /** 按 semver 比较，返回负数、0 或正数 */
+    fun compareVersions(left: String, right: String): Int {
+        val leftCore = left.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+        val rightCore = right.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 }
+        for (index in 0 until maxOf(leftCore.size, rightCore.size)) {
+            val difference = leftCore.getOrElse(index) { 0 } - rightCore.getOrElse(index) { 0 }
+            if (difference != 0) return difference
+        }
+        // 主版本号相同时预发布版低于正式版
+        val leftPre = left.substringAfter('-', "").split('.').filter { it.isNotEmpty() }
+        val rightPre = right.substringAfter('-', "").split('.').filter { it.isNotEmpty() }
+        return when {
+            leftPre.isEmpty() && rightPre.isEmpty() -> 0
+            leftPre.isEmpty() -> 1
+            rightPre.isEmpty() -> -1
+            else -> comparePrerelease(leftPre, rightPre)
+        }
+    }
+
+    /** 预发布标识逐段比较，数字段按数值、字母段按字典序，数字段小于字母段 */
+    private fun comparePrerelease(left: List<String>, right: List<String>): Int {
+        for (index in 0 until minOf(left.size, right.size)) {
+            val a = left[index].toIntOrNull()
+            val b = right[index].toIntOrNull()
+            val difference =
+                when {
+                    a != null && b != null -> a - b
+                    a != null -> -1
+                    b != null -> 1
+                    else -> left[index].compareTo(right[index])
+                }
+            if (difference != 0) return difference
+        }
+        return left.size - right.size
+    }
+
+    /** 加速地址只作用于资源地址 */
+    private fun parseAssets(node: JSONObject, proxy: String): List<ReleaseAsset> {
+        val array = node.optJSONArray("assets") ?: return emptyList()
+        return (0 until array.length()).mapNotNull { index ->
+            val item = array.optJSONObject(index) ?: return@mapNotNull null
+            val url = item.optString("browser_download_url")
+            if (url.isBlank()) return@mapNotNull null
+            ReleaseAsset(
+                name = item.optString("name"),
+                url = proxiedUrl(url, proxy),
+                size = item.optLong("size"),
+                sha256 = item.optString("digest").removePrefix("sha256:").ifBlank { null },
+            )
+        }
+    }
+}
