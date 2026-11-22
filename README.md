@@ -30,7 +30,7 @@ HyperSchedule 是一个使用 [Miuix](https://github.com/compose-miuix-ui/miuix)
   - 支持教务系统网页导入，学校适配脚本获取自 [shiguang_warehouse](https://github.com/ShiGuangSchedule/shiguang_warehouse)
 - **课程提醒：**
   - 支持课前提醒、课中提醒，显示上课、下课倒计时
-  - 上课自动开启静音/勿扰，下课自动恢复
+  - 支持上课自动开启静音/勿扰，下课自动恢复
   - 支持实时动态通知（Android 16+）
   - 支持提升为小米超级岛（HyperOS 3+，需 Shevery 或 Shizuku 授权）
 - **备份与恢复：**
@@ -46,14 +46,13 @@ HyperSchedule 是一个使用 [Miuix](https://github.com/compose-miuix-ui/miuix)
   - Monet 取色
     - 多种色彩风格
     - 多种强调色，支持系统取色（Android 11+）
-    - 纯黑背景
+    - 支持纯黑背景
   - 应用模糊效果（Android 13+）
   - 预测性返回动画（Android 14+）
 - **更新：**
   - 从 GitHub 检查最新版本
   - 支持启动时检查更新
   - 内置 GitHub 镜像源并支持自定义
-  - 后台下载时通知栏显示进度
 - [ ] 安卓小部件
 - [ ] 多语言
 
