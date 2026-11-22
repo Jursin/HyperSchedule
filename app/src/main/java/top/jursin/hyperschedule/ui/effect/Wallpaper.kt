@@ -26,9 +26,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInWindow
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -133,16 +133,15 @@ fun rememberPageBackdrop(
     if (!enabled || !isRuntimeShaderSupported()) return null
     val surface = MiuixTheme.colorScheme.surface
     val origin = remember { mutableStateOf(Offset.Zero) }
-    val windowSize = LocalWindowInfo.current.containerSize
     val layer =
         rememberLayerBackdrop {
-            val bitmap = state?.bitmap
-            if (bitmap == null) {
+            val wallpaperLayer = state?.glassSample
+            if (wallpaperLayer == null) {
                 drawRect(surface)
             } else {
                 val offset = origin.value
                 withTransform({ translate(-offset.x, -offset.y) }) {
-                    drawWallpaper(bitmap, windowSize, surface.copy(alpha = WallpaperScrimAlpha))
+                    drawLayer(wallpaperLayer.graphicsLayer)
                 }
             }
             drawContent()
