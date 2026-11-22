@@ -102,8 +102,8 @@ class MainActivity : ComponentActivity() {
                                 WallpaperStore.prune(applicationContext, path)
                             },
                         )
+                        UpdateDialogs(updateController, settings.blur)
                     }
-                    UpdateDialogs(updateController, settings.blur)
                 }
             }
         }
