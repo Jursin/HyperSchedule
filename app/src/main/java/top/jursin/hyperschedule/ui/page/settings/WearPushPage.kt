@@ -83,13 +83,6 @@ private const val WEAR_APP_MISSING_HINT = "未安装快应用"
 // 快应用获取链接
 private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=top.jursin.hyperschedule&provider=OfficialV2"
 
-/** 快应用装了就直接拉起，未安装返回 false；签名不一致等异常交给调用方提示 */
-private suspend fun WearSync.openWearApp(nodeId: String): Boolean {
-    if (!isWearAppInstalled(nodeId)) return false
-    launchWearApp(nodeId)
-    return true
-}
-
 /** 读取课表并按放假调休调整后组装推送内容 */
 private suspend fun loadWearSchedule(
     tableId: String,
@@ -160,8 +153,8 @@ fun WearPushPage(
     // 提醒没开时按默认提前量推
     val preClassMinutes = if (reminder.enabled) reminder.preMinutes else ReminderSettings.Default.preMinutes
 
-    fun toast(text: String) {
-        Toast.makeText(context, text, Toast.LENGTH_LONG).show()
+    fun toast(text: String, duration: Int = Toast.LENGTH_LONG) {
+        Toast.makeText(context, text, duration).show()
     }
 
     // 拉起快应用后查设备信息，快应用首启来不及注册监听，隔一会儿补发
@@ -186,17 +179,25 @@ fun WearPushPage(
         onDispose { wear.clearDeviceInfoListener() }
     }
 
+    // 查询失败也当成未安装
+    suspend fun refreshAppInstalled(nodeId: String) {
+        appInstalled = runCatching { wear.isWearAppInstalled(nodeId) }.getOrDefault(false)
+    }
+
+    /** 按安装状态拉起快应用或提示获取 */
+    suspend fun launchAppIfInstalled(nodeId: String, duration: Int = Toast.LENGTH_LONG) {
+        if (appInstalled == true) {
+            runCatching { wear.launchWearApp(nodeId) }
+                .onSuccess { requestDeviceInfo(nodeId) }
+                .onFailure { toast(describeWearError(it)) }
+        } else {
+            toast(WEAR_APP_MISSING_HINT, duration)
+        }
+    }
+
     suspend fun openWearAppSafely(nodeId: String) {
-        runCatching { wear.openWearApp(nodeId) }
-            .onSuccess { installed ->
-                appInstalled = installed
-                if (installed) {
-                    requestDeviceInfo(nodeId)
-                } else {
-                    toast(WEAR_APP_MISSING_HINT)
-                }
-            }
-            .onFailure { toast(describeWearError(it)) }
+        refreshAppInstalled(nodeId)
+        launchAppIfInstalled(nodeId)
     }
 
     // 每秒查一次连接状态，新设备连上时申请一次权限并拉起快应用
@@ -219,19 +220,19 @@ fun WearPushPage(
                 } else if (node.id != lastNodeId) {
                     lastNodeId = node.id
                     deviceInfo = null
-                    runCatching { wear.ensurePermission(node.id) }.fold(
-                        onSuccess = { granted ->
-                            if (granted) {
-                                toast("已连接${node.name.orEmpty().ifBlank { "设备" }}".cjkDigitGap())
-                                openWearAppSafely(node.id)
-                            } else {
-                                toast(PERMISSION_DENIED_HINT)
-                            }
-                        },
-                        onFailure = { toast(describeWearError(it)) },
-                    )
+                    scope.launch {
+                        refreshAppInstalled(node.id)
+                        val name = node.name.orEmpty().ifBlank { "设备" }
+                        toast("已连接${name}".cjkDigitGap(), Toast.LENGTH_SHORT)
+                        val permission = runCatching { wear.ensurePermission(node.id) }
+                        when (permission.getOrNull()) {
+                            true -> launchAppIfInstalled(node.id, Toast.LENGTH_SHORT)
+                            false -> toast(PERMISSION_DENIED_HINT)
+                            null -> toast(describeWearError(permission.exceptionOrNull()!!))
+                        }
+                    }
                 } else if (!wasResumed) {
-                    appInstalled = runCatching { wear.isWearAppInstalled(node.id) }.getOrNull()
+                    refreshAppInstalled(node.id)
                     if (appInstalled == true) requestDeviceInfo(node.id)
                 }
             }
