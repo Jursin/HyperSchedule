@@ -9,6 +9,8 @@
 
 HyperSchedule 是一个使用 [Miuix](https://github.com/compose-miuix-ui/miuix) UI 库的 Android 课程表应用，还原 HyperOS 设计美感与交互体验。
 
+![Repobeats analytics image](https://repobeats.axiom.co/api/embed/f4039d1cc74f17e242abcd3de63e7fc5c414c882.svg)
+
 ## ✨ 功能特性
 
 - **课表：**
