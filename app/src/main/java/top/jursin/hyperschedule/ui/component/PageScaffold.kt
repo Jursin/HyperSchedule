@@ -202,7 +202,7 @@ private fun GlassAppBar(
     // 栏内按钮换成玻璃圆片
     CompositionLocalProvider(LocalTopBarGlass provides true) {
         Box(modifier = modifier.fillMaxWidth()) {
-            val barModifier = Modifier.fillMaxWidth().padding(top = topInset)
+            val contentModifier = Modifier.padding(top = topInset)
             // 浮窗有底色时不叠玻璃带
             val backgroundAlpha: () -> Float = { if (bandEnabled) 1f else 0f }
             // 没有着色器时的圆片底色
@@ -211,7 +211,8 @@ private fun GlassAppBar(
                 GlassTopAppBar(
                     title = title,
                     isContentScrolled = true,
-                    modifier = barModifier,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentModifier = contentModifier,
                     expandable = !singleLine,
                     progressiveBlur = bandEnabled,
                     backdrop = backdrop,
@@ -228,7 +229,8 @@ private fun GlassAppBar(
                 // 跟随 scrollBehavior
                 GlassTopAppBar(
                     title = title,
-                    modifier = barModifier,
+                    modifier = Modifier.fillMaxWidth(),
+                    contentModifier = contentModifier,
                     expandable = !singleLine,
                     progressiveBlur = bandEnabled,
                     backdrop = backdrop,
