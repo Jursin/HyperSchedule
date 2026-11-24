@@ -32,7 +32,6 @@ fun loadChangelog(context: Context): List<ChangelogEntry> {
             context.assets.open(CHANGELOG_ASSET).bufferedReader().use { it.readText() }
         }.getOrNull() ?: return emptyList()
     return parseChangelog(markdown)
-        .sortedWith { left, right -> AppUpdate.compareVersions(right.version, left.version) }
 }
 
 /** 发布日期与预发布标记 */

@@ -7,7 +7,7 @@
 ![License](https://img.shields.io/github/license/Jursin/HyperSchedule?logo=github)
 [![afdian](https://img.shields.io/badge/爱发电-赞助我-946CE6?logo=afdian)](https://afdian.com/a/jursin)
 
-HyperSchedule 是一个使用 [Miuix](https://github.com/compose-miuix-ui/miuix) UI 库的 Android 课程表应用，还原 HyperOS 设计美感与交互体验。
+HyperSchedule 是一个使用了 [Miuix](https://github.com/compose-miuix-ui/miuix) 库的 Android 课程表应用，还原 HyperOS 设计美感与交互体验。
 
 ![Repobeats analytics image](https://repobeats.axiom.co/api/embed/f4039d1cc74f17e242abcd3de63e7fc5c414c882.svg)
 

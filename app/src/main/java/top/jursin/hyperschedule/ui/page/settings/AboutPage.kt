@@ -3,8 +3,10 @@ package top.jursin.hyperschedule.ui.page.settings
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -55,6 +57,7 @@ import top.jursin.hyperschedule.getAppVersion
 import top.jursin.hyperschedule.getAppVersionCode
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.PageBottomInset
+import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.theme.isDarkTheme
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.LocalPageHorizontalMargin
@@ -72,6 +75,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.blur.BlendColorEntry
 import top.yukonga.miuix.kmp.blur.BlurBlendMode
 import top.yukonga.miuix.kmp.blur.BlurDefaults
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.textureBlur
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -203,7 +207,6 @@ private fun AboutContentBody(
         }
 
     val logoColors = BlurDefaults.blurColors(blendColors = logoBlend)
-    val cardColors = BlurDefaults.blurColors(blendColors = cardBlend)
 
     var logoHeightDp by remember { mutableStateOf(300.dp) }
     val displayCutoutInsets = WindowInsets.displayCutout.asPaddingValues()
@@ -373,28 +376,9 @@ private fun AboutContentBody(
                         Modifier
                             .fillParentMaxHeight()
                             .padding(bottom = listContentPadding.calculateBottomPadding()),
+                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
                 ) {
-                    Card(
-                        modifier =
-                            Modifier.then(
-                                    if (cardBackdrop != null) {
-                                        Modifier.textureBlur(
-                                            backdrop = cardBackdrop,
-                                            shape = RoundedCornerShape(CardCornerRadius),
-                                            blurRadius = 60f,
-                                            colors = cardColors,
-                                        )
-                                    } else {
-                                        Modifier
-                                    }
-                                ),
-                        cornerRadius = CardCornerRadius,
-                        colors =
-                            CardDefaults.defaultColors(
-                                if (cardBackdrop != null) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,
-                                Color.Transparent,
-                            ),
-                    ) {
+                    AboutInfoCard(cardBackdrop, cardBlend) {
                         ArrowPreference(
                             title = "查看源代码",
                             endActions = {
@@ -425,8 +409,53 @@ private fun AboutContentBody(
                             onClick = onLicenseClicked,
                         )
                     }
+                    AboutInfoCard(cardBackdrop, cardBlend) {
+                        ArrowPreference(
+                            title = "问题反馈",
+                            endActions = {
+                                Text(
+                                    text = "GitHub Issues",
+                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                )
+                            },
+                            onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule/issues") },
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun AboutInfoCard(
+    backdrop: LayerBackdrop?,
+    blendColors: List<BlendColorEntry>,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val colors = BlurDefaults.blurColors(blendColors = blendColors)
+    Card(
+        modifier =
+            Modifier.then(
+                if (backdrop != null) {
+                    Modifier.textureBlur(
+                        backdrop = backdrop,
+                        shape = RoundedCornerShape(CardCornerRadius),
+                        blurRadius = 60f,
+                        colors = colors,
+                    )
+                } else {
+                    Modifier
+                }
+            ),
+        cornerRadius = CardCornerRadius,
+        colors =
+            CardDefaults.defaultColors(
+                if (backdrop != null) Color.Transparent else MiuixTheme.colorScheme.surfaceContainer,
+                Color.Transparent,
+            ),
+    ) {
+        content()
     }
 }

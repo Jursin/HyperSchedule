@@ -435,7 +435,7 @@ private fun ConnectionStatusCard(
                     text = if (isConnected && deviceInfo != null && deviceInfo.versionName.isNotEmpty()) {
                         "快应用版本：v${deviceInfo.versionName}(${deviceInfo.versionCode})"
                     } else {
-                        ""
+                        "未安装快应用"
                     },
                     fontSize = 12.sp,
                     color = textColor.copy(alpha = 0.6f),

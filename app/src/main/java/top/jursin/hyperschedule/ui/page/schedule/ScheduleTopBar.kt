@@ -54,7 +54,7 @@ internal fun ScheduleTopBar(
             startDate == null -> ""
             pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
-            else -> "第${pageWeek}周".cjkDigitGap()
+            else -> "第${pageWeek}/${totalWeeks}周".cjkDigitGap()
         }
     BlurredTopAppBar(
         title = "本周课程",
