@@ -21,6 +21,7 @@ import top.jursin.hyperschedule.ui.page.settings.BackupPage
 import top.jursin.hyperschedule.ui.page.settings.HolidayPage
 import top.jursin.hyperschedule.ui.page.settings.LicensePage
 import top.jursin.hyperschedule.ui.page.settings.SettingsPage
+import top.jursin.hyperschedule.ui.page.settings.SponsorPage
 import top.jursin.hyperschedule.ui.page.settings.ThemePage
 import top.jursin.hyperschedule.ui.page.settings.UpdateLogPage
 import top.jursin.hyperschedule.ui.page.settings.UpdatePage
@@ -150,7 +151,14 @@ internal fun SecondaryPage(
         is Page.Appearance -> ThemePage(store, onBack)
         is Page.Update -> UpdatePage(store, graph.update, { navigate(Page.UpdateLog) }, onBack)
         is Page.UpdateLog -> UpdateLogPage(appBlur = settings.blur, onBack = onBack)
-        is Page.About -> AboutPage(onBack, { navigate(Page.License) }, appBlur = settings.blur)
+        is Page.About ->
+            AboutPage(
+                onBack = onBack,
+                onLicenseClick = { navigate(Page.License) },
+                onSponsorClick = { navigate(Page.Sponsor) },
+                appBlur = settings.blur,
+            )
+        is Page.Sponsor -> SponsorPage(appBlur = settings.blur, onBack = onBack)
         is Page.License -> LicensePage(appBlur = settings.blur, onBack = onBack)
         is Page.CourseDetail ->
             CourseWeeksPage(

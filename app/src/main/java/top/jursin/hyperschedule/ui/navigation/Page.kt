@@ -18,6 +18,9 @@ sealed class Page : NavKey {
 
     @Serializable data object About : Page()
 
+    /** 赞助支持 */
+    @Serializable data object Sponsor : Page()
+
     @Serializable data object License : Page()
 
     /** 课程全部周，week 为进入时浏览到的教学周，用于打开后定位 */

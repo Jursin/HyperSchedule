@@ -349,6 +349,11 @@ fun MainScaffold(
                         secondaryPage(Page.About)
                     }
                 }
+                entry<Page.Sponsor> {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        secondaryPage(Page.Sponsor)
+                    }
+                }
                 entry<Page.CourseDetail> { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         secondaryPage(key)

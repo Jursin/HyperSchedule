@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.asPaddingValues
@@ -29,7 +30,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -83,7 +83,7 @@ import androidx.compose.ui.graphics.BlendMode as ComposeBlendMode
 
 @RequiresApi(Build.VERSION_CODES.TIRAMISU)
 @Composable
-fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean = false) {
+fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, onSponsorClick: () -> Unit, appBlur: Boolean = false) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
 
@@ -105,17 +105,21 @@ fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean =
     // 滚动状态与头部渐隐进度
     val lazyListState = rememberLazyListState()
     val topAppBarScrollBehavior = MiuixScrollBehavior()
-    var logoHeightPx by remember { mutableIntStateOf(0) }
-
     val scrollProgress by
         remember {
             derivedStateOf {
-                if (logoHeightPx <= 0) {
-                    0f
+                if (lazyListState.firstVisibleItemIndex > 0) {
+                    1f
                 } else {
-                    val index = lazyListState.firstVisibleItemIndex
-                    val offset = lazyListState.firstVisibleItemScrollOffset
-                    if (index > 0) 1f else (offset.toFloat() / logoHeightPx).coerceIn(0f, 1f)
+                    val spacerSize =
+                        lazyListState.layoutInfo.visibleItemsInfo
+                            .firstOrNull { it.key == "logoSpacer" }
+                            ?.size ?: 0
+                    if (spacerSize > 0) {
+                        (lazyListState.firstVisibleItemScrollOffset.toFloat() / spacerSize).coerceIn(0f, 1f)
+                    } else {
+                        0f
+                    }
                 }
             }
         }
@@ -146,8 +150,8 @@ fun AboutPage(onBack: () -> Unit, onLicenseClick: () -> Unit, appBlur: Boolean =
                 lazyListState = lazyListState,
                 scrollProgressProvider = { scrollProgress },
                 topAppBarScrollBehavior = topAppBarScrollBehavior,
-                onLogoHeightChanged = { logoHeightPx = it },
                 onLicenseClicked = onLicenseClick,
+                onSponsorClick = onSponsorClick,
                 uriHandler = uriHandler,
                 useBlur = appBlur,
             )
@@ -164,8 +168,8 @@ private fun AboutContentBody(
     lazyListState: LazyListState,
     scrollProgressProvider: () -> Float,
     topAppBarScrollBehavior: ScrollBehavior,
-    onLogoHeightChanged: (Int) -> Unit,
     onLicenseClicked: () -> Unit,
+    onSponsorClick: () -> Unit,
     uriHandler: UriHandler,
     useBlur: Boolean,
 ) {
@@ -361,66 +365,63 @@ private fun AboutContentBody(
                         .fillMaxWidth()
                         .height(
                             logoHeightDp + 52.dp + logoPadding.calculateTopPadding() - listContentPadding.calculateTopPadding() + 126.dp,
-                        )
-                        .onSizeChanged { size ->
-                            onLogoHeightChanged(size.height)
-                        },
+                        ),
                     contentAlignment = Alignment.TopCenter,
                     content = { },
                 )
             }
 
             item(key = "about_content") {
-                Column(
-                    modifier =
-                        Modifier
-                            .fillParentMaxHeight()
-                            .padding(bottom = listContentPadding.calculateBottomPadding()),
-                    verticalArrangement = Arrangement.spacedBy(SectionSpacing),
-                ) {
-                    AboutInfoCard(cardBackdrop, cardBlend) {
-                        ArrowPreference(
-                            title = "查看源代码",
-                            endActions = {
-                                Text(
-                                    text = "GitHub",
-                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule") },
-                        )
-                        ArrowPreference(
-                            title = "许可证",
-                            endActions = {
-                                Text(
-                                    text = "Apache-2.0",
-                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            onClick = {
-                                uriHandler.openUri("https://www.apache.org/licenses/LICENSE-2.0.txt")
-                            },
-                        )
-                        ArrowPreference(
-                            title = "开放源代码许可",
-                            summary = "查看应用所使用的第三方开源库及其许可证信息",
-                            onClick = onLicenseClicked,
-                        )
-                    }
-                    AboutInfoCard(cardBackdrop, cardBlend) {
-                        ArrowPreference(
-                            title = "问题反馈",
-                            endActions = {
-                                Text(
-                                    text = "GitHub Issues",
-                                    fontSize = MiuixTheme.textStyles.body2.fontSize,
-                                    color = MiuixTheme.colorScheme.onSurfaceVariantActions,
-                                )
-                            },
-                            onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule/issues") },
-                        )
+                Box {
+                    Spacer(Modifier.fillParentMaxHeight())
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+                    ) {
+                        AboutInfoCard(cardBackdrop, cardBlend) {
+                            ArrowPreference(
+                                title = "查看源代码",
+                                endActions = {
+                                    Text(
+                                        text = "GitHub",
+                                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                    )
+                                },
+                                onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule") },
+                            )
+                            ArrowPreference(
+                                title = "许可证",
+                                endActions = {
+                                    Text(
+                                        text = "Apache-2.0",
+                                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                    )
+                                },
+                                onClick = {
+                                    uriHandler.openUri("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                                },
+                            )
+                            ArrowPreference(
+                                title = "开放源代码许可",
+                                summary = "查看应用所使用的第三方开源库及其许可证信息",
+                                onClick = onLicenseClicked,
+                            )
+                        }
+                        AboutInfoCard(cardBackdrop, cardBlend) {
+                            ArrowPreference(
+                                title = "问题反馈",
+                                endActions = {
+                                    Text(
+                                        text = "GitHub Issues",
+                                        fontSize = MiuixTheme.textStyles.body2.fontSize,
+                                        color = MiuixTheme.colorScheme.onSurfaceVariantActions,
+                                    )
+                                },
+                                onClick = { uriHandler.openUri("https://github.com/Jursin/HyperSchedule/issues") },
+                            )
+                            ArrowPreference("赞助支持", onClick = onSponsorClick)
+                        }
                     }
                 }
             }
