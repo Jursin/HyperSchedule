@@ -1,6 +1,5 @@
 package top.jursin.hyperschedule.ui.component
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,7 +10,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -19,11 +17,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
@@ -33,6 +28,7 @@ import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.timeRangeText
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.CardInsidePadding
+import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.theme.TimeLabelFontSize
 import top.jursin.hyperschedule.ui.effect.cardSurface
 import top.jursin.hyperschedule.ui.effect.wallpaperVisible
@@ -46,7 +42,6 @@ import kotlin.math.ceil
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -54,6 +49,53 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 /** 右侧状态文案，只有「正在上课」用强调色 */
 private const val StatusOngoing = "正在上课"
 private const val StatusEnded = "已结束"
+
+/** 单门课当前状态，卡片行和「全部结束」判断共用 */
+private fun courseStatusOf(
+    pageDate: LocalDate,
+    today: LocalDate,
+    now: LocalTime,
+    startClock: LocalTime?,
+    endClock: LocalTime?,
+): String =
+    when {
+        pageDate != today -> if (pageDate < today) StatusEnded else "未开始"
+        startClock == null || endClock == null -> ""
+        now.isBefore(startClock) -> "未开始"
+        !now.isBefore(endClock) -> StatusEnded
+        else -> StatusOngoing
+    }
+
+/** 30 秒刷一次「现在」，对齐到半分钟，时间被改或回到前台时立刻重算 */
+@Composable
+private fun rememberTodayNow(): Pair<LocalTime, LocalDate> {
+    val timeVersion = rememberSystemTimeChanges()
+    val now by
+        produceState(LocalTime.now(), timeVersion) {
+            while (true) {
+                val current = LocalTime.now()
+                value = current
+                delay(millisToNextTick(30, current).milliseconds)
+            }
+        }
+    return now to rememberToday(timeVersion)
+}
+
+/** 当天有课且全部已结束，缺作息时间无法判定的课不算结束 */
+private fun allCoursesEnded(
+    courses: List<CourseWithWeeks>,
+    slotMap: Map<Int, TimeSlot>,
+    pageDate: LocalDate,
+    today: LocalDate,
+    now: LocalTime,
+): Boolean =
+    pageDate == today &&
+        courses.isNotEmpty() &&
+        courses.all { item ->
+            val startClock = startTimeOf(item.course, slotMap)?.let(::parseTime)
+            val endClock = endTimeOf(item.course, slotMap)?.let(::parseTime)
+            courseStatusOf(pageDate, today, now, startClock, endClock) == StatusEnded
+        }
 
 /** 今日课程卡片，按上午/下午/晚上分组，行内左侧信息、右侧时间与状态 */
 @Composable
@@ -70,17 +112,7 @@ fun TodayCourseList(
     onCourseClick: (Course) -> Unit = {},
 ) {
     val slotMap = remember(slots) { slots.associateBy { it.number } }
-    // 30 秒刷一次「现在」，对齐到半分钟，时间被改或回到前台时立刻重算
-    val timeVersion = rememberSystemTimeChanges()
-    val now by
-        produceState(LocalTime.now(), timeVersion) {
-            while (true) {
-                val current = LocalTime.now()
-                value = current
-                delay(millisToNextTick(30, current).milliseconds)
-            }
-        }
-    val today = rememberToday(timeVersion)
+    val (now, today) = rememberTodayNow()
 
     val groups =
         remember(courses, slotMap) {
@@ -89,12 +121,16 @@ fun TodayCourseList(
             }
         }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(SectionSpacing),
+    ) {
         if (style.showPeriods) {
             // 按时段分组，一个时段内多门课共用一张卡片
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                groups.forEach { (title, items) ->
-                    if (items.isEmpty()) return@forEach
+                val nonEmptyGroups = groups.filter { it.second.isNotEmpty() }
+                nonEmptyGroups.forEachIndexed { index, (title, items) ->
+                    if (index > 0) Spacer(modifier = Modifier.height(8.dp))
                     SectionPill(title, inset = CardInsidePadding)
                     Spacer(modifier = Modifier.height(2.dp))
                     TodayCourseCard {
@@ -114,7 +150,6 @@ fun TodayCourseList(
                             }
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
         } else {
@@ -137,6 +172,11 @@ fun TodayCourseList(
                         }
                     }
                 }
+            }
+        }
+        if (allCoursesEnded(courses, slotMap, pageDate, today, now)) {
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                SectionPill("课程已结束，好好休息吧！")
             }
         }
     }
@@ -178,14 +218,7 @@ private fun TodayCourseRow(
         } else {
             course.sectionLabel()
         }
-    val status =
-        when {
-            pageDate != today -> if (pageDate < today) StatusEnded else "未开始"
-            startClock == null || endClock == null -> ""
-            now.isBefore(startClock) -> "未开始"
-            !now.isBefore(endClock) -> StatusEnded
-            else -> StatusOngoing
-        }
+    val status = courseStatusOf(pageDate, today, now, startClock, endClock)
     // 已结束的课整卡文字一起变暗（课名、信息行、时间、状态）
     val dim: (Color) -> Color =
         if (status == StatusEnded) {
@@ -312,36 +345,6 @@ private fun remainingLabel(left: Duration): String {
         minutes % 60 == 0 -> "还剩${hours}小时"
         else -> "还剩${hours}小时${minutes % 60}分钟"
     }
-}
-
-@Composable
-internal fun SectionPill(
-    text: String,
-    modifier: Modifier = Modifier,
-    textAlign: TextAlign? = null,
-    style: TextStyle = MiuixTheme.textStyles.body1,
-    inset: Dp = 10.dp,
-) {
-    val shape = RoundedCornerShape(percent = 50)
-    val hasWallpaper = wallpaperVisible()
-    Text(
-        text = text,
-        style = style,
-        fontWeight = FontWeight.Medium,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        textAlign = textAlign,
-        modifier =
-            modifier
-                .padding(vertical = 6.dp)
-                .then(
-                    if (hasWallpaper) {
-                        Modifier.cardSurface(CornerSize(percent = 50))
-                    } else {
-                        Modifier.background(color = CardDefaults.defaultColors().color, shape = shape)
-                    },
-                )
-                .padding(horizontal = inset, vertical = 4.dp),
-    )
 }
 
 /** 0 = 上午，1 = 下午，2 = 晚上 */

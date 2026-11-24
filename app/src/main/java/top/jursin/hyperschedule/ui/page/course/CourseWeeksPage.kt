@@ -202,7 +202,6 @@ fun CourseWeeksPage(
                     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                         SectionPill(
                             text = "共${totalCount}节，还剩${leftCount}节".cjkDigitGap(),
-                            style = MiuixTheme.textStyles.footnote1,
                         )
                     }
                 }

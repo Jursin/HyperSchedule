@@ -47,7 +47,6 @@ import top.jursin.hyperschedule.ui.component.markOrNull
 import top.jursin.hyperschedule.ui.component.resolveWeekCourses
 import java.time.LocalDate
 import java.time.LocalDateTime
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 /** 课表的一页（一周） */
@@ -222,7 +221,6 @@ internal fun ScheduleWeekPage(
             SectionPill(
                 text = countText,
                 modifier = Modifier.alpha(countAlpha),
-                style = MiuixTheme.textStyles.footnote1,
             )
         }
         Spacer(modifier = Modifier.height(BackToNowOccupiedHeight + SectionSpacing))
