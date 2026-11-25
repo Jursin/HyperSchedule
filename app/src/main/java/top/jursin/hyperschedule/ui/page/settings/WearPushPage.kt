@@ -41,7 +41,6 @@ import top.jursin.hyperschedule.data.repository.ScheduleRepository
 import top.jursin.hyperschedule.data.repository.TableSummary
 import top.jursin.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import top.jursin.hyperschedule.schedule.MAX_TOTAL_WEEKS
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.schedule.semesterStartMonday
 import top.jursin.hyperschedule.theme.CardCornerRadius
@@ -223,7 +222,7 @@ fun WearPushPage(
                     scope.launch {
                         refreshAppInstalled(node.id)
                         val name = node.name.orEmpty().ifBlank { "设备" }
-                        toast("已连接${name}".cjkDigitGap(), Toast.LENGTH_SHORT)
+                        toast("已连接${name}", Toast.LENGTH_SHORT)
                         val permission = runCatching { wear.ensurePermission(node.id) }
                         when (permission.getOrNull()) {
                             true -> launchAppIfInstalled(node.id, Toast.LENGTH_SHORT)
@@ -271,7 +270,7 @@ fun WearPushPage(
             result.fold(
                 onSuccess = {
                     val count = schedule.courses.map { it.name }.distinct().size
-                    toast("已推送${count}门课程".cjkDigitGap())
+                    toast("已推送${count}门课程")
                 },
                 onFailure = { toast("推送失败：${describeWearError(it)}") },
             )

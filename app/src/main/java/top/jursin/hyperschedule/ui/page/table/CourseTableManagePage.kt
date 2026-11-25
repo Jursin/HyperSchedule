@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import top.jursin.hyperschedule.data.repository.TableSummary
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
 import top.jursin.hyperschedule.ui.component.PreferenceItemSection
 import top.jursin.hyperschedule.ui.component.GlassFab
@@ -55,7 +54,7 @@ fun CourseTableManagePage(
                 val table = summary.table
                 SelectableEditRow(
                     title = table.name.ifBlank { "未命名" },
-                    summary = "共${summary.courseCount}门课程".cjkDigitGap(),
+                    summary = "共${summary.courseCount}门课程",
                     selected = table.id == currentTableId,
                     onSelect = { onSwitch(table.id) },
                     onEdit = { editing = summary },

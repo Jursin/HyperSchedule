@@ -2,7 +2,6 @@ package top.jursin.hyperschedule.data.local
 
 import top.jursin.hyperschedule.data.backup.BACKUP_FOLDER
 import top.jursin.hyperschedule.data.backup.S3_DEFAULT_REGION
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import kotlin.math.abs
 import kotlin.math.roundToInt
 
@@ -114,7 +113,7 @@ data class ReminderSettings(
         val PRE_MINUTE_OPTIONS = (0..30 step 5).toList()
         val DND_MODE_LABELS = listOf("完全勿扰", "静音模式", "勿扰模式")
 
-        fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "${minutes}分钟".cjkDigitGap()
+        fun preMinuteLabel(minutes: Int): String = if (minutes == 0) "准时" else "${minutes}分钟"
 
         fun snapPreMinutes(minutes: Int): Int = PRE_MINUTE_OPTIONS.minBy { abs(it - minutes) }
 

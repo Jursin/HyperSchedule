@@ -44,7 +44,6 @@ import top.jursin.hyperschedule.data.importer.edu.EduRepoStore
 import top.jursin.hyperschedule.data.importer.edu.GLOBAL_TOOL_SCHOOL_ID
 import top.jursin.hyperschedule.data.importer.edu.School as EduSchool
 import top.jursin.hyperschedule.data.importer.edu.SchoolRepository
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.GlassFab
 import top.jursin.hyperschedule.ui.component.GlassTabs
@@ -166,7 +165,7 @@ fun EduImportPage(
                     onSuccess = {
                         when {
                             silent -> null
-                            it.added > 0 && announceAdded -> "新增${it.added}所学校适配".cjkDigitGap()
+                            it.added > 0 && announceAdded -> "新增${it.added}所学校适配"
                             it.changed -> "学校列表已更新"
                             else -> null
                         }

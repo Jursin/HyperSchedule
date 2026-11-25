@@ -11,7 +11,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.repository.TableSummary
 import top.jursin.hyperschedule.schedule.adjustDate
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
@@ -102,7 +101,7 @@ fun ImportTablePickerDialog(
                     title = summary.table.name.ifBlank { "未命名" },
                     summary =
                         if (summary.courseCount > 0) {
-                            "共${summary.courseCount}门课程，导入后将覆盖".cjkDigitGap()
+                            "共${summary.courseCount}门课程，导入后将覆盖"
                         } else {
                             "暂无课程"
                         },

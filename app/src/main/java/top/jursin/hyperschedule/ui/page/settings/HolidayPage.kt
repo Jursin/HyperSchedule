@@ -20,7 +20,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.model.HolidayEntry
 import top.jursin.hyperschedule.data.repository.HolidayRepository
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.formatDate
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.theme.CardCornerRadius
@@ -85,7 +84,7 @@ fun HolidayPage(
                             loading = false
                             Toast.makeText(
                                 context,
-                                result.fold({ "已更新${it}条数据".cjkDigitGap() }, { "更新失败：${it.message ?: "网络错误"}" }),
+                                result.fold({ "已更新${it}条数据" }, { "更新失败：${it.message ?: "网络错误"}" }),
                                 Toast.LENGTH_LONG,
                             ).show()
                         }
@@ -330,9 +329,9 @@ private fun displayDate(value: String): String = parseDateOrNull(value)?.let(::f
 private fun entrySummary(entry: HolidayEntry): String {
     val start = displayDate(entry.date)
     if (entry.type == HolidayEntry.TYPE_HOLIDAY) {
-        return if (entry.endDate.isBlank()) start else "${start}至${displayDate(entry.endDate)}".cjkDigitGap()
+        return if (entry.endDate.isBlank()) start else "${start}至${displayDate(entry.endDate)}"
     }
     val follow = parseDateOrNull(entry.followDate)
-    val tail = if (follow == null) "未设置补课日期" else "上${follow.monthValue}月${follow.dayOfMonth}日的课".cjkDigitGap()
+    val tail = if (follow == null) "未设置补课日期" else "上${follow.monthValue}月${follow.dayOfMonth}日的课"
     return "$start · $tail"
 }

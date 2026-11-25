@@ -31,7 +31,6 @@ import top.jursin.hyperschedule.data.repository.loadCombo
 import top.jursin.hyperschedule.data.repository.newComboDraft
 import top.jursin.hyperschedule.data.repository.publicSchedulesOnce
 import top.jursin.hyperschedule.data.repository.saveCombo
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.formatDate
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.theme.SectionSpacing
@@ -232,7 +231,7 @@ private fun ComboEditContent(
 
         val noTarget = targetOptions.isEmpty()
         rules.forEachIndexed { index, rule ->
-            PreferenceSection("切换规则${index + 1}".cjkDigitGap()) {
+            PreferenceSection("切换规则${index + 1}") {
                 DropdownPreference(
                     title = "目标作息",
                     items = if (noTarget) listOf("请先创建公共作息") else targetOptions,

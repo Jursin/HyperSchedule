@@ -26,7 +26,6 @@ import top.jursin.hyperschedule.data.local.BackupSettings
 import top.jursin.hyperschedule.data.local.S3Settings
 import top.jursin.hyperschedule.data.local.SettingsStore
 import top.jursin.hyperschedule.data.local.WebDavSettings
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.JoinedGlassTabs
 import top.jursin.hyperschedule.ui.component.PreferenceScreen
 import top.jursin.hyperschedule.ui.component.toast
@@ -135,8 +134,8 @@ fun BackupPage(
             result.fold(
                 onSuccess = { migrated ->
                     when {
-                        migrated.failed > 0 -> context.toast("已迁移${migrated.moved}份备份，${migrated.failed}份未能迁移".cjkDigitGap())
-                        migrated.moved > 0 -> context.toast("已迁移${migrated.moved}份备份".cjkDigitGap())
+                        migrated.failed > 0 -> context.toast("已迁移${migrated.moved}份备份，${migrated.failed}份未能迁移")
+                        migrated.moved > 0 -> context.toast("已迁移${migrated.moved}份备份")
                         else -> Unit
                     }
                 },
@@ -374,7 +373,7 @@ fun BackupPage(
                 onSuccess = { restored ->
                     val text =
                         if (target.parsed.hasData) {
-                            "已恢复${restored.tableCount}张课表、${restored.courseCount}门课程".cjkDigitGap()
+                            "已恢复${restored.tableCount}张课表、${restored.courseCount}门课程"
                         } else {
                             "已恢复设置，课表未变动"
                         }

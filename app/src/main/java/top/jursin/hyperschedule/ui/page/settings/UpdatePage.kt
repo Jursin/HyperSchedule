@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.local.SettingsStore
 import top.jursin.hyperschedule.getAppVersion
 import top.jursin.hyperschedule.getAppVersionCode
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.theme.dangerColor
 import top.jursin.hyperschedule.theme.successColor
@@ -293,7 +292,7 @@ fun UpdateDialogs(controller: UpdateController, appBlur: Boolean) {
                 LinearProgressIndicator(progress = dialog.progress, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    text = "已下载${(dialog.progress * 100).toInt()}%".cjkDigitGap(),
+                    text = "已下载${(dialog.progress * 100).toInt()}%",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Center,
                 )

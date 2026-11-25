@@ -11,7 +11,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import top.jursin.hyperschedule.data.exporter.CalendarSync
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import kotlinx.coroutines.launch
 
 /** 长按 ICS 导出条目触发，[request] 打开确认弹窗 */
@@ -38,7 +37,7 @@ fun CalendarSyncHost(state: CalendarSyncState, appBlur: Boolean, tableId: String
         scope.launch {
             CalendarSync.sync(context, tableId).fold(
                 onSuccess = { count ->
-                    val text = if (count == 0) "课表里没有可同步的课程" else "已同步${count}节课到系统日历".cjkDigitGap()
+                    val text = if (count == 0) "课表里没有可同步的课程" else "已同步${count}节课到系统日历"
                     context.toast(text)
                 },
                 onFailure = { context.toast("同步失败：${it.message ?: "无法写入日历"}") },

@@ -107,9 +107,3 @@ fun adjustDate(
     val maxDay = YearMonth.of(year, safeMonth).lengthOfMonth()
     return LocalDate.of(year, safeMonth, day.coerceIn(1, maxDay))
 }
-
-private const val DIGIT_GAP = "\u200A"
-
-private val DIGIT_BOUNDARY = Regex("(?<=[\\u4e00-\\u9fff])(?=[0-9])|(?<=[0-9])(?=[\\u4e00-\\u9fff])")
-
-internal fun String.cjkDigitGap(): String = replace(DIGIT_BOUNDARY, DIGIT_GAP)

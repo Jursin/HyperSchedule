@@ -34,7 +34,6 @@ import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.schedule.DEFAULT_SECTION_TIMES
 import top.jursin.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import top.jursin.hyperschedule.schedule.MAX_TOTAL_WEEKS
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentWeekOf
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.ui.component.ConflictDialog
@@ -530,7 +529,7 @@ fun SchedulePage(
             value = jumpWeek,
             onValueChange = { jumpWeek = it },
             range = 1..totalWeeks,
-            label = { "第${it}周".cjkDigitGap() },
+            label = { "第${it}周" },
             appBlur = appBlur,
             onDismiss = { showJumpDialog = false },
             onConfirm = {

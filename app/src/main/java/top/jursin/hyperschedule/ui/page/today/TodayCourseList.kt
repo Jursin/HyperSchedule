@@ -24,7 +24,6 @@ import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import top.jursin.hyperschedule.data.db.entity.TimeSlot
 import top.jursin.hyperschedule.data.local.TodayStyle
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.timeRangeText
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.CardInsidePadding
@@ -330,7 +329,7 @@ private fun ongoingProgress(
     val total = Duration.between(start, end).seconds
     if (total <= 0 || now.isBefore(start) || !now.isBefore(end)) return null
     val elapsed = Duration.between(start, now).seconds / total.toFloat()
-    return RowProgress(elapsed, "${remainingLabel(Duration.between(now, end))}下课".cjkDigitGap())
+    return RowProgress(elapsed, "${remainingLabel(Duration.between(now, end))}下课")
 }
 
 /** 临上课，课前提醒窗口内按已过去的比例推进，窗口之外不显示 */
@@ -343,7 +342,7 @@ private fun countdownProgress(
     val from = start.minusMinutes(minutes.toLong())
     if (now.isBefore(from) || !now.isBefore(start)) return null
     val elapsed = Duration.between(from, now).seconds / (minutes * 60f)
-    return RowProgress(elapsed, "${remainingLabel(Duration.between(now, start))}上课".cjkDigitGap())
+    return RowProgress(elapsed, "${remainingLabel(Duration.between(now, start))}上课")
 }
 
 /** 剩余时长，分钟向上取整（不到一分钟也不会显示 0），满一小时才带小时 */

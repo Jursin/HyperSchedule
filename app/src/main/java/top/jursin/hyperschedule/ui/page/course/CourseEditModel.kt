@@ -3,7 +3,6 @@ package top.jursin.hyperschedule.ui.page.course
 import androidx.compose.ui.graphics.Color
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.parseMinutes
 import top.jursin.hyperschedule.schedule.startMinutesOf
 import top.jursin.hyperschedule.schedule.timeRangeText
@@ -236,7 +235,7 @@ internal fun timeText(group: GroupDraft): String =
     } else {
         val start = group.startSection
         val end = group.endSection
-        (if (start == end) "第${start}节" else "第${start}-${end}节").cjkDigitGap()
+        if (start == end) "第${start}节" else "第${start}-${end}节"
     }
 
 /** 学分只接受正数数字与一个小数点，最多一位小数 */

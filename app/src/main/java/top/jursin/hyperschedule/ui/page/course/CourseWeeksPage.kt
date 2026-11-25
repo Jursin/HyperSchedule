@@ -27,7 +27,6 @@ import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import top.jursin.hyperschedule.data.db.entity.TimeSlot
 import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.schedule.timeRangeText
 import top.jursin.hyperschedule.schedule.weekDatesOf
@@ -178,7 +177,7 @@ fun CourseWeeksPage(
                 item(key = weekNumber) {
                     // 标题与卡片紧贴，间距只由 SectionTitle 的内边距决定
                     Column {
-                        SectionTitle("第${weekNumber}周".cjkDigitGap())
+                        SectionTitle("第${weekNumber}周")
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             cornerRadius = CardCornerRadius,
@@ -199,7 +198,7 @@ fun CourseWeeksPage(
             }
             if (weekGroups.isNotEmpty()) {
                 item {
-                    CenteredPill(text = "共${totalCount}节，还剩${leftCount}节".cjkDigitGap())
+                    CenteredPill(text = "共${totalCount}节，还剩${leftCount}节")
                 }
             }
         }

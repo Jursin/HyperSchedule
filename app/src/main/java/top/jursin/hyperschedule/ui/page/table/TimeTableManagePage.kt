@@ -7,7 +7,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import top.jursin.hyperschedule.data.db.entity.CourseTimeBinding
 import top.jursin.hyperschedule.data.repository.ScheduleOverview
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.ChoiceDialog
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
 import top.jursin.hyperschedule.ui.component.DialogChoice
@@ -66,7 +65,7 @@ fun TimeTableManagePage(
             PreferenceItemSection("专属作息") {
                 SelectableEditRow(
                     title = "专属作息",
-                    summary = "共${overview.slotCounts[exclusive.id] ?: 0}节".cjkDigitGap(),
+                    summary = "共${overview.slotCounts[exclusive.id] ?: 0}节",
                     selected = overview.isActive(CourseTimeBinding.TARGET_SINGLE, exclusive.id, courseTableId),
                     onSelect = { onBind(CourseTimeBinding.TARGET_SINGLE, exclusive.id) },
                     onEdit = { onOpenPlan(exclusive.id) },
@@ -81,7 +80,7 @@ fun TimeTableManagePage(
                     val title = plan.name.orEmpty().ifBlank { "未命名" }
                     SelectableEditRow(
                         title = title,
-                        summary = "共${overview.slotCounts[plan.id] ?: 0}节".cjkDigitGap(),
+                        summary = "共${overview.slotCounts[plan.id] ?: 0}节",
                         selected = overview.isActive(CourseTimeBinding.TARGET_SINGLE, plan.id, courseTableId),
                         onSelect = { onBind(CourseTimeBinding.TARGET_SINGLE, plan.id) },
                         onEdit = { onOpenPlan(plan.id) },
@@ -97,7 +96,7 @@ fun TimeTableManagePage(
                     val title = combo.name.ifBlank { "未命名" }
                     SelectableEditRow(
                         title = title,
-                        summary = "${overview.ruleCounts[combo.id] ?: 0}条切换规则".cjkDigitGap(),
+                        summary = "${overview.ruleCounts[combo.id] ?: 0}条切换规则",
                         selected = overview.isActive(CourseTimeBinding.TARGET_COMBO, combo.id, courseTableId),
                         onSelect = { onBind(CourseTimeBinding.TARGET_COMBO, combo.id) },
                         onEdit = { onOpenCombo(combo.id) },

@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.TopBarIconButton
 import top.jursin.hyperschedule.ui.component.TopBarLeadingLabel
@@ -52,7 +51,7 @@ internal fun ScheduleTopBar(
             startDate == null -> ""
             pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
-            else -> "第${pageWeek}/${totalWeeks}周".cjkDigitGap()
+            else -> "第${pageWeek}/${totalWeeks}周"
         }
     BlurredTopAppBar(
         title = "本周课程",

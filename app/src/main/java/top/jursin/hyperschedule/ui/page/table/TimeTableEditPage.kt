@@ -27,7 +27,6 @@ import top.jursin.hyperschedule.data.repository.loadPlan
 import top.jursin.hyperschedule.data.repository.newPublicScheduleDraft
 import top.jursin.hyperschedule.data.repository.saveSingleSchedule
 import top.jursin.hyperschedule.schedule.SECTION_COUNT_RANGE
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.parseMinutes
 import top.jursin.hyperschedule.schedule.timeRangeText
 import top.jursin.hyperschedule.ui.component.NumberPickerDialog
@@ -220,7 +219,7 @@ private fun PlanEditContent(
         PreferenceSection {
             ArrowPreference(
                 title = "节次数量",
-                endActions = { ValueLabel("共${sectionCount}节".cjkDigitGap()) },
+                endActions = { ValueLabel("共${sectionCount}节") },
                 onClick = {
                     countDraft = sectionCount
                     countDialog = true
@@ -237,7 +236,7 @@ private fun PlanEditContent(
             ArrowPreference(
                 title = "每节课时长",
                 summary = "设置节次时间时按它推算结束时间",
-                endActions = { ValueLabel("${classMinutes}分钟".cjkDigitGap()) },
+                endActions = { ValueLabel("${classMinutes}分钟") },
                 onClick = {
                     durationIndex = classDurationIndex(classMinutes)
                     durationDialog = true
@@ -262,7 +261,7 @@ private fun PlanEditContent(
             value = countDraft,
             onValueChange = { countDraft = it },
             range = SECTION_COUNT_RANGE,
-            label = { "共${it}节".cjkDigitGap() },
+            label = { "共${it}节" },
             appBlur = appBlur,
             onDismiss = { countDialog = false },
             onConfirm = {
@@ -295,7 +294,7 @@ private fun PlanEditContent(
             value = durationIndex,
             onValueChange = { durationIndex = it },
             range = ClassDurationValues.indices,
-            label = { "${ClassDurationValues[it]}分钟".cjkDigitGap() },
+            label = { "${ClassDurationValues[it]}分钟" },
             appBlur = appBlur,
             onDismiss = { durationDialog = false },
             onConfirm = {
@@ -311,7 +310,7 @@ private fun PlanEditContent(
         val previousEnd = slots.getOrNull(timeIndex - 1)?.end.orEmpty()
         val initialStart = slot.start.ifBlank { previousEnd.ifBlank { "08:00" } }
         TimeRangeDialog(
-            title = "第${timeIndex + 1}节".cjkDigitGap(),
+            title = "第${timeIndex + 1}节",
             start = initialStart,
             // 未设置时交给对话框按「开始 + 每节时长」推算
             end = slot.end,
@@ -363,7 +362,7 @@ private fun SectionTimeSections(
             group.indices.forEach { slotIndex ->
                 val slot = slots[slotIndex]
                 ArrowPreference(
-                    title = "第${slotIndex + 1}节".cjkDigitGap(),
+                    title = "第${slotIndex + 1}节",
                     endActions = {
                         if (slot.start.isBlank() || slot.end.isBlank()) {
                             ValueLabel("未设置", placeholder = true)

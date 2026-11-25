@@ -15,7 +15,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -169,14 +168,14 @@ fun DatePickerRow(
         NumberWheelRow(
             value = month,
             range = 1..12,
-            label = { "${it}月".cjkDigitGap() },
+            label = { "${it}月" },
             onValueChange = onMonthChange,
             modifier = Modifier.weight(1f),
         )
         NumberWheelRow(
             value = day,
             range = 1..31,
-            label = { "${it}日".cjkDigitGap() },
+            label = { "${it}日" },
             onValueChange = onDayChange,
             modifier = Modifier.weight(1f),
         )

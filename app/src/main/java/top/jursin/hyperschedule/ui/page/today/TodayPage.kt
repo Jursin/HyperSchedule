@@ -29,7 +29,6 @@ import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.data.repository.ScheduleRepository
 import top.jursin.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import top.jursin.hyperschedule.schedule.HolidayDay
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentWeekOf
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.theme.ContainerTintAlpha
@@ -122,7 +121,7 @@ fun TodayPage(
             startDate == null -> ""
             pageWeek == null || pageWeek < 1 -> "未开学"
             pageWeek > totalWeeks -> "学期已结束"
-            else -> "第${pageWeek}/${totalWeeks}周".cjkDigitGap()
+            else -> "第${pageWeek}/${totalWeeks}周"
         }
     val pagePlan =
         remember(holidayPlan, pageWeek, pageDate.dayOfWeek.value) {
@@ -314,7 +313,7 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(
-            text = "${date.year}年${date.monthValue}月${date.dayOfMonth}日 ${dayLabel(date.dayOfWeek.value)}".cjkDigitGap(),
+            text = "${date.year}年${date.monthValue}月${date.dayOfMonth}日 ${dayLabel(date.dayOfWeek.value)}",
             fontSize = 22.sp,
             fontWeight = FontWeight.SemiBold,
             color = MiuixTheme.colorScheme.onSurface,

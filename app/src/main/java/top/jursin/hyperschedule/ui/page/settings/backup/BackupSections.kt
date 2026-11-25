@@ -11,7 +11,6 @@ import top.jursin.hyperschedule.data.backup.sizeLabel
 import top.jursin.hyperschedule.data.backup.title
 import top.jursin.hyperschedule.data.local.BackupSettings
 import top.jursin.hyperschedule.data.local.BackupStamp
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.ContainerTintAlpha
 import top.jursin.hyperschedule.theme.accentBlueColor
@@ -69,7 +68,7 @@ internal fun BackupActionsSection(
                 busy -> "正在处理"
                 blockedHint != null -> blockedHint
                 stamp.lastError.isNotBlank() -> stamp.lastError
-                stamp.lastTime.isNotBlank() -> "上次备份${stamp.lastTime}".cjkDigitGap()
+                stamp.lastTime.isNotBlank() -> "上次备份${stamp.lastTime}"
                 else -> null
             },
         enabled = !busy,
@@ -84,7 +83,7 @@ internal fun BackupActionsSection(
     DropdownPreference(
         title = "备份保留数量",
         summary = "超出后删除最旧的一份",
-        items = BackupSettings.KEEP_OPTIONS.map { "${it}份".cjkDigitGap() },
+        items = BackupSettings.KEEP_OPTIONS.map { "${it}份" },
         selectedIndex = BackupSettings.keepIndexOf(stamp.keepCount),
         onSelectedIndexChange = onKeepChange,
     )
@@ -136,7 +135,7 @@ internal fun RestoreConfirmDialog(
             if (target.payload.appVersion.isNotBlank()) append(" · v${target.payload.appVersion}")
             append("\n")
             if (target.parsed.hasData) {
-                append("${target.payload.tableCount}张课表 · ${target.payload.courseCount}门课程".cjkDigitGap())
+                append("${target.payload.tableCount}张课表 · ${target.payload.courseCount}门课程")
             } else {
                 append("仅包含设置")
             }

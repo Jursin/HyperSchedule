@@ -10,7 +10,6 @@ import android.content.Intent
 import android.os.Build
 import top.jursin.hyperschedule.MainActivity
 import top.jursin.hyperschedule.R
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.formatMinutes
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
@@ -186,14 +185,14 @@ internal object ReminderNotifier {
 
 internal fun preClassHead(course: DayCourse): String {
     val minutes = remainOf(course.start.toEpochMillis())
-    return if (minutes > 0) "${minutes}分钟后上课".cjkDigitGap() else "现在上课"
+    return if (minutes > 0) "${minutes}分钟后上课" else "现在上课"
 }
 
-internal fun inClassHead(endMillis: Long): String = "${remainOf(endMillis)}分钟后下课".cjkDigitGap()
+internal fun inClassHead(endMillis: Long): String = "${remainOf(endMillis)}分钟后下课"
 
 /** 岛上收起状态右侧的「几点下课」 */
 internal fun inClassTail(end: LocalDateTime): String =
-    "${formatMinutes(end.hour * 60 + end.minute)}下课".cjkDigitGap()
+    "${formatMinutes(end.hour * 60 + end.minute)}下课"
 
 private fun remainOf(endMillis: Long): Int =
     ceil((endMillis - System.currentTimeMillis()) / 60_000.0).toInt().coerceAtLeast(0)

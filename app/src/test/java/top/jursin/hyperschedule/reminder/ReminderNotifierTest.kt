@@ -1,6 +1,5 @@
 package top.jursin.hyperschedule.reminder
 
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
@@ -39,7 +38,7 @@ class ReminderNotifierTest {
     @Test
     fun preClassHeadRoundsUpRemainingMinutes() {
         val soon = course.copy(start = LocalDateTime.now().plusMinutes(9).plusSeconds(30))
-        assertEquals("10分钟后上课".cjkDigitGap(), preClassHead(soon))
+        assertEquals("10分钟后上课", preClassHead(soon))
         assertEquals("现在上课", preClassHead(course.copy(start = LocalDateTime.now().minusMinutes(1))))
     }
 }

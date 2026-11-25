@@ -19,7 +19,6 @@ import top.jursin.hyperschedule.data.repository.TableSummary
 import top.jursin.hyperschedule.data.repository.importCourseTableJson
 import top.jursin.hyperschedule.data.repository.importIcs
 import top.jursin.hyperschedule.data.repository.importShareCode
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.CreateTableDialog
 import top.jursin.hyperschedule.ui.component.ImportTablePickerDialog
 import top.jursin.hyperschedule.ui.component.PreferenceSection
@@ -114,7 +113,7 @@ internal fun ImportTab(
                             val tail = if (warnings.size > 2) "…" else ""
                             "，跳过${warnings.size}门（$head$tail）"
                         }
-                    context.toast("已导入${count}门课程$skipped".cjkDigitGap(), long = true)
+                    context.toast("已导入${count}门课程$skipped", long = true)
                 },
                 onFailure = { context.toast("导入失败：${it.message ?: "内容格式不正确"}", long = true) },
             )

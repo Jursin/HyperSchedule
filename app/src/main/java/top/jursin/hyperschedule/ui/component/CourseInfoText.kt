@@ -26,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import top.jursin.hyperschedule.R
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.TimeSlot
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.timeRangeText
 import java.time.LocalTime
 import top.yukonga.miuix.kmp.basic.Icon
@@ -122,7 +121,7 @@ internal fun Course.sectionLabel(): String {
     }
     val start = startSection ?: return "未设置节次"
     val end = endSection ?: start
-    return (if (start == end) "第${start}节" else "第${start}-${end}节").cjkDigitGap()
+    return if (start == end) "第${start}节" else "第${start}-${end}节"
 }
 
 internal fun startTimeOf(course: Course, slotMap: Map<Int, TimeSlot>): String? =
@@ -158,7 +157,7 @@ internal fun formatWeeks(weeks: List<Int>): String {
         prev = week
     }
     parts += if (start == prev) "$start" else "$start-$prev"
-    return "第${parts.joinToString("、")}周".cjkDigitGap()
+    return "第${parts.joinToString("、")}周"
 }
 
 /** 学分显示，整数不带小数点 */
@@ -175,7 +174,7 @@ internal fun Course.placeTeacherCredit(
         if (showPosition && position.isNotBlank()) add(InfoField(InfoIconId.POSITION, "地点", position))
         if (showTeacher && teacher.isNotBlank()) add(InfoField(InfoIconId.TEACHER, "教师", teacher))
         credit?.takeIf { showCredit }?.let {
-            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(it)}学分".cjkDigitGap()))
+            add(InfoField(InfoIconId.CREDIT, "学分", "${formatCredit(it)}学分"))
         }
     }
 

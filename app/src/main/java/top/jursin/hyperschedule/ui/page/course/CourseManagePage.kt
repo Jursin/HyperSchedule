@@ -38,7 +38,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.R
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.CourseTintAlpha
 import top.jursin.hyperschedule.theme.PageBottomInset
@@ -206,7 +205,7 @@ fun CourseManagePage(
         ConfirmDialog(
             title = "删除课程",
             appBlur = appBlur,
-            message = "选中的${selected.size}门课程删除后无法恢复，确定删除？".cjkDigitGap(),
+            message = "选中的${selected.size}门课程删除后无法恢复，确定删除？",
             confirmText = "删除",
             destructive = true,
             onDismiss = { deleteConfirm = false },
@@ -262,7 +261,7 @@ private fun CourseManageCard(
                     if (slotCount > 1) {
                         Spacer(modifier = Modifier.width(6.dp))
                         SmallBadge(
-                            text = "${slotCount}个时段".cjkDigitGap(),
+                            text = "${slotCount}个时段",
                             color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                             containerColor = color.copy(alpha = CourseTintAlpha),
                         )
@@ -274,7 +273,7 @@ private fun CourseManageCard(
                 }
                 if (credit != null) {
                     Spacer(modifier = Modifier.height(if (teacher.isNotBlank()) 4.dp else 10.dp))
-                    MetaRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), text = "${formatCredit(credit)}学分".cjkDigitGap())
+                    MetaRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), text = "${formatCredit(credit)}学分")
                 }
             }
         }
