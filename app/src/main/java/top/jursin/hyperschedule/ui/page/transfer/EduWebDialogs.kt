@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.transfer
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -23,6 +23,8 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.ConfirmDialog
+import top.jursin.hyperschedule.ui.component.SelectableEditRow
 
 /** 教务脚本的 alert/prompt/单选对话框，页面只负责状态 */
 internal data class EduAlertState(

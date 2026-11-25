@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.transfer
 
 import android.content.Context
 import android.os.Handler
@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import top.jursin.hyperschedule.ui.component.toast
 
 /** 教务脚本桥，对应页面里的 window.AndroidBridge，方法名与参数顺序是脚本契约 */
 @Keep

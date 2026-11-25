@@ -9,10 +9,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
-import top.jursin.hyperschedule.ui.component.ScheduleDayColumnStart
 import top.jursin.hyperschedule.ui.component.TopBarIconButton
 import top.jursin.hyperschedule.ui.component.TopBarLeadingLabel
-import top.jursin.hyperschedule.ui.component.WeekdayRow
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButtonDefaults
 import top.yukonga.miuix.kmp.basic.ScrollBehavior

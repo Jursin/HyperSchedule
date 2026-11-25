@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -43,6 +43,8 @@ import top.jursin.hyperschedule.ui.effect.cardSurface
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.HolidayMarkBadge
+import top.jursin.hyperschedule.ui.component.markOf
 
 /** 非本周（该格本周不上）的灰，底色与文字的透明度，深色主题另给一组 */
 private const val InactiveCardAlpha = 0.105f

@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.geometry.Rect
@@ -31,20 +30,9 @@ import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentSectionAt
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.ui.component.BackToNowOccupiedHeight
-import top.jursin.hyperschedule.ui.component.BreakDividerOverlay
-import top.jursin.hyperschedule.ui.component.BreakMark
+import top.jursin.hyperschedule.ui.component.CenteredPill
 import top.jursin.hyperschedule.ui.component.DAY_NAMES
-import top.jursin.hyperschedule.ui.component.DayGridColumn
-import top.jursin.hyperschedule.ui.component.ScheduleGridLines
-import top.jursin.hyperschedule.ui.component.ScheduleLayout
-import top.jursin.hyperschedule.ui.component.SectionPill
-import top.jursin.hyperschedule.ui.component.SectionTimesColumn
-import top.jursin.hyperschedule.ui.component.SpecialBlockBands
-import top.jursin.hyperschedule.ui.component.TimelineDay
-import top.jursin.hyperschedule.ui.component.TimelineWeekGrid
-import top.jursin.hyperschedule.ui.component.WeekCourse
 import top.jursin.hyperschedule.ui.component.markOrNull
-import top.jursin.hyperschedule.ui.component.resolveWeekCourses
 import java.time.LocalDate
 import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -217,12 +205,10 @@ internal fun ScheduleWeekPage(
         val countText =
             if (startDate == null) "未设置开学日期" else "本周共${weekCourseCount}节课".cjkDigitGap()
         val countAlpha = if (inSemester) 1f else 0f
-        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-            SectionPill(
-                text = countText,
-                modifier = Modifier.alpha(countAlpha),
-            )
-        }
+        CenteredPill(
+            text = countText,
+            pillModifier = Modifier.alpha(countAlpha),
+        )
         Spacer(modifier = Modifier.height(BackToNowOccupiedHeight + SectionSpacing))
     }
 }

@@ -1,6 +1,5 @@
 package top.jursin.hyperschedule.ui.page.settings
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -28,6 +26,7 @@ import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.theme.warningColor
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.MarkdownText
+import top.jursin.hyperschedule.ui.component.SmallBadge
 import top.jursin.hyperschedule.ui.component.pageContentPadding
 import top.jursin.hyperschedule.ui.component.pageScroll
 import top.jursin.hyperschedule.ui.effect.rememberAppBlurBackdrop
@@ -120,17 +119,9 @@ private fun ChangelogCard(entry: ChangelogEntry, meta: ReleaseMeta?) {
 @Composable
 private fun PrereleaseBadge() {
     val warning = warningColor()
-    Text(
+    SmallBadge(
         text = "测试版",
-        style = MiuixTheme.textStyles.footnote1,
-        fontWeight = FontWeight.Medium,
         color = warning,
-        modifier =
-            Modifier
-                .background(
-                    color = warning.copy(alpha = ContainerTintAlpha),
-                    shape = RoundedCornerShape(6.dp),
-                )
-                .padding(horizontal = 6.dp, vertical = 2.dp),
+        containerColor = warning.copy(alpha = ContainerTintAlpha),
     )
 }

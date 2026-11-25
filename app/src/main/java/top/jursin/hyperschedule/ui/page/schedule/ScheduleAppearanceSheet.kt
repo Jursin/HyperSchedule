@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
@@ -8,6 +8,11 @@ import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
 import java.util.Locale
 import kotlin.math.roundToInt
+import top.jursin.hyperschedule.ui.component.PreferenceSection
+import top.jursin.hyperschedule.ui.component.SheetScaffold
+import top.jursin.hyperschedule.ui.component.SheetScrollColumn
+import top.jursin.hyperschedule.ui.component.StyleSlider
+import top.jursin.hyperschedule.ui.component.WallpaperPreferences
 
 @Composable
 fun ScheduleAppearanceSheet(

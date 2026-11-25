@@ -25,9 +25,9 @@ import top.jursin.hyperschedule.schedule.formatDate
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
-import top.jursin.hyperschedule.ui.component.DateRangeCalendar
+import top.jursin.hyperschedule.ui.page.settings.holiday.DateRangeCalendar
 import top.jursin.hyperschedule.ui.component.DialogDeleteAction
-import top.jursin.hyperschedule.ui.component.DualDateCalendar
+import top.jursin.hyperschedule.ui.page.settings.holiday.DualDateCalendar
 import top.jursin.hyperschedule.ui.component.GlassFab
 import top.jursin.hyperschedule.ui.component.PreferenceScreen
 import top.jursin.hyperschedule.ui.component.PreferenceSection

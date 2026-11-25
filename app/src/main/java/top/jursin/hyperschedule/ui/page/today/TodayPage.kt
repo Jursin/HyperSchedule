@@ -1,15 +1,12 @@
 package top.jursin.hyperschedule.ui.page.today
 
 import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,18 +32,18 @@ import top.jursin.hyperschedule.schedule.HolidayDay
 import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentWeekOf
 import top.jursin.hyperschedule.schedule.parseDateOrNull
+import top.jursin.hyperschedule.theme.ContainerTintAlpha
 import top.jursin.hyperschedule.theme.PageBottomInset
 import top.jursin.hyperschedule.theme.PageTextStart
 import top.jursin.hyperschedule.theme.subtleFillColor
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
+import top.jursin.hyperschedule.ui.component.CenteredPill
 import top.jursin.hyperschedule.ui.component.DatePickerDialog
 import top.jursin.hyperschedule.ui.component.MarkHoliday
 import top.jursin.hyperschedule.ui.component.MarkWorkSwap
 import top.jursin.hyperschedule.ui.component.PageScrollColumn
 import top.jursin.hyperschedule.ui.component.ProvideBackToNow
-import top.jursin.hyperschedule.ui.component.SectionPill
-import top.jursin.hyperschedule.ui.component.TodayAppearanceSheet
-import top.jursin.hyperschedule.ui.component.TodayCourseList
+import top.jursin.hyperschedule.ui.component.SmallBadge
 import top.jursin.hyperschedule.ui.component.TopBarIconButton
 import top.jursin.hyperschedule.ui.component.TopBarLeadingLabel
 import top.jursin.hyperschedule.ui.component.dayLabel
@@ -257,16 +254,12 @@ fun TodayPage(
                         )
                     } else {
                         // 空状态也是滚动内容：能被拖动、钻到栏下被糊住；横屏文案更高时用 min 让它可滚
-                        Box(
-                            modifier = Modifier.fillMaxWidth().heightIn(min = contentHeight),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            EmptyCourseHint(
-                                isToday = date == dateState.today,
-                                isHoliday = dayPlan.holiday,
-                                noStartDate = startDate == null,
-                            )
-                        }
+                        EmptyCourseHint(
+                            isToday = date == dateState.today,
+                            isHoliday = dayPlan.holiday,
+                            noStartDate = startDate == null,
+                            modifier = Modifier.heightIn(min = contentHeight),
+                        )
                     }
                 }
             }
@@ -335,8 +328,8 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay) {
             val accent = plan.workSwap
             val colors = MiuixTheme.colorScheme
             val chipColor =
-                if (accent) colors.primary.copy(alpha = 0.12f) else subtleFillColor()
-            Text(
+                if (accent) colors.primary.copy(alpha = ContainerTintAlpha) else subtleFillColor()
+            SmallBadge(
                 text =
                     when {
                         // 补课带上被调的是哪一天，放假只标一个「假」
@@ -344,15 +337,9 @@ private fun DateTitleRow(date: LocalDate, plan: HolidayDay) {
                         accent -> MarkWorkSwap
                         else -> MarkHoliday
                     },
-                style = MiuixTheme.textStyles.footnote1,
-                fontWeight = FontWeight.Medium,
                 color = if (accent) colors.primary else colors.onSurfaceVariantSummary,
-                maxLines = 1,
-                modifier =
-                    Modifier
-                        .padding(start = 4.dp)
-                        .background(color = chipColor, shape = RoundedCornerShape(6.dp))
-                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                containerColor = chipColor,
+                modifier = Modifier.padding(start = 4.dp),
             )
         }
     }
@@ -373,9 +360,10 @@ private fun EmptyCourseHint(
             isToday -> "今天没有课程，好好休息吧！"
             else -> "这天没有课程"
         }
-    SectionPill(
+    CenteredPill(
         text = text,
-        modifier = modifier.padding(horizontal = 24.dp, vertical = 8.dp),
+        modifier = modifier,
+        pillModifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp),
         textAlign = TextAlign.Center,
     )
 }

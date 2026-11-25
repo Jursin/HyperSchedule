@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.unit.Dp

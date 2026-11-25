@@ -4,14 +4,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import top.jursin.hyperschedule.theme.isDarkTheme
 import top.jursin.hyperschedule.ui.effect.LocalFabBackdrop
+import top.jursin.hyperschedule.ui.effect.glassStyle
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.glass.GlassFloatingActionButton
 import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.material.GlassColorBlendMode
 import top.yukonga.miuix.kmp.material.GlassColorLayer
-import top.yukonga.miuix.kmp.material.GlassDefaults
 import top.yukonga.miuix.kmp.material.GlassMaterial
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -29,7 +28,7 @@ fun GlassFab(
         modifier = modifier,
         backdrop = backdrop,
         material = glassFabMaterial(color),
-        style = GlassDefaults.style(isDarkTheme()),
+        style = glassStyle(),
         fill = color,
         content = content,
     )

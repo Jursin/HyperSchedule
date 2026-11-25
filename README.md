@@ -5,6 +5,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/Jursin/HyperSchedule?include_prereleases&logo=github)
 ![GitHub Downloads](https://img.shields.io/github/downloads/Jursin/HyperSchedule/total?logo=github)
 ![License](https://img.shields.io/github/license/Jursin/HyperSchedule?logo=github)
+[![wechat](https://img.shields.io/badge/微信赞赏码-grey?logo=wechat)](./app/src/main/res/drawable-nodpi/mm_reward_qrcode.png)
 [![afdian](https://img.shields.io/badge/爱发电-赞助我-946CE6?logo=afdian)](https://afdian.com/a/jursin)
 
 HyperSchedule 是一个使用了 [Miuix](https://github.com/compose-miuix-ui/miuix) 库的 Android 课程表应用，还原 HyperOS 设计美感与交互体验。

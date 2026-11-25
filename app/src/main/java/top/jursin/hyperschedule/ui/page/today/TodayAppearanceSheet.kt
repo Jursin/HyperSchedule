@@ -1,10 +1,14 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.today
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
 import top.jursin.hyperschedule.data.local.TodayStyle
 import top.jursin.hyperschedule.theme.sheetCardColor
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
+import top.jursin.hyperschedule.ui.component.PreferenceSection
+import top.jursin.hyperschedule.ui.component.SheetScaffold
+import top.jursin.hyperschedule.ui.component.SheetScrollColumn
+import top.jursin.hyperschedule.ui.component.WallpaperPreferences
 
 @Composable
 fun TodayAppearanceSheet(

@@ -63,3 +63,8 @@ val SelectCellFontSize = 13.sp
 /** 徽标与时间小字的字号 */
 val BadgeFontSize = 9.sp
 val TimeLabelFontSize = 10.sp
+
+/** 小角标胶囊的圆角与内边距 */
+val BadgeCorner = 6.dp
+val BadgeHorizontalPadding = 6.dp
+val BadgeVerticalPadding = 2.dp

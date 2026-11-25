@@ -8,8 +8,6 @@ import android.view.ViewGroup
 import android.webkit.CookieManager
 import android.webkit.WebSettings
 import android.webkit.WebView
-import top.jursin.hyperschedule.ui.component.EduPostBridge
-import top.jursin.hyperschedule.ui.component.EduWebBridge
 import org.json.JSONObject
 
 @SuppressLint("SetJavaScriptEnabled")

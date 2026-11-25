@@ -24,7 +24,6 @@ import top.jursin.hyperschedule.ui.component.DAY_NAMES
 import top.jursin.hyperschedule.ui.component.NumberWheelRow
 import top.jursin.hyperschedule.ui.component.TimeWheelLabel
 import top.jursin.hyperschedule.ui.component.TimeWheelRow
-import top.jursin.hyperschedule.ui.component.WeekRangeSelectGrid
 
 private const val DefaultStartMinutes = 8 * 60
 private const val DefaultEndMinutes = 9 * 60

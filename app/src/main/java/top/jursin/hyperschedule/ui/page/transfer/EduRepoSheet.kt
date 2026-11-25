@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.transfer
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
@@ -18,6 +18,11 @@ import top.jursin.hyperschedule.theme.sheetCardColor
 import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
 import top.yukonga.miuix.kmp.glass.GlassTextField
+import top.jursin.hyperschedule.ui.component.PreferenceItemSection
+import top.jursin.hyperschedule.ui.component.PreferenceSection
+import top.jursin.hyperschedule.ui.component.SheetScaffold
+import top.jursin.hyperschedule.ui.component.SheetScrollColumn
+import top.jursin.hyperschedule.ui.component.rememberSyncedInput
 
 /** 学校页的更多设置 */
 @Composable

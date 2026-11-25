@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.table
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +27,9 @@ import kotlin.math.min
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.DAY_NAMES
+import top.jursin.hyperschedule.ui.component.dayLabel
+import top.jursin.hyperschedule.ui.component.cellDragSelect
 
 /** 星期的单字写法，格子窄，只放得下一个字 */
 private val WeekdayShortNames = listOf("一", "二", "三", "四", "五", "六", "日")

@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.course
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +31,7 @@ import kotlin.math.min
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.cellDragSelect
 
 /** 周次选择网格，单击切换该周，按住滑动把起止之间并入或移出已选 */
 @Composable

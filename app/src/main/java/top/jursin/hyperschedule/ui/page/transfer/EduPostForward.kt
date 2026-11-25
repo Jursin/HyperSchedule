@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.transfer
 
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface

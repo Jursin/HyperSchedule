@@ -16,6 +16,7 @@ import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.ContainerTintAlpha
 import top.jursin.hyperschedule.theme.accentBlueColor
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
+import top.jursin.hyperschedule.ui.component.HintText
 import top.jursin.hyperschedule.ui.component.PreferenceSection
 import top.jursin.hyperschedule.ui.component.pref.ArrowPreference
 import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
@@ -114,10 +115,10 @@ internal fun RestoreHint() {
 
 @Composable
 internal fun SectionHint(text: String) {
-    Text(
+    HintText(
         text = text,
         modifier = Modifier.padding(16.dp),
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        style = MiuixTheme.textStyles.main,
     )
 }
 

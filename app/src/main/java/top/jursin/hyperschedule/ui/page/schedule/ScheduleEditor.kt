@@ -16,9 +16,6 @@ import androidx.compose.ui.unit.Density
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import top.jursin.hyperschedule.ui.component.DAY_NAMES
-import top.jursin.hyperschedule.ui.component.DragVisual
-import top.jursin.hyperschedule.ui.component.ScheduleLayout
-import top.jursin.hyperschedule.ui.component.overlappedSections
 import java.util.UUID
 import kotlin.math.floor
 

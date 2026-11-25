@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -43,6 +43,15 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
+import top.jursin.hyperschedule.ui.component.CourseInfoFields
+import top.jursin.hyperschedule.ui.component.HolidayMarkBadge
+import top.jursin.hyperschedule.ui.component.InfoField
+import top.jursin.hyperschedule.ui.component.InfoIconId
+import top.jursin.hyperschedule.ui.component.SheetScaffold
+import top.jursin.hyperschedule.ui.component.copyOnClick
+import top.jursin.hyperschedule.ui.component.formatWeeks
+import top.jursin.hyperschedule.ui.component.placeTeacherCredit
+import top.jursin.hyperschedule.ui.component.sectionLabel
 
 /** 抽屉里的一门课，是否本周生效用于标题后缀 */
 data class CourseDetailItem(

@@ -34,12 +34,13 @@ import top.jursin.hyperschedule.schedule.weekDatesOf
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
+import top.jursin.hyperschedule.ui.component.CenteredPill
 import top.jursin.hyperschedule.ui.component.CourseInfoFields
 import top.jursin.hyperschedule.ui.component.DAY_NAMES
 import top.jursin.hyperschedule.ui.component.HolidayMarkBadge
+import top.jursin.hyperschedule.ui.component.HintText
 import top.jursin.hyperschedule.ui.component.InfoField
 import top.jursin.hyperschedule.ui.component.InfoIconId
-import top.jursin.hyperschedule.ui.component.SectionPill
 import top.jursin.hyperschedule.ui.component.SectionTitle
 import top.jursin.hyperschedule.ui.component.copyOnClick
 import top.jursin.hyperschedule.ui.component.dayLabel
@@ -166,10 +167,9 @@ fun CourseWeeksPage(
                         modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Text(
+                        HintText(
                             text = "暂无周次数据",
                             style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                         )
                     }
                 }
@@ -199,11 +199,7 @@ fun CourseWeeksPage(
             }
             if (weekGroups.isNotEmpty()) {
                 item {
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                        SectionPill(
-                            text = "共${totalCount}节，还剩${leftCount}节".cjkDigitGap(),
-                        )
-                    }
+                    CenteredPill(text = "共${totalCount}节，还剩${leftCount}节".cjkDigitGap())
                 }
             }
         }

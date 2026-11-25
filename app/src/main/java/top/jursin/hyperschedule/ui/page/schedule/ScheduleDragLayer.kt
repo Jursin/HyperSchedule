@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.animation.core.animateOffsetAsState
 import androidx.compose.animation.core.tween

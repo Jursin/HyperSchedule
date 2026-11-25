@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.today
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -45,6 +45,18 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.LinearProgressIndicator
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.CenteredPill
+import top.jursin.hyperschedule.ui.component.SectionPill
+import top.jursin.hyperschedule.ui.component.CourseInfoFields
+import top.jursin.hyperschedule.ui.component.InfoField
+import top.jursin.hyperschedule.ui.component.InfoIconId
+import top.jursin.hyperschedule.ui.component.HolidayMarkBadge
+import top.jursin.hyperschedule.ui.component.parseTime
+import top.jursin.hyperschedule.ui.component.startTimeOf
+import top.jursin.hyperschedule.ui.component.endTimeOf
+import top.jursin.hyperschedule.ui.component.sectionLabel
+import top.jursin.hyperschedule.ui.component.copyOnClick
+import top.jursin.hyperschedule.ui.component.placeTeacherCredit
 
 /** 右侧状态文案，只有「正在上课」用强调色 */
 private const val StatusOngoing = "正在上课"
@@ -175,9 +187,7 @@ fun TodayCourseList(
             }
         }
         if (allCoursesEnded(courses, slotMap, pageDate, today, now)) {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                SectionPill("课程已结束，好好休息吧！")
-            }
+            CenteredPill("课程已结束，好好休息吧！")
         }
     }
 }

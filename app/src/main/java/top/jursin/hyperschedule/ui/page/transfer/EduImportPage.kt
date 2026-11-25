@@ -46,9 +46,9 @@ import top.jursin.hyperschedule.data.importer.edu.School as EduSchool
 import top.jursin.hyperschedule.data.importer.edu.SchoolRepository
 import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
-import top.jursin.hyperschedule.ui.component.EduRepoSheet
 import top.jursin.hyperschedule.ui.component.GlassFab
 import top.jursin.hyperschedule.ui.component.GlassTabs
+import top.jursin.hyperschedule.ui.component.HintText
 import top.jursin.hyperschedule.ui.component.TopBarIconButton
 import top.jursin.hyperschedule.ui.component.bouncyScroll
 import top.jursin.hyperschedule.ui.component.toast
@@ -351,18 +351,16 @@ fun EduImportPage(
                 ) {
                     when {
                         schools == null ->
-                            Text(
+                            HintText(
                                 text = "正在读取学校列表",
                                 style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                             )
                         searchHits.isEmpty() ->
-                            Text(
+                            HintText(
                                 text = if (query.isBlank()) "输入关键词搜索学校或教务系统" else "没有匹配的学校或教务系统",
                                 style = MiuixTheme.textStyles.body1,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                                 textAlign = TextAlign.Center,
                                 modifier = Modifier.fillMaxWidth().padding(vertical = 40.dp),
                             )

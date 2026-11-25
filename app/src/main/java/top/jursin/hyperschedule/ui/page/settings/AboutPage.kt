@@ -380,6 +380,7 @@ private fun AboutContentBody(
                         AboutInfoCard(cardBackdrop, cardBlend) {
                             ArrowPreference(
                                 title = "查看源代码",
+                                summary = "给个 Star 支持一下吧~",
                                 endActions = {
                                     Text(
                                         text = "GitHub",

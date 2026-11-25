@@ -21,6 +21,7 @@ import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.data.repository.ScheduleRepository
 import top.jursin.hyperschedule.data.repository.TableSummary
 import top.jursin.hyperschedule.ui.component.CalendarSyncHost
+import top.jursin.hyperschedule.ui.component.HintText
 import top.jursin.hyperschedule.ui.component.PreferenceSection
 import top.jursin.hyperschedule.ui.component.pref.ArrowPreference
 import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
@@ -31,7 +32,6 @@ import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 导出格式，扩展名与保存窗口用的 MIME */
@@ -129,10 +129,10 @@ internal fun ExportTab(
 
     PreferenceSection("导出课表") {
         if (tables.isEmpty()) {
-            Text(
+            HintText(
                 text = "暂无课表，请先创建或导入后再导出",
                 modifier = Modifier.padding(16.dp),
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                style = MiuixTheme.textStyles.main,
             )
         } else {
             DropdownPreference(

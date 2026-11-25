@@ -47,6 +47,8 @@ import top.jursin.hyperschedule.theme.rememberCourseColor
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
 import top.jursin.hyperschedule.ui.component.GlassFab
+import top.jursin.hyperschedule.ui.component.HintText
+import top.jursin.hyperschedule.ui.component.SmallBadge
 import top.jursin.hyperschedule.ui.component.formatCredit
 import top.jursin.hyperschedule.ui.component.pageContentPadding
 import top.jursin.hyperschedule.ui.component.pageScroll
@@ -160,17 +162,15 @@ fun CourseManagePage(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Text(
+                HintText(
                     text = "暂无课程",
                     style = MiuixTheme.textStyles.headline1,
                     fontWeight = FontWeight.Medium,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
+                HintText(
                     text = "点击右下角添加课程",
                     style = MiuixTheme.textStyles.body2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
         } else {
@@ -261,21 +261,11 @@ private fun CourseManageCard(
                     )
                     if (slotCount > 1) {
                         Spacer(modifier = Modifier.width(6.dp))
-                        Box(
-                            modifier =
-                                Modifier
-                                    .clip(RoundedCornerShape(5.dp))
-                                    .background(color.copy(alpha = CourseTintAlpha))
-                                    .padding(horizontal = 6.dp, vertical = 2.dp),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            Text(
-                                text = "${slotCount}个时段".cjkDigitGap(),
-                                style = MiuixTheme.textStyles.footnote2,
-                                maxLines = 1,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
+                        SmallBadge(
+                            text = "${slotCount}个时段".cjkDigitGap(),
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                            containerColor = color.copy(alpha = CourseTintAlpha),
+                        )
                     }
                 }
                 if (teacher.isNotBlank()) {
@@ -294,7 +284,7 @@ private fun CourseManageCard(
                 modifier =
                     Modifier
                         .matchParentSize()
-                        .squircleBorder(width = 2.dp, color = color, cornerRadius = CardDefaults.CornerRadius),
+                        .squircleBorder(width = 2.dp, color = color, cornerRadius = CardCornerRadius),
             )
         }
     }

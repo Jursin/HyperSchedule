@@ -38,16 +38,8 @@ import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentWeekOf
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import top.jursin.hyperschedule.ui.component.ConflictDialog
-import top.jursin.hyperschedule.ui.component.CourseDetailItem
-import top.jursin.hyperschedule.ui.component.CourseDetailSheet
 import top.jursin.hyperschedule.ui.component.NumberPickerDialog
 import top.jursin.hyperschedule.ui.component.ProvideBackToNow
-import top.jursin.hyperschedule.ui.component.ScheduleAppearanceSheet
-import top.jursin.hyperschedule.ui.component.ScheduleDragLayer
-import top.jursin.hyperschedule.ui.component.ScheduleLayout
-import top.jursin.hyperschedule.ui.component.ScrollToNowOnShow
-import top.jursin.hyperschedule.ui.component.breakMarks
-import top.jursin.hyperschedule.ui.component.isSameSlotAs
 import top.jursin.hyperschedule.ui.component.rememberStretchFling
 import top.jursin.hyperschedule.ui.component.rememberStretchOverscrollState
 import top.jursin.hyperschedule.ui.component.stretchOverscroll

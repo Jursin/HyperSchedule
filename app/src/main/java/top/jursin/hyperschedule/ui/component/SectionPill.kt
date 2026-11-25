@@ -1,10 +1,13 @@
 package top.jursin.hyperschedule.ui.component
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -45,4 +48,17 @@ internal fun SectionPill(
                 )
                 .padding(horizontal = inset, vertical = 4.dp),
     )
+}
+
+/** 整行居中的胶囊提示，供空状态文案复用 */
+@Composable
+fun CenteredPill(
+    text: String,
+    modifier: Modifier = Modifier,
+    pillModifier: Modifier = Modifier,
+    textAlign: TextAlign? = null,
+) {
+    Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        SectionPill(text = text, modifier = pillModifier, textAlign = textAlign)
+    }
 }

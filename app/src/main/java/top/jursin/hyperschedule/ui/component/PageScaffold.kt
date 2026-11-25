@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.ui.component
 
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,6 +18,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -24,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
@@ -37,11 +41,12 @@ import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.theme.PageBottomInset
 import top.jursin.hyperschedule.theme.PageHorizontalMargin
 import top.jursin.hyperschedule.theme.PanelCorner
-import top.jursin.hyperschedule.theme.isDarkTheme
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.ui.effect.LocalPageGlassBackdrop
+import top.jursin.hyperschedule.ui.effect.appBarBand
 import top.jursin.hyperschedule.ui.effect.captureForBlur
 import top.jursin.hyperschedule.ui.effect.wallpaperVisible
+import top.jursin.hyperschedule.ui.effect.glassStyle
 import top.jursin.hyperschedule.ui.effect.glassTint
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
@@ -60,7 +65,6 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
 import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
 import top.yukonga.miuix.kmp.icon.glass.Ok
-import top.yukonga.miuix.kmp.material.GlassDefaults
 import top.yukonga.miuix.kmp.material.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
@@ -198,15 +202,41 @@ private fun GlassAppBar(
     actions: @Composable RowScope.() -> Unit,
     bottomContent: @Composable () -> Unit,
 ) {
-    val glassStyle = GlassDefaults.style(isDarkTheme())
+    val glassStyle = glassStyle()
+    val scrolled by remember(scrollBehavior) {
+        derivedStateOf {
+            val state = scrollBehavior.state
+            state.contentOffset < -1f || state.overscrollOffset < -1f
+        }
+    }
+    val mask by animateFloatAsState(
+        targetValue = if (scrolled) 1f else 0f,
+        label = "appBarBandMask",
+    )
+    val bandAlpha: () -> Float =
+        if (singleLine) {
+            { mask }
+        } else {
+            { scrollBehavior.state.collapsedFraction.coerceIn(0f, 1f) }
+        }
+    val bandActive by remember(singleLine, scrollBehavior) {
+        derivedStateOf { (if (singleLine) mask else scrollBehavior.state.collapsedFraction) > 0.001f }
+    }
     // 栏内按钮换成玻璃圆片
     CompositionLocalProvider(LocalTopBarGlass provides true) {
         Box(modifier = modifier.fillMaxWidth()) {
             val contentModifier = Modifier.padding(top = topInset)
-            // 浮窗有底色时不叠玻璃带
-            val backgroundAlpha: () -> Float = { if (bandEnabled) 1f else 0f }
             // 没有着色器时的圆片底色
             val buttonFill = MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.68f)
+            if (bandEnabled) {
+                Box(
+                    modifier =
+                        Modifier
+                            .matchParentSize()
+                            .graphicsLayer { alpha = bandAlpha() }
+                            .appBarBand(backdrop = backdrop, enabled = bandActive),
+                )
+            }
             if (pinnedMaterial) {
                 GlassTopAppBar(
                     title = title,
@@ -214,12 +244,12 @@ private fun GlassAppBar(
                     modifier = Modifier.fillMaxWidth(),
                     contentModifier = contentModifier,
                     expandable = !singleLine,
-                    progressiveBlur = bandEnabled,
+                    progressiveBlur = false,
                     backdrop = backdrop,
                     style = glassStyle,
                     scrollBehavior = scrollBehavior,
                     titleAlpha = titleAlpha,
-                    backgroundAlpha = backgroundAlpha,
+                    backgroundAlpha = { 0f },
                     fill = buttonFill,
                     navigationIcon = navigationIcon,
                     actions = actions,
@@ -232,12 +262,12 @@ private fun GlassAppBar(
                     modifier = Modifier.fillMaxWidth(),
                     contentModifier = contentModifier,
                     expandable = !singleLine,
-                    progressiveBlur = bandEnabled,
+                    progressiveBlur = false,
                     backdrop = backdrop,
                     style = glassStyle,
                     scrollBehavior = scrollBehavior,
                     titleAlpha = titleAlpha,
-                    backgroundAlpha = backgroundAlpha,
+                    backgroundAlpha = { 0f },
                     fill = buttonFill,
                     navigationIcon = navigationIcon,
                     actions = actions,
@@ -266,7 +296,7 @@ fun TopBarIconButton(
                 modifier = modifier,
                 inheritTopBarMaterial = false,
                 material = glassTint(MiuixTheme.colorScheme.surfaceContainer.copy(alpha = 0.5f), 20f),
-                style = GlassDefaults.style(isDarkTheme()),
+                style = glassStyle(),
             ) {
                 Box(modifier = Modifier.alpha(if (enabled) 1f else 0.4f)) {
                     content()

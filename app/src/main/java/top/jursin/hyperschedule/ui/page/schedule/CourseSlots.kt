@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks

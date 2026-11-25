@@ -21,20 +21,18 @@ import top.jursin.hyperschedule.theme.isDarkTheme
 import top.jursin.hyperschedule.ui.component.LocalInsideFloatingWindow
 import top.yukonga.miuix.kmp.blur.Backdrop
 import top.yukonga.miuix.kmp.blur.BackdropEffectScope
-import top.yukonga.miuix.kmp.blur.BlendColorEntry
-import top.yukonga.miuix.kmp.blur.BlurDefaults
 import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import top.yukonga.miuix.kmp.blur.ProgressiveBlur
 import top.yukonga.miuix.kmp.blur.blur
 import top.yukonga.miuix.kmp.blur.drawBackdrop
 import top.yukonga.miuix.kmp.blur.progressiveTextureBlur
-import top.yukonga.miuix.kmp.glass.GlassTopAppBarDefaults
 import top.yukonga.miuix.kmp.glass.glass as miuixGlass
 import top.yukonga.miuix.kmp.glass.glassShadow
 import top.yukonga.miuix.kmp.material.GlassColorBlendMode
 import top.yukonga.miuix.kmp.material.GlassColorLayer
 import top.yukonga.miuix.kmp.material.GlassDefaults
 import top.yukonga.miuix.kmp.material.GlassMaterial
+import top.yukonga.miuix.kmp.material.GlassStyle
 import top.yukonga.miuix.kmp.material.GlassMaterials
 import top.yukonga.miuix.kmp.material.GlassShadow
 import top.yukonga.miuix.kmp.material.GlassShape
@@ -49,6 +47,10 @@ val LocalFabBackdrop = staticCompositionLocalOf<Backdrop?> { null }
 /** 玻璃面的模糊半径（dp） */
 internal const val GlassBlurRadius = 24f
 
+/** 全项目玻璃材质统一的明暗样式 */
+@Composable
+fun glassStyle(): GlassStyle = GlassDefaults.style(isDarkTheme())
+
 @Composable
 fun rememberAppBlurBackdrop(enabled: Boolean): LayerBackdrop? {
     val wallpaper = LocalWallpaper.current?.takeIf { !LocalInsideFloatingWindow.current }
@@ -60,21 +62,23 @@ fun rememberAppBlurBackdrop(enabled: Boolean): LayerBackdrop? {
 @Composable
 private fun wallpaperGlass(): Backdrop? = LocalWallpaper.current?.glassBackdrop
 
+/** 顶栏糊带的模糊半径（dp） */
+internal const val AppBarBandBlurRadius = 20f
+
+/** 顶栏糊带 */
 @Composable
-fun Modifier.appBarBand(backdrop: Backdrop?): Modifier {
+fun Modifier.appBarBand(
+    backdrop: Backdrop?,
+    enabled: Boolean = true,
+): Modifier {
     if (backdrop == null) return this
     val wallpaper = LocalWallpaper.current
-    val surface = MiuixTheme.colorScheme.surface
-    val colors =
-        BlurDefaults.blurColors(
-            blendColors = remember(surface) { listOf(BlendColorEntry(surface.copy(alpha = 0.3f))) },
-        )
     return progressiveTextureBlur(
         backdrop = backdrop,
         shape = RectangleShape,
-        blurRadius = GlassTopAppBarDefaults.ProgressiveBlurRadius.value,
         gradient = ProgressiveBlur.Top.copy(curve = 0.25f),
-        colors = colors,
+        blurRadius = AppBarBandBlurRadius,
+        enabled = enabled,
     ).then(RepaintElement(wallpaper?.bitmap, wallpaper?.glassEnabled == true))
 }
 
@@ -128,7 +132,7 @@ private fun Modifier.glass(
         .miuixGlass(
             backdrop = backdrop,
             shape = shape,
-            style = GlassDefaults.style(isDarkTheme()),
+            style = glassStyle(),
             material = material,
             noiseCoefficient = noise,
             shading = shading,

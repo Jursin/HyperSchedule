@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.transfer
 
 /** 注入到页面的 Promise 桥，脚本通过 shiguangBridge/shiguangBridgePromise 调用原生 */
 internal val EduPromiseBridgeScript =

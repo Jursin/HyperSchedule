@@ -36,7 +36,6 @@ import top.jursin.hyperschedule.ui.component.PreferenceSection
 import top.jursin.hyperschedule.ui.component.SaveFab
 import top.jursin.hyperschedule.ui.component.TimeRangeDialog
 import top.jursin.hyperschedule.ui.component.ValueLabel
-import top.jursin.hyperschedule.ui.component.formatWeekdays
 import top.jursin.hyperschedule.ui.component.maxLengthInput
 import top.jursin.hyperschedule.ui.component.pref.ArrowPreference
 import top.jursin.hyperschedule.ui.component.rememberEditBackGuard

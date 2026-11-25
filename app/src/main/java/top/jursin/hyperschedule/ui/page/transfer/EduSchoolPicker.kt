@@ -67,6 +67,7 @@ import top.jursin.hyperschedule.theme.dangerColor
 import top.jursin.hyperschedule.theme.isDarkTheme
 import top.jursin.hyperschedule.theme.sheetCardColor
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
+import top.jursin.hyperschedule.ui.component.HintText
 import top.jursin.hyperschedule.ui.component.SheetScaffold
 import top.jursin.hyperschedule.ui.component.SheetScrollColumn
 import kotlinx.coroutines.Job
@@ -570,10 +571,9 @@ internal fun LoadingHint(
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
             }
-            Text(
+            HintText(
                 text = text,
                 style = MiuixTheme.textStyles.body1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 textAlign = TextAlign.Center,
             )
         }

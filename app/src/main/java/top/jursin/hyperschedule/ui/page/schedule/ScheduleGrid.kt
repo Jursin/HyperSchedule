@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -34,6 +34,7 @@ import top.jursin.hyperschedule.theme.isDarkTheme
 import java.time.LocalDate
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.DAY_NAMES
 
 /** 左侧节次/刻度列宽 */
 internal val SectionColumnWidth = 36.dp

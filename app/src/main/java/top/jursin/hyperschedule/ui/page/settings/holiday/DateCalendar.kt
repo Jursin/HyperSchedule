@@ -1,4 +1,4 @@
-package top.jursin.hyperschedule.ui.component
+package top.jursin.hyperschedule.ui.page.settings.holiday
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -53,6 +53,8 @@ import top.yukonga.miuix.kmp.icon.glass.ChevronBackward
 import top.yukonga.miuix.kmp.icon.glass.ChevronForward
 import top.yukonga.miuix.kmp.squircle.squircleClip
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.jursin.hyperschedule.ui.component.DAY_NAMES
+import top.jursin.hyperschedule.ui.component.DatePickerYearRange
 
 private val MarkSize = 34.dp
 private val ChipLineHeight = 17.sp
@@ -87,7 +89,7 @@ fun DateRangeCalendar(
             year = cellYear,
             month = cellMonth,
             styleOf = { date ->
-                val band = scheme.primary.copy(alpha = 0.12f)
+                val band = scheme.primary.copy(alpha = ContainerTintAlpha)
                 when {
                     date == startDate && date == endDate -> DayStyle(fill = scheme.primary, content = scheme.onPrimary)
                     date == startDate -> DayStyle(
