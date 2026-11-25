@@ -191,6 +191,8 @@ fun MainScaffold(
         val wide = maxWidth >= WideLayoutMinWidth
         // 浮窗页面按短边判断，平板横竖屏都是浮窗，手机始终铺满
         val windowed = useWindowedPages(maxWidth, maxHeight)
+        // 课程相关入口的卡片展开转场
+        val courseExpansion = if (windowed) null else NavTransitions.Expansion
         CompositionLocalProvider(
             LocalOverlayHost provides overlayHost,
             // 浮窗整块收起的共享进度，所有浮窗读同一个进度一起下滑
@@ -353,12 +355,12 @@ fun MainScaffold(
                         secondaryPage(Page.Sponsor)
                     }
                 }
-                entry<Page.CourseDetail> { key ->
+                entry<Page.CourseDetail>(transition = courseExpansion) { key ->
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         secondaryPage(key)
                     }
                 }
-                entry<Page.CourseManage> {
+                entry<Page.CourseManage>(transition = courseExpansion) {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         secondaryPage(Page.CourseManage)
                     }
@@ -373,7 +375,7 @@ fun MainScaffold(
                         secondaryPage(Page.TimeTableManage)
                     }
                 }
-                entry<Page.CourseTableManage> {
+                entry<Page.CourseTableManage>(transition = courseExpansion) {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         secondaryPage(Page.CourseTableManage)
                     }

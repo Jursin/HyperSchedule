@@ -22,6 +22,7 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -380,6 +381,17 @@ fun Modifier.pageScroll(
         .captureForBlur(blurBackdrop)
         .bouncyScroll(scrollBehavior)
         .nestedScroll(scrollBehavior.nestedScrollConnection)
+
+suspend fun collapseTopBarAfterJump(scrollBehavior: ScrollBehavior) {
+    repeat(30) {
+        val limit = scrollBehavior.state.heightOffsetLimit
+        if (limit != 0f) {
+            scrollBehavior.state.heightOffset = limit
+            return
+        }
+        withFrameNanos { }
+    }
+}
 
 @Composable
 fun Modifier.bouncyScroll(scrollBehavior: ScrollBehavior? = null): Modifier {

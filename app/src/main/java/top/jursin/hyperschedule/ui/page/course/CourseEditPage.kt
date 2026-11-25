@@ -54,6 +54,7 @@ import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.ConfirmDialog
 import top.jursin.hyperschedule.ui.component.SaveFab
 import top.jursin.hyperschedule.ui.component.clearFocusOnPress
+import top.jursin.hyperschedule.ui.component.collapseTopBarAfterJump
 import top.jursin.hyperschedule.ui.component.formatCredit
 import top.jursin.hyperschedule.ui.component.pageContentPadding
 import top.jursin.hyperschedule.ui.component.pageScroll
@@ -144,7 +145,10 @@ fun CourseEditPage(
     val listState = rememberLazyListState()
     LaunchedEffect(focusId, seeded) {
         val index = groups.indexOfFirst { it.id == focusId }
-        if (index >= 0) listState.scrollToItem(index + GroupItemOffset)
+        if (index >= 0) {
+            listState.scrollToItem(index + GroupItemOffset)
+            collapseTopBarAfterJump(scrollBehavior)
+        }
     }
 
     // 新时段在末尾，计数只增不复位，复位会取消滚动动画
@@ -155,6 +159,7 @@ fun CourseEditPage(
         // 新卡片要先参与组合，列表知道总项数之后才滚得动
         snapshotFlow { listState.layoutInfo.totalItemsCount }.first { it > index }
         listState.animateScrollToItem(index)
+        collapseTopBarAfterJump(scrollBehavior)
     }
 
     // 打开取色盘时的初值

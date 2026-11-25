@@ -121,6 +121,7 @@ fun TodayCourseList(
     // 课前提醒提前量（分钟），0 表示不显示上课倒计时
     preClassMinutes: Int = 0,
     onCourseClick: (Course) -> Unit = {},
+    courseSource: @Composable (Course) -> Modifier = { Modifier },
 ) {
     val slotMap = remember(slots) { slots.associateBy { it.number } }
     val (now, today) = rememberTodayNow()
@@ -157,6 +158,7 @@ fun TodayCourseList(
                                     mark,
                                     preClassMinutes,
                                     onCourseClick,
+                                    courseSource,
                                 )
                             }
                         }
@@ -179,6 +181,7 @@ fun TodayCourseList(
                                 mark,
                                 preClassMinutes,
                                 onCourseClick,
+                                courseSource,
                             )
                         }
                     }
@@ -215,6 +218,7 @@ private fun TodayCourseRow(
     mark: String?,
     preClassMinutes: Int,
     onCourseClick: (Course) -> Unit,
+    courseSource: @Composable (Course) -> Modifier,
 ) {
     val course = item.course
     val startTime = startTimeOf(course, slotMap)
@@ -249,6 +253,7 @@ private fun TodayCourseRow(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .then(courseSource(course))
                 .clickable { onCourseClick(course) }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
     ) {

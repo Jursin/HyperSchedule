@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -33,6 +32,7 @@ import top.jursin.hyperschedule.schedule.weekDatesOf
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
+import top.jursin.hyperschedule.ui.component.collapseTopBarAfterJump
 import top.jursin.hyperschedule.ui.component.CenteredPill
 import top.jursin.hyperschedule.ui.component.CourseInfoFields
 import top.jursin.hyperschedule.ui.component.DAY_NAMES
@@ -76,14 +76,7 @@ fun CourseWeeksPage(
 ) {
     val scrollBehavior = MiuixScrollBehavior()
     LaunchedEffect(scrollBehavior) {
-        repeat(30) {
-            val limit = scrollBehavior.state.heightOffsetLimit
-            if (limit != 0f) {
-                scrollBehavior.state.heightOffset = limit
-                return@LaunchedEffect
-            }
-            withFrameNanos { }
-        }
+        collapseTopBarAfterJump(scrollBehavior)
     }
     val blurBackdrop = rememberAppBlurBackdrop(appBlur)
     val slotMap = remember(table?.slots) { table?.slots.orEmpty().associateBy { it.number } }

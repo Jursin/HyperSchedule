@@ -2,8 +2,8 @@ package top.jursin.hyperschedule.ui.page.schedule
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import top.jursin.hyperschedule.data.local.ScheduleStyle
 import top.jursin.hyperschedule.theme.sheetCardColor
+import top.jursin.hyperschedule.data.local.ScheduleStyle
 import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
 import java.util.Locale
@@ -41,8 +41,8 @@ fun ScheduleAppearanceSheet(
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
-    ) {
-        SheetScrollColumn {
+    ) { innerPadding ->
+        SheetScrollColumn(contentPadding = innerPadding) {
             PreferenceSection(cardColor = sheetCardColor(), title = "视图") {
                 SwitchPreference(
                     checked = style.timeline,

@@ -3,8 +3,10 @@ package top.jursin.hyperschedule.ui.component
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import top.yukonga.miuix.kmp.glass.GlassBottomSheetDefaults
 @Composable
 fun SheetScrollColumn(
     maxHeight: Dp = 320.dp,
+    contentPadding: PaddingValues = PaddingValues(),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -30,7 +33,8 @@ fun SheetScrollColumn(
                 .fillMaxWidth()
                 .clearFocusOnPress(LocalFocusManager.current)
                 .heightIn(max = maxHeight)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(contentPadding),
         verticalArrangement = Arrangement.spacedBy(SectionSpacing),
         content = content,
     )
@@ -45,7 +49,8 @@ fun SheetScaffold(
     onDismissFinished: () -> Unit,
     startAction: (@Composable () -> Unit)? = null,
     endAction: (@Composable () -> Unit)? = null,
-    content: @Composable () -> Unit,
+    scrollOffset: (() -> Float)? = null,
+    content: @Composable (PaddingValues) -> Unit,
 ) {
     GlassBottomSheet(
         show = show,
@@ -57,6 +62,7 @@ fun SheetScaffold(
         backdrop = LocalPageGlassBackdrop.current,
         material = GlassBottomSheetDefaults.material(),
         stroke = GlassBottomSheetDefaults.stroke(),
+        scrollOffset = scrollOffset,
         insideMargin = DpSize(16.dp, 16.dp),
         content = content,
     )

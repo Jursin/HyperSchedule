@@ -32,12 +32,12 @@ import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.theme.SheetMaxHeight
 import top.jursin.hyperschedule.theme.sheetCardColor
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.glass.glassPress
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Add
@@ -72,11 +72,22 @@ fun CourseDetailSheet(
     onEdit: (Course) -> Unit = {},
     onAdd: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
 ) {
+    val listState = rememberLazyListState()
+    val sheetScrollOffset = remember(listState) {
+        {
+            when {
+                listState.layoutInfo.totalItemsCount == 0 -> 0f
+                listState.firstVisibleItemIndex > 0 -> Float.MAX_VALUE
+                else -> listState.firstVisibleItemScrollOffset.toFloat()
+            }
+        }
+    }
     SheetScaffold(
         title = "课程详情",
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
+        scrollOffset = sheetScrollOffset,
         endAction = {
             TooltipBox(text = "添加课程") {
                 IconButton(
@@ -98,8 +109,7 @@ fun CourseDetailSheet(
                 }
             }
         },
-    ) {
-        val listState = rememberLazyListState()
+    ) { innerPadding ->
         val currentIndex = items.indexOfFirst { it.activeInWeek }
         // 打开时翻到本周那张卡，内容放得下时滚动会被钳住，等于不动
         LaunchedEffect(show) {
@@ -107,6 +117,7 @@ fun CourseDetailSheet(
         }
         LazyColumn(
             state = listState,
+            contentPadding = innerPadding,
             modifier =
                 Modifier
                     .fillMaxWidth()

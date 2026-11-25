@@ -33,8 +33,10 @@ import top.jursin.hyperschedule.data.local.ScheduleStyle
 import top.jursin.hyperschedule.schedule.formatMinutes
 import top.jursin.hyperschedule.schedule.parseMinutes
 import top.jursin.hyperschedule.theme.TimeLabelFontSize
+import top.jursin.hyperschedule.ui.component.collapseTopBarAfterJump
 import java.time.LocalDateTime
 import kotlin.math.roundToInt
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
@@ -299,6 +301,7 @@ private fun DrawScope.drawDayLines(columns: Int, color: Color) {
 @Composable
 internal fun ScrollToNowOnShow(
     pageScroll: ScrollState,
+    scrollBehavior: ScrollBehavior,
     sectionTimes: List<Pair<String, String>>,
     timelineHourHeight: Int,
     nowState: State<LocalDateTime>,
@@ -323,6 +326,9 @@ internal fun ScrollToNowOnShow(
         val minute = now.hour * 60 + now.minute
         if (viewport <= 0 || minute !in axis.startMinute until axis.endMinute) return@LaunchedEffect
         val contentY = with(density) { topPadding.toPx() + axis.topOf(minute).toPx() }
-        pageScroll.animateScrollTo((contentY - viewport / 2f).roundToInt().coerceIn(0, pageScroll.maxValue))
+        val target = (contentY - viewport / 2f).roundToInt().coerceIn(0, pageScroll.maxValue)
+        pageScroll.animateScrollTo(target)
+        // 代码滚动不派发 nestedScroll，顶栏要跟着一起收到折叠位
+        if (target > 1) collapseTopBarAfterJump(scrollBehavior) else scrollBehavior.state.heightOffset = 0f
     }
 }

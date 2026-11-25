@@ -2,8 +2,8 @@ package top.jursin.hyperschedule.ui.page.today
 
 import android.net.Uri
 import androidx.compose.runtime.Composable
-import top.jursin.hyperschedule.data.local.TodayStyle
 import top.jursin.hyperschedule.theme.sheetCardColor
+import top.jursin.hyperschedule.data.local.TodayStyle
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
 import top.jursin.hyperschedule.ui.component.PreferenceSection
 import top.jursin.hyperschedule.ui.component.SheetScaffold
@@ -29,8 +29,8 @@ fun TodayAppearanceSheet(
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = onDismissFinished,
-    ) {
-        SheetScrollColumn {
+    ) { innerPadding ->
+        SheetScrollColumn(contentPadding = innerPadding) {
             PreferenceSection(cardColor = sheetCardColor(), title = "视图") {
                 SwitchPreference(
                     checked = style.showPeriods,

@@ -314,6 +314,7 @@ fun SchedulePage(
             if (style.timeline) {
                 ScrollToNowOnShow(
                     pageScroll = pageScroll,
+                    scrollBehavior = scrollBehavior,
                     sectionTimes = sectionTimes,
                     timelineHourHeight = style.timelineHourHeight,
                     nowState = nowState,

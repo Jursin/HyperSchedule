@@ -10,6 +10,8 @@ import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.ui.component.BlurredTopAppBar
 import top.jursin.hyperschedule.ui.component.TopBarIconButton
 import top.jursin.hyperschedule.ui.component.TopBarLeadingLabel
+import top.jursin.hyperschedule.ui.navigation.Page
+import top.jursin.hyperschedule.ui.navigation.courseNavSource
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButtonDefaults
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
@@ -138,6 +140,7 @@ internal fun BoxScope.ScheduleTopBarMenu(
         GlassPopupItem(
             text = "课表切换",
             icon = MiuixIcons.Glass.ConvertFile,
+            modifier = Modifier.courseNavSource(Page.CourseTableManage),
             onClick = {
                 onDismissRequest()
                 onManageTables()
@@ -146,6 +149,7 @@ internal fun BoxScope.ScheduleTopBarMenu(
         GlassPopupItem(
             text = "课程管理",
             icon = MiuixIcons.Glass.GridView,
+            modifier = Modifier.courseNavSource(Page.CourseManage),
             onClick = {
                 onDismissRequest()
                 onManageCourses()

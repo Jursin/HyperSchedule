@@ -53,7 +53,9 @@ import top.jursin.hyperschedule.ui.effect.rememberAppBlurBackdrop
 import top.jursin.hyperschedule.ui.navigation.LocalMainTabNavigating
 import top.jursin.hyperschedule.ui.navigation.LocalPageCovered
 import top.jursin.hyperschedule.ui.navigation.LocalPageIsCurrent
+import top.jursin.hyperschedule.ui.navigation.Page
 import top.jursin.hyperschedule.ui.navigation.ProvideOverlay
+import top.jursin.hyperschedule.ui.navigation.courseNavSource
 import top.jursin.hyperschedule.ui.state.CourseTableData
 import top.jursin.hyperschedule.ui.state.DatePager
 import top.jursin.hyperschedule.ui.state.rememberDatePagerState
@@ -250,6 +252,10 @@ fun TodayPage(
                             preClassMinutes = preClassMinutes,
                             modifier = Modifier.padding(top = 8.dp),
                             onCourseClick = { course -> shownWeek?.let { onCourseClick(course.name, it) } },
+                            courseSource = { course ->
+                                shownWeek?.let { Modifier.courseNavSource(Page.CourseDetail(course.name, it)) }
+                                    ?: Modifier
+                            },
                         )
                     } else {
                         // 空状态也是滚动内容：能被拖动、钻到栏下被糊住；横屏文案更高时用 min 让它可滚

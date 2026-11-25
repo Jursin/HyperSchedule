@@ -24,12 +24,15 @@ import androidx.navigationevent.compose.rememberNavigationEventState
 import top.jursin.hyperschedule.theme.PanelCorner
 import top.jursin.hyperschedule.theme.WidePageHeightFraction
 import top.jursin.hyperschedule.theme.WidePageMaxWidth
+import top.jursin.hyperschedule.theme.useLargeScreenWindow
+import top.jursin.hyperschedule.ui.component.LocalInsideFloatingWindow
 import top.jursin.hyperschedule.ui.component.WidePageWindow
 import top.jursin.hyperschedule.ui.component.WindowDismissState
 import kotlin.math.roundToInt
 import top.yukonga.miuix.kmp.nav.core.NavKey
 import top.yukonga.miuix.kmp.nav.transition.NavMotion
 import top.yukonga.miuix.kmp.nav.transition.NavSettleSpec
+import top.yukonga.miuix.kmp.nav.transition.navTransitionSource
 import top.yukonga.miuix.kmp.nav.transition.NavTransition
 import top.yukonga.miuix.kmp.nav.transition.NavTransitionScope
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -138,4 +141,11 @@ internal fun NavEntry(
     )
     // 宽屏下整页收成居中浮窗，手机和首页始终铺满，点浮窗外区域即关闭整个浮窗
     if (windowed) WidePageWindow(onDismiss = onDismissToHome) { content() } else content()
+}
+
+/** 窄屏手机上的课程入口卡片展开来源 */
+@Composable
+fun Modifier.courseNavSource(route: Page): Modifier {
+    if (useLargeScreenWindow() || LocalInsideFloatingWindow.current) return this
+    return navTransitionSource(route, containerColor = MiuixTheme.colorScheme.background)
 }

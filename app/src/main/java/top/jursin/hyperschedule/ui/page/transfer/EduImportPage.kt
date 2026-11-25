@@ -249,12 +249,18 @@ fun EduImportPage(
     }
 
     LaunchedEffect(tab, query) {
-        if (rows.isNotEmpty()) listState.scrollToItem(0)
+        if (rows.isNotEmpty()) {
+            listState.scrollToItem(0)
+            scrollBehavior.state.contentOffset = 0f
+        }
     }
 
     fun jumpTo(letter: String) {
         val index = letterIndex[letter] ?: return
-        scope.launch { listState.scrollToItem(index) }
+        scope.launch {
+            listState.scrollToItem(index)
+            scrollBehavior.state.contentOffset = -2f
+        }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -469,7 +475,12 @@ fun EduImportPage(
                                     onJump = ::jumpTo,
                                     showFavorite = favoriteRowCount > 0,
                                     favoriteActive = inFavorites,
-                                    onJumpFavorite = { scope.launch { listState.scrollToItem(0) } },
+                                    onJumpFavorite = {
+                                        scope.launch {
+                                            listState.scrollToItem(0)
+                                            scrollBehavior.state.contentOffset = 0f
+                                        }
+                                    },
                                     modifier =
                                         Modifier
                                             .align(Alignment.CenterEnd)

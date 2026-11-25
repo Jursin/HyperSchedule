@@ -11,10 +11,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
+import top.jursin.hyperschedule.theme.sheetCardColor
 import top.jursin.hyperschedule.data.importer.edu.EduRepo
 import top.jursin.hyperschedule.data.importer.edu.EduRepoConfig
 import top.jursin.hyperschedule.theme.SheetMaxHeight
-import top.jursin.hyperschedule.theme.sheetCardColor
 import top.jursin.hyperschedule.ui.component.pref.DropdownPreference
 import top.jursin.hyperschedule.ui.component.pref.SwitchPreference
 import top.yukonga.miuix.kmp.glass.GlassTextField
@@ -41,8 +41,8 @@ fun EduRepoSheet(
         show = show,
         onDismiss = onDismiss,
         onDismissFinished = { onApply(draft) },
-    ) {
-        SheetScrollColumn(maxHeight = SheetMaxHeight) {
+    ) { innerPadding ->
+        SheetScrollColumn(maxHeight = SheetMaxHeight, contentPadding = innerPadding) {
             PreferenceSection(cardColor = sheetCardColor()) {
                 SwitchPreference(
                     checked = draft.autoSync,

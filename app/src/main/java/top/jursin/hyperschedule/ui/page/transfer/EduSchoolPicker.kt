@@ -72,13 +72,13 @@ import top.jursin.hyperschedule.ui.component.SheetScaffold
 import top.jursin.hyperschedule.ui.component.SheetScrollColumn
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TooltipBox
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.glass.GlassTextField
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.glass.Contacts
@@ -144,10 +144,10 @@ internal fun AdapterSheet(
                 }
             }
         },
-    ) {
+    ) { innerPadding ->
         if (adapters.isEmpty()) {
             Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 56.dp),
+                modifier = Modifier.fillMaxWidth().padding(innerPadding).padding(vertical = 56.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -157,7 +157,7 @@ internal fun AdapterSheet(
                 )
             }
         } else {
-            SheetScrollColumn(maxHeight = SheetMaxHeight) {
+            SheetScrollColumn(maxHeight = SheetMaxHeight, contentPadding = innerPadding) {
                 adapters.forEach { adapter -> AdapterCard(adapter) { onOpen(adapter) } }
             }
         }
