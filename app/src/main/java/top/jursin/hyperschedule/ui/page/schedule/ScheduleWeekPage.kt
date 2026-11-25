@@ -26,13 +26,13 @@ import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import top.jursin.hyperschedule.data.local.ScheduleStyle
 import top.jursin.hyperschedule.schedule.HolidayDay
 import top.jursin.hyperschedule.schedule.HolidayPlan
-import top.jursin.hyperschedule.schedule.cjkDigitGap
 import top.jursin.hyperschedule.schedule.currentSectionAt
 import top.jursin.hyperschedule.theme.SectionSpacing
 import top.jursin.hyperschedule.ui.component.BackToNowOccupiedHeight
 import top.jursin.hyperschedule.ui.component.CenteredPill
 import top.jursin.hyperschedule.ui.component.DAY_NAMES
 import top.jursin.hyperschedule.ui.component.markOrNull
+import top.jursin.hyperschedule.ui.navigation.navBarBottomMargin
 import java.time.LocalDate
 import java.time.LocalDateTime
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -203,13 +203,13 @@ internal fun ScheduleWeekPage(
         // 学期外的周只隐藏文案，占位高度保持不变
         Spacer(modifier = Modifier.height(SectionSpacing))
         val countText =
-            if (startDate == null) "未设置开学日期" else "本周共${weekCourseCount}节课".cjkDigitGap()
+            if (startDate == null) "未设置开学日期" else "本周共${weekCourseCount}节课"
         val countAlpha = if (inSemester) 1f else 0f
         CenteredPill(
             text = countText,
             pillModifier = Modifier.alpha(countAlpha),
         )
-        Spacer(modifier = Modifier.height(BackToNowOccupiedHeight + SectionSpacing))
+        Spacer(modifier = Modifier.height(navBarBottomMargin() + BackToNowOccupiedHeight + SectionSpacing))
     }
 }
 

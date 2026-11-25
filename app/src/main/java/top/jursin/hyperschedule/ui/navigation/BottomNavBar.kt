@@ -1,7 +1,11 @@
 package top.jursin.hyperschedule.ui.navigation
 
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -36,18 +40,26 @@ internal val tabs =
 
 internal val settingsTab = Tab("设置", MiuixIcons.Glass.SettingsOutline)
 
-/** 底栏尺寸 */
-internal object NavBarMetrics {
-    val floatingBottomMargin: Dp = 24.dp
-
+/** 底栏尺寸与间距 */
+private object NavBarMetrics {
     /** 胶囊与屏幕左右边缘的固定边距 */
     val sideMargin: Dp = 24.dp
+
+    /** 胶囊与系统导航栏之间的呼吸位 */
+    val systemBarGap: Dp = 12.dp
 
     /** 每个 tab 的宽度，装不下时按可用宽度均分收窄 */
     val itemWidth: Dp = 88.dp
 
     /** 尾部设置圆片的直径 */
     val settingsSize: Dp = GlassNavigationBarDefaults.Height
+}
+
+/** 底栏距屏幕底边的距离 */
+@Composable
+internal fun navBarBottomMargin(): Dp {
+    val systemBottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    return if (systemBottom <= 16.dp) 20.dp else systemBottom + NavBarMetrics.systemBarGap
 }
 
 /** 底栏 */
@@ -61,7 +73,7 @@ internal fun BottomNavBar(
 ) {
     val materialStyle = glassStyle()
     BoxWithConstraints(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.padding(bottom = navBarBottomMargin()).fillMaxWidth(),
         contentAlignment = Alignment.Center,
     ) {
         // 每个 tab 一个固定宽度，整组按内容宽度居中，屏幕窄到装不下时收窄到可用宽度

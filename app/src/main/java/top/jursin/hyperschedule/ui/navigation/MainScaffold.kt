@@ -31,8 +31,8 @@ import top.jursin.hyperschedule.LocalAppGraph
 import top.jursin.hyperschedule.reminder.ReminderScheduler
 import top.jursin.hyperschedule.theme.WideLayoutMinWidth
 import top.jursin.hyperschedule.theme.useWindowedPages
+import top.jursin.hyperschedule.ui.component.BackToNowAboveBar
 import top.jursin.hyperschedule.ui.component.BackToNowButton
-import top.jursin.hyperschedule.ui.component.BackToNowHostInset
 import top.jursin.hyperschedule.ui.component.BackToNowHostState
 import top.jursin.hyperschedule.ui.component.LocalBackToNowHost
 import top.jursin.hyperschedule.ui.component.LocalRailState
@@ -278,26 +278,25 @@ fun MainScaffold(
                                         }
                                         // 「今」按钮与底栏同层，切页时先收起，避免「先展开再收起」的闪动
                                         val backToNowSlot = backToNowHost.slotOf(mainPagerState.selectedPage)
+                                        // 底栏浮在系统导航栏之上，「今」按钮按同一套留白跟着抬
+                                        val navBarBottom = navBarBottomMargin()
                                         BackToNowButton(
                                             visible = !mainPagerState.isNavigating && backToNowSlot?.visible?.value == true,
                                             onClick = { backToNowSlot?.onClick?.invoke() },
-                                            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = BackToNowHostInset),
+                                            modifier =
+                                                Modifier
+                                                    .align(Alignment.BottomCenter)
+                                                    .padding(bottom = navBarBottom + BackToNowAboveBar),
                                             blurBackdrop = barBackdrop,
                                         )
                                         if (!wide) {
-                                            Box(
-                                                modifier =
-                                                    Modifier
-                                                        .align(Alignment.BottomCenter)
-                                                        .padding(bottom = NavBarMetrics.floatingBottomMargin),
-                                            ) {
-                                                BottomNavBar(
-                                                    targetPage = mainPagerState.targetPage,
-                                                    blurBackdrop = barBackdrop,
-                                                    onSelect = { mainPagerState.animateToPage(it) },
-                                                    onOpenSettings = { navigate(Page.Settings) },
-                                                )
-                                            }
+                                            BottomNavBar(
+                                                targetPage = mainPagerState.targetPage,
+                                                blurBackdrop = barBackdrop,
+                                                onSelect = { mainPagerState.animateToPage(it) },
+                                                onOpenSettings = { navigate(Page.Settings) },
+                                                modifier = Modifier.align(Alignment.BottomCenter),
+                                            )
                                         }
                                     }
                                     if (wide) {

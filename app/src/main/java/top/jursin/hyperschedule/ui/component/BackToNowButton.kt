@@ -255,8 +255,8 @@ private fun BackToNowButtonBody(onClick: () -> Unit, blurBackdrop: Backdrop?) {
     }
 }
 
-/** 宿主摆放按钮时离页面底边的距离 */
-val BackToNowHostInset = 48.dp
+/** 宿主摆放按钮时，底边离底栏底边的距离 */
+val BackToNowAboveBar = 24.dp
 
 /** 光晕外溢区 */
 private val BackToNowGlowPad = 48.dp
@@ -265,7 +265,7 @@ private val BackToNowHeight = 44.dp
 private val BackToNowCornerRadius = 80.dp
 
 /** 页面底部为按钮预留的高度 */
-val BackToNowOccupiedHeight: Dp = BackToNowHostInset + BackToNowGlowPad + BackToNowHeight
+val BackToNowOccupiedHeight: Dp = BackToNowAboveBar + BackToNowGlowPad + BackToNowHeight
 
 /** 预渲染光晕位图，模糊后挖掉按钮区域，需软件 Canvas */
 private fun buildGlowBitmap(
