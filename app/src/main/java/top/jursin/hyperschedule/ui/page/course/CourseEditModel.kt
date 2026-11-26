@@ -8,6 +8,8 @@ import top.jursin.hyperschedule.schedule.startMinutesOf
 import top.jursin.hyperschedule.schedule.timeRangeText
 import top.jursin.hyperschedule.ui.component.dayLabel
 import top.jursin.hyperschedule.ui.component.formatCredit
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.UUID
 
 /** 编辑页里的一个时段草稿，保存前只存在内存里 */
@@ -238,14 +240,23 @@ internal fun timeText(group: GroupDraft): String =
         if (start == end) "第${start}节" else "第${start}-${end}节"
     }
 
-/** 学分只接受正数数字与一个小数点，最多一位小数 */
+/** 学分只保留数字与一个小数点，最多三位整数、两位小数，空输入保持未设置 */
 internal fun sanitizeCredit(input: String): String {
     val filtered = input.filter { it.isDigit() || it == '.' }
+    if (filtered.none { it.isDigit() }) return ""
     val dot = filtered.indexOf('.')
     if (dot < 0) return filtered.trimStart('0').ifEmpty { "0" }.take(3)
-    val intPart = filtered.substring(0, dot).trimStart('0').ifEmpty { "0" }.take(2)
-    val decimals = filtered.substring(dot + 1).filter { it.isDigit() }.take(1)
+    val intPart = filtered.substring(0, dot).trimStart('0').ifEmpty { "0" }.take(3)
+    val decimals = filtered.substring(dot + 1).filter { it.isDigit() }.take(2)
     return "$intPart.$decimals"
+}
+
+internal fun normalizeCredit(input: String): Float? {
+    val text = input.trim().let { if (it.endsWith(".")) "${it}0" else it }
+    val value = text.toFloatOrNull() ?: return null
+    if (value <= 0f) return null
+    val rounded = BigDecimal(text).setScale(1, RoundingMode.HALF_UP).toFloat()
+    return rounded.coerceIn(0.1f, 100f)
 }
 
 internal fun Color.toArgbInt(): Int =

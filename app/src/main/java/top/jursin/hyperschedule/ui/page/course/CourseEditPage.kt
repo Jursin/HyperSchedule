@@ -174,6 +174,7 @@ fun CourseEditPage(
     val requestBack = rememberEditBackGuard(dirty, appBlur, onBack)
 
     fun addGroup() {
+        if (groups.size >= MaxGroupCount) return
         val last = groups.lastOrNull()
         groups.add(
             GroupDraft(
@@ -207,7 +208,7 @@ fun CourseEditPage(
                 } else {
                     // 保存时规整名称与学分，避免回显值与库里的不一致导致立刻又算「未保存」
                     name = trimmedName
-                    val creditValue = credit.trim().toFloatOrNull()?.takeIf { it > 0 }
+                    val creditValue = normalizeCredit(credit)
                     credit = creditValue?.let(::formatCredit).orEmpty()
                     val snapshot = currentState()
                     val colorIndex = colorInt ?: 0
@@ -273,13 +274,14 @@ fun CourseEditPage(
                         cornerRadius = CardCornerRadius,
                     ) {
                         InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_book), label = "课程名称") {
-                            InlineField(value = name, onValueChange = { name = it }, hint = "必填")
+                            InlineField(value = name, onValueChange = { name = it }, hint = "必填", maxLength = 20)
                         }
                         ThinDivider()
                         InfoRow(icon = ImageVector.vectorResource(R.drawable.ic_award_star), label = "学分") {
                             InlineField(
                                 value = credit,
                                 onValueChange = { credit = sanitizeCredit(it) },
+                                onFocusLost = { text -> normalizeCredit(text)?.let(::formatCredit).orEmpty() },
                                 hint = "选填",
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             )
@@ -326,7 +328,9 @@ fun CourseEditPage(
                     verticalArrangement = Arrangement.spacedBy(SectionSpacing),
                     horizontalAlignment = Alignment.End,
                 ) {
-                    AddFab(enabled = true, description = "添加时段", onClick = ::addGroup)
+                    if (groups.size < MaxGroupCount) {
+                        AddFab(enabled = true, description = "添加时段", onClick = ::addGroup)
+                    }
                     SaveFab(canSave = true, onClick = onSave)
                 }
             }
@@ -405,6 +409,8 @@ fun CourseEditPage(
 
 /** 列表前两张卡是课程名称与颜色，时段卡从这一项之后开始 */
 private const val GroupItemOffset = 2
+
+private const val MaxGroupCount = 50
 
 /** 记录时段卡片在根坐标里的位置，判断这一下是否点在卡片外 */
 private class CardRects {

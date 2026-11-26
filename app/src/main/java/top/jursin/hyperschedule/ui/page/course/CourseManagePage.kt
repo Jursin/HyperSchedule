@@ -127,25 +127,27 @@ fun CourseManagePage(
                             )
                         }
                     }
-                    GlassFab(
-                        onClick = { if (selecting) selected = emptySet() else onAddCourse() },
-                        color =
-                            if (selecting) {
-                                MiuixTheme.colorScheme.secondaryVariant
-                            } else {
-                                MiuixTheme.colorScheme.primary
-                            },
-                    ) {
-                        Icon(
-                            imageVector = if (selecting) MiuixIcons.Glass.Close else MiuixIcons.Glass.Add,
-                            contentDescription = if (selecting) "取消" else "添加课程",
-                            tint =
+                    if (selecting || groups.size < 30) {
+                        GlassFab(
+                            onClick = { if (selecting) selected = emptySet() else onAddCourse() },
+                            color =
                                 if (selecting) {
-                                    MiuixTheme.colorScheme.onSecondaryVariant
+                                    MiuixTheme.colorScheme.secondaryVariant
                                 } else {
-                                    MiuixTheme.colorScheme.onPrimary
+                                    MiuixTheme.colorScheme.primary
                                 },
-                        )
+                        ) {
+                            Icon(
+                                imageVector = if (selecting) MiuixIcons.Glass.Close else MiuixIcons.Glass.Add,
+                                contentDescription = if (selecting) "取消" else "添加课程",
+                                tint =
+                                    if (selecting) {
+                                        MiuixTheme.colorScheme.onSecondaryVariant
+                                    } else {
+                                        MiuixTheme.colorScheme.onPrimary
+                                    },
+                            )
+                        }
                     }
                 }
             }

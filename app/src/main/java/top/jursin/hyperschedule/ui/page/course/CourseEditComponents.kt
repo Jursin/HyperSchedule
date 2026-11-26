@@ -20,10 +20,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -102,6 +107,7 @@ internal fun GroupCard(
                         value = group.position,
                         onValueChange = { onChange(group.copy(position = it)) },
                         hint = "选填",
+                        maxLength = 20,
                     )
                 }
                 InfoRow(icon = MiuixIcons.Glass.Contacts, label = "教师", iconSize = 22.dp) {
@@ -109,6 +115,7 @@ internal fun GroupCard(
                         value = group.teacher,
                         onValueChange = { onChange(group.copy(teacher = it)) },
                         hint = "选填",
+                        maxLength = 10,
                     )
                 }
                 ThinDivider()
@@ -234,13 +241,28 @@ internal fun InlineField(
     hint: String,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
+    maxLength: Int? = null,
+    onFocusLost: (String) -> String = { it },
 ) {
     val state = rememberSyncedInput(value, onValueChange)
+    var hadFocus by remember { mutableStateOf(false) }
     Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
         if (state.text.isEmpty()) ValueText(hint, placeholder = true)
         BasicTextField(
             state = state,
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focus ->
+                        if (focus.isFocused) {
+                            hadFocus = true
+                        } else if (hadFocus) {
+                            hadFocus = false
+                            val current = state.text.toString()
+                            val fixed = onFocusLost(current)
+                            if (fixed != current) state.setTextAndPlaceCursorAtEnd(fixed)
+                        }
+                    },
             textStyle =
                 MiuixTheme.textStyles.headline1.copy(
                     fontWeight = FontWeight.Medium,
@@ -248,6 +270,7 @@ internal fun InlineField(
                     textAlign = TextAlign.End,
                 ),
             keyboardOptions = keyboardOptions,
+            inputTransformation = maxLengthInput(maxLength ?: Int.MAX_VALUE),
             lineLimits = TextFieldLineLimits.SingleLine,
             cursorBrush = SolidColor(MiuixTheme.colorScheme.primary),
         )

@@ -38,12 +38,14 @@ fun CourseTableManagePage(
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            GlassFab(onClick = { showAddDialog = true }) {
-                Icon(
-                    imageVector = MiuixIcons.Glass.Add,
-                    contentDescription = "添加课表",
-                    tint = MiuixTheme.colorScheme.onPrimary,
-                )
+            if (tables.size < 20) {
+                GlassFab(onClick = { showAddDialog = true }) {
+                    Icon(
+                        imageVector = MiuixIcons.Glass.Add,
+                        contentDescription = "添加课表",
+                        tint = MiuixTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         },
     ) {

@@ -74,8 +74,7 @@ fun ScheduleAppearanceSheet(
                 )
             }
 
-            PreferenceSection(cardColor = sheetCardColor(), title = "卡片") {
-                // 卡片高度按每节课的真实时长换算，滑块统一按一小时占多高来调
+            PreferenceSection(cardColor = sheetCardColor(), title = "课程卡片") {
                 HourHeightSlider(
                     style = style,
                     onStyleChange = onStyleChange,
@@ -121,13 +120,13 @@ fun ScheduleAppearanceSheet(
                 SwitchPreference(
                     checked = style.cardBorder,
                     onCheckedChange = { applyStyle(style.copy(cardBorder = it)) },
-                    title = "显示卡片边框",
+                    title = "显示课程卡片边框",
                 )
             }
 
             PreferenceSection(cardColor = sheetCardColor(), title = "内容") {
                 DropdownPreference(
-                    title = "卡片内容对齐方式",
+                    title = "内容对齐方式",
                     items = listOf("居中", "左对齐"),
                     selectedIndex = if (style.contentCenter) 0 else 1,
                     onSelectedIndexChange = { index ->

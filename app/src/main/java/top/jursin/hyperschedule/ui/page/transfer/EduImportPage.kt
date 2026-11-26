@@ -259,7 +259,7 @@ fun EduImportPage(
         val index = letterIndex[letter] ?: return
         scope.launch {
             listState.scrollToItem(index)
-            scrollBehavior.state.contentOffset = -2f
+            scrollBehavior.state.contentOffset = if (index > 0) -2f else 0f
         }
     }
 

@@ -42,18 +42,24 @@ fun TimeTableManagePage(
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<DeleteTarget?>(null) }
+    val scheduleCount =
+        (if (overview?.exclusive != null) 1 else 0) +
+            overview?.publics.orEmpty().size +
+            overview?.combos.orEmpty().size
 
     PreferenceScreen(
         title = "作息管理",
         appBlur = appBlur,
         onBack = onBack,
         floatingActionButton = {
-            GlassFab(onClick = { showAddDialog = true }) {
-                Icon(
-                    imageVector = MiuixIcons.Glass.Add,
-                    contentDescription = "添加作息",
-                    tint = MiuixTheme.colorScheme.onPrimary,
-                )
+            if (scheduleCount < 20) {
+                GlassFab(onClick = { showAddDialog = true }) {
+                    Icon(
+                        imageVector = MiuixIcons.Glass.Add,
+                        contentDescription = "添加作息",
+                        tint = MiuixTheme.colorScheme.onPrimary,
+                    )
+                }
             }
         },
     ) {

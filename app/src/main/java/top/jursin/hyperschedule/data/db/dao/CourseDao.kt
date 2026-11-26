@@ -13,7 +13,7 @@ import top.jursin.hyperschedule.data.db.entity.CourseWeek
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import kotlinx.coroutines.flow.Flow
 
-/** 课程与周次访问，按星期 → 节次 → 自定义时间排序 */
+/** 课程与周次访问，按星期 → 节次 → 自定义时间 → 最早周次排序 */
 @Dao
 interface CourseDao {
 
@@ -25,7 +25,8 @@ interface CourseDao {
         ORDER BY
             day ASC,
             CASE WHEN isCustomTime = 0 THEN startSection ELSE 99 END ASC,
-            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC
+            CASE WHEN isCustomTime = 1 THEN customStartTime ELSE '99:99' END ASC,
+            (SELECT MIN(cw.weekNumber) FROM course_weeks AS cw WHERE cw.courseId = courses.id) ASC
         """
     )
     @Suppress(RoomWarnings.QUERY_MISMATCH)
