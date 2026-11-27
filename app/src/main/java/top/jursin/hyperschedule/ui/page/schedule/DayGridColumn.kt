@@ -26,12 +26,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.local.ScheduleStyle
@@ -56,6 +59,7 @@ internal fun DayGridColumn(
     pendingSection: Int,
     onCellTap: ((Int) -> Unit)?,
     onCourseClick: (Course) -> Unit,
+    touchState: ScheduleTouchState,
     modifier: Modifier = Modifier,
     onPendingTap: ((Int) -> Unit)? = null,
     isHoliday: Boolean = false,
@@ -66,14 +70,18 @@ internal fun DayGridColumn(
     draggingId: String? = null,
     // 长按拿起只上报，跟手交给页面级 tracker
     onDragStart: (Course, Offset, PointerId) -> Unit = { _, _, _ -> },
+    // 长按松手弹工具栏，坐标是窗口坐标，供浮层定位
+    onCourseLongPress: (Course, Rect) -> Unit = { _, _ -> },
 ) {
     val density = LocalDensity.current
+    val haptic = LocalHapticFeedback.current
     val currentOnCellTap by rememberUpdatedState(onCellTap)
     val currentOnCourseClick by rememberUpdatedState(onCourseClick)
     val currentOnPendingTap by rememberUpdatedState(onPendingTap)
     val currentPendingSection by rememberUpdatedState(pendingSection)
     val currentCourses by rememberUpdatedState(courses)
     val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnCourseLongPress by rememberUpdatedState(onCourseLongPress)
     val currentDragEnabled by rememberUpdatedState(dragEnabled)
     // 拖动回调要把手指坐标换算成 root 坐标
     var columnTopLeft by remember { mutableStateOf(Offset.Zero) }
@@ -92,23 +100,43 @@ internal fun DayGridColumn(
                 }
             }
         }
-    // 落在课上开抽屉，空格给「+」
-    fun tapAt(position: Offset) {
+    fun hitAt(position: Offset): WeekCourse? {
         val section = with(density) { layout.sectionAt(position.y.toDp()) }
-        if (section !in 1..layout.sectionCount) return
-        val hit =
-            currentCourses
-                .firstOrNull { it.active && it.course.covers(section, sectionTimes) }
-                ?: currentCourses.firstOrNull { it.course.covers(section, sectionTimes) }
+        if (section !in 1..layout.sectionCount) return null
+        return currentCourses
+            .firstOrNull { it.active && it.course.covers(section, sectionTimes) }
+            ?: currentCourses.firstOrNull { it.course.covers(section, sectionTimes) }
+    }
+
+    fun isStandaloneCourse(item: WeekCourse): Boolean {
+        if (!item.active) return false
+        if (item.course.isCustomTime) {
+            return currentCourses
+                .filter {
+                    it.course.isCustomTime &&
+                        it.course.customStartTime == item.course.customStartTime &&
+                        it.course.customEndTime == item.course.customEndTime
+                }
+                .sumOf { 1 + it.hiddenCount } <= 1
+        }
+        val start = item.course.startSection ?: return false
+        return currentCourses
+            .filter { !it.course.isCustomTime && it.course.startSection == start }
+            .sumOf { 1 + it.hiddenCount } <= 1
+    }
+
+    fun tapAt(position: Offset) {
+        val hit = hitAt(position)
         if (hit != null) {
             currentOnCourseClick(hit.course)
-        } else if (section !in occupiedSections) {
-            // 再点一次进新建课程页
-            if (section == currentPendingSection) {
-                currentOnPendingTap?.invoke(section)
-            } else {
-                currentOnCellTap?.invoke(section)
-            }
+            return
+        }
+        val section = with(density) { layout.sectionAt(position.y.toDp()) }
+        if (section !in 1..layout.sectionCount || section in occupiedSections) return
+        if (section == currentPendingSection) {
+            currentOnPendingTap?.invoke(section)
+        } else {
+            currentOnCellTap?.invoke(section)
         }
     }
     // 「+」格配色
@@ -157,23 +185,35 @@ internal fun DayGridColumn(
                             if (!upConsumed) tapAt(position)
                             return@awaitEachGesture
                         }
-                        // 长按成立
-                        val section = with(density) { layout.sectionAt(downPosition.y.toDp()) }
-                        val hit =
-                            if (section in 1..layout.sectionCount) {
-                                currentCourses.firstOrNull {
-                                    it.active && !it.course.isCustomTime && it.course.covers(section, sectionTimes)
-                                }
-                            } else {
-                                null
-                            }
-                        if (hit == null || !currentDragEnabled) {
+                        val hit = hitAt(downPosition)
+                        if (hit == null) {
                             waitForUpOrCancellation()
                             return@awaitEachGesture
                         }
-                        // 拿起后交棒
-                        currentOnDragStart(hit.course, columnTopLeft + downPosition, down.id)
-                        return@awaitEachGesture
+                        touchState.hold(down.id)
+                        var movedToDrag = false
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            if (!change.pressed) {
+                                touchState.releaseHold()
+                                return@awaitEachGesture
+                            }
+                            if ((change.position - downPosition).getDistance() > viewConfiguration.touchSlop) {
+                                movedToDrag = true
+                                break
+                            }
+                        }
+                        if (!movedToDrag) {
+                            touchState.releaseHold()
+                            return@awaitEachGesture
+                        }
+                        if (isStandaloneCourse(hit) && !hit.course.isCustomTime && currentDragEnabled) {
+                            currentOnDragStart(hit.course, columnTopLeft + downPosition, down.id)
+                        } else {
+                            touchState.releaseHold()
+                            waitForUpOrCancellation()
+                        }
                     }
                 },
     ) {
@@ -196,8 +236,11 @@ internal fun DayGridColumn(
                         isHoliday = isHoliday,
                         isWorkSwap = isWorkSwap,
                         showBadge = { stacked },
-                        // 点击交给整列处理，卡片不抢手势
-                        onClick = null,
+                        onClick = { clicked -> currentOnCourseClick(clicked.course) },
+                        onLongPress = { clicked, bounds ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            currentOnCourseLongPress(clicked.course, bounds)
+                        },
                     )
                 }
             }
@@ -206,6 +249,7 @@ internal fun DayGridColumn(
             val top = parseMinutes(item.course.customStartTime)?.let(layout::minuteToY) ?: return@forEach
             val bottom = parseMinutes(item.course.customEndTime)?.let(layout::minuteToY) ?: return@forEach
             val courseHeight = (bottom - top).coerceAtLeast(20.dp)
+            val canInteract = isStandaloneCourse(item)
             ScheduleCourseCard(
                 course = item.course,
                 style = style,
@@ -214,7 +258,21 @@ internal fun DayGridColumn(
                 isHoliday = isHoliday,
                 isWorkSwap = isWorkSwap,
                 showBadge = item.hiddenCount > 0,
-                onClick = null,
+                onClick =
+                    if (canInteract) {
+                        { currentOnCourseClick(item.course) }
+                    } else {
+                        null
+                    },
+                onLongPress =
+                    if (canInteract) {
+                        { bounds ->
+                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                            currentOnCourseLongPress(item.course, bounds)
+                        }
+                    } else {
+                        null
+                    },
                 modifier = Modifier.offset(y = top),
             )
         }

@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.platform.LocalDensity
@@ -69,6 +70,7 @@ internal fun TimelineWeekGrid(
     /** 画当前时刻线的列（1..7），0 表示不画 */
     todayColumn: Int,
     onCourseClick: (Course, TimelineDay) -> Unit,
+    onCourseLongPress: (Course, TimelineDay, Rect) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val axis = remember(sectionTimes, style.timelineHourHeight) {
@@ -135,6 +137,7 @@ internal fun TimelineWeekGrid(
                         nowMinute = nowMinute,
                         showNow = showNow && day.column == todayColumn,
                         onCourseClick = onCourseClick,
+                        onCourseLongPress = { course, bounds -> onCourseLongPress(course, day, bounds) },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                     )
                 }
@@ -175,6 +178,7 @@ private fun TimelineDayColumn(
     nowMinute: Int,
     showNow: Boolean,
     onCourseClick: (Course, TimelineDay) -> Unit,
+    onCourseLongPress: (Course, Rect) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier) {
@@ -200,6 +204,7 @@ private fun TimelineDayColumn(
                     showBadge = { item -> item.hiddenCount > 0 },
                     onClick = { item -> onCourseClick(item.course, day) },
                     modifier = Modifier.offset(y = top),
+                    onLongPress = { item, bounds -> onCourseLongPress(item.course, bounds) },
                 )
             }
         if (showNow) {

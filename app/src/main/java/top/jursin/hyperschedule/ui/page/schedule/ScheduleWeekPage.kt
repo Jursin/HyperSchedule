@@ -62,6 +62,7 @@ internal fun ScheduleWeekPage(
     touchState: ScheduleTouchState,
     onGridPositioned: (rect: Rect) -> Unit,
     onCourseClick: (Course, Int, String?) -> Unit,
+    onCourseLongPress: (Course, Int, Rect) -> Unit,
     onAddCourse: (Int, Int, Int) -> Unit,
 ) {
     val week = page - EdgePages + 1
@@ -119,6 +120,7 @@ internal fun ScheduleWeekPage(
                 style = style,
                 breaks = breaks,
                 onCourseClick = onCourseClick,
+                onCourseLongPress = onCourseLongPress,
             )
         } else {
             // 网格线铺在时间列之后
@@ -185,6 +187,10 @@ internal fun ScheduleWeekPage(
                                         },
                                     // 点卡片只带一门课，顺带这一格的放假/调休角标
                                     onCourseClick = { clicked -> onCourseClick(clicked, shownWeek, plan.markOrNull()) },
+                                    onCourseLongPress = { clicked, bounds ->
+                                        onCourseLongPress(clicked, shownWeek, bounds)
+                                    },
+                                    touchState = touchState,
                                     // 再点一次「+」直接进新建课程页
                                     onPendingTap = { section -> onAddCourse(day, section, section) },
                                     onDragStart = { course, position, pointerId ->
@@ -224,6 +230,7 @@ private fun TimelineWeekPage(
     style: ScheduleStyle,
     breaks: List<BreakMark>,
     onCourseClick: (Course, Int, String?) -> Unit,
+    onCourseLongPress: (Course, Int, Rect) -> Unit,
 ) {
     val todayColumn = now?.dayOfWeek?.value ?: 0
     // 调休当日那列画的是别的星期的课，时间线不往上面压
@@ -252,5 +259,6 @@ private fun TimelineWeekPage(
         nowMinute = now?.let { it.hour * 60 + it.minute } ?: -1,
         todayColumn = if (todayRemapped) 0 else todayColumn,
         onCourseClick = { course, day -> onCourseClick(course, day.week, day.mark) },
+        onCourseLongPress = { course, day, bounds -> onCourseLongPress(course, day.week, bounds) },
     )
 }

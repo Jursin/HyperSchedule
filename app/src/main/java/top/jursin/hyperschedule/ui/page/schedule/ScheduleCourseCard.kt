@@ -2,7 +2,7 @@ package top.jursin.hyperschedule.ui.page.schedule
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,12 +18,18 @@ import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.layout.boundsInWindow
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -66,11 +72,13 @@ fun ScheduleCourseCard(
     isWorkSwap: Boolean = false,
     showBadge: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onLongPress: ((Rect) -> Unit)? = null,
 ) {
     // 放假这天不上课，按非本周的灰画
     val colors = rememberCourseCardColors(course, isCurrentWeek && !isHoliday)
     val shape = RoundedCornerShape(style.cardCorner.dp)
     val interaction = remember { MutableInteractionSource() }
+    var cardBounds by remember { mutableStateOf(Rect.Zero) }
     val scale = 0.84f * style.textScale
     val infoFontSize = 11.sp * scale
     val nameFontSize = 12.7.sp * scale
@@ -127,7 +135,14 @@ fun ScheduleCourseCard(
                 .fillMaxWidth()
                 .height(heightOverride)
                 .padding(style.cardMargin.dp)
-                .then(if (onClick != null) Modifier.glassPress(interaction) else Modifier)
+                .then(
+                    if (onLongPress != null) {
+                        Modifier.onGloballyPositioned { cardBounds = it.boundsInWindow() }
+                    } else {
+                        Modifier
+                    },
+                )
+                .glassPress(interaction)
                 .clip(shape)
                 // 先铺一层和 Card 同浓度的底（开了模糊就采样壁纸），课程色压在上面
                 .cardSurface(CornerSize(style.cardCorner.dp))
@@ -139,13 +154,14 @@ fun ScheduleCourseCard(
                         Modifier
                     }
                 )
-                // 无涟漪，点按直接弹详情
+                // 无涟漪，点按弹详情、长按弹工具栏
                 .then(
-                    if (onClick != null) {
-                        Modifier.clickable(
+                    if (onClick != null || onLongPress != null) {
+                        Modifier.combinedClickable(
                             interactionSource = interaction,
                             indication = null,
-                            onClick = onClick,
+                            onClick = { onClick?.invoke() },
+                            onLongClick = onLongPress?.let { callback -> { callback(cardBounds) } },
                         )
                     } else {
                         Modifier
@@ -203,7 +219,9 @@ internal fun CourseCardRow(
     showBadge: (WeekCourse) -> Boolean,
     onClick: ((WeekCourse) -> Unit)?,
     modifier: Modifier = Modifier,
+    onLongPress: ((WeekCourse, Rect) -> Unit)? = null,
 ) {
+    val overlapped = items.sumOf { 1 + it.hiddenCount } > 1
     Row(modifier = modifier.fillMaxWidth()) {
         items.forEach { item ->
             ScheduleCourseCard(
@@ -216,6 +234,12 @@ internal fun CourseCardRow(
                 showBadge = showBadge(item),
                 onClick = onClick?.let { click -> { click(item) } },
                 modifier = Modifier.weight(1f),
+                onLongPress =
+                    if (overlapped || !isCurrentWeek(item)) {
+                        null
+                    } else {
+                        onLongPress?.let { callback -> { bounds -> callback(item, bounds) } }
+                    },
             )
         }
     }

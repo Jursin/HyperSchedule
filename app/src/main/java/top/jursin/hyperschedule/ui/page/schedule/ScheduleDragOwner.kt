@@ -34,19 +34,29 @@ private const val EdgeDwellMs = 500L
 private const val PagerSettleMs = 500L
 
 internal class ScheduleTouchState {
-    /** 正按住课程卡拖拽的指针 */
     var pointerId: PointerId? = null
+    var longPressPointer: PointerId? = null
     var downRoot: Offset? = null
     var started = false
 
+    fun hold(pointerId: PointerId) {
+        longPressPointer = pointerId
+    }
+
+    fun releaseHold() {
+        longPressPointer = null
+    }
+
     fun begin(pointerId: PointerId, downRoot: Offset) {
         this.pointerId = pointerId
+        this.longPressPointer = null
         this.downRoot = downRoot
         started = false
     }
 
     fun end() {
         pointerId = null
+        longPressPointer = null
         downRoot = null
         started = false
     }

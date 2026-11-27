@@ -44,6 +44,9 @@ interface CourseDao {
     @Query("DELETE FROM courses WHERE courseTableId = :courseTableId")
     suspend fun deleteCoursesByTableId(courseTableId: String)
 
+    @Query("SELECT weekNumber FROM course_weeks WHERE courseId = :courseId")
+    suspend fun getWeekNumbersOnce(courseId: String): List<Int>
+
     /** 每张课表的课程门数，课程管理按课名聚合，这里同样按名字去重 */
     @Query("SELECT courseTableId, COUNT(DISTINCT name) AS count FROM courses GROUP BY courseTableId")
     fun observeCourseCountsByTable(): Flow<List<CourseTableCourseCount>>

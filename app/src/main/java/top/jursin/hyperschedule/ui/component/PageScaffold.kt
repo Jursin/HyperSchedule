@@ -383,6 +383,7 @@ fun Modifier.pageScroll(
         .nestedScroll(scrollBehavior.nestedScrollConnection)
 
 suspend fun collapseTopBarAfterJump(scrollBehavior: ScrollBehavior) {
+    scrollBehavior.state.contentOffset = -2f
     repeat(30) {
         val limit = scrollBehavior.state.heightOffsetLimit
         if (limit != 0f) {

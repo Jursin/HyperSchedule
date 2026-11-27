@@ -104,6 +104,9 @@ internal fun HomeTabContent(
                 },
                 onManageCourses = { navigate(Page.CourseManage) },
                 onManageTables = { navigate(Page.CourseTableManage) },
+                onDeleteCourseWeek = { courseId, week ->
+                    scope.launch { graph.schedule.deleteCourseWeek(courseId, week) }
+                },
                 onSaveCourses = { deletedIds, rows -> scope.launch { graph.schedule.saveCourseEdits(deletedIds, rows) } },
             )
     }

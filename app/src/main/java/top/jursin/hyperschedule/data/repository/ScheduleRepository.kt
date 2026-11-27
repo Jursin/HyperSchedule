@@ -151,6 +151,24 @@ class ScheduleRepository(
             if (ids.isNotEmpty()) courseDao.deleteCoursesByIds(ids)
         }
 
+    /** 只去掉这门课在某一周的时段，周次清空后整门课才删除 */
+    suspend fun deleteCourseWeek(courseId: String, weekNumber: Int) =
+        withContext(Dispatchers.IO) {
+            db.withTransaction {
+                val weeks = courseDao.getWeekNumbersOnce(courseId)
+                if (weekNumber !in weeks) return@withTransaction
+                val remaining = weeks.filter { it != weekNumber }
+                if (remaining.isEmpty()) {
+                    courseDao.deleteCoursesByIds(listOf(courseId))
+                } else {
+                    courseDao.updateCourseWeeks(
+                        courseId,
+                        remaining.map { CourseWeek(courseId, it) },
+                    )
+                }
+            }
+        }
+
     // 作息解析
 
     /** 当前课表生效的节次，无绑定用专属作息，SINGLE 用绑定的表，COMBO 按日期规则对齐基准 */

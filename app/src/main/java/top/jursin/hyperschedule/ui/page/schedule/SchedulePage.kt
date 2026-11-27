@@ -1,8 +1,12 @@
 package top.jursin.hyperschedule.ui.page.schedule
 
 import android.net.Uri
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -24,8 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
@@ -36,6 +46,7 @@ import top.jursin.hyperschedule.schedule.DEFAULT_TOTAL_WEEKS
 import top.jursin.hyperschedule.schedule.MAX_TOTAL_WEEKS
 import top.jursin.hyperschedule.schedule.currentWeekOf
 import top.jursin.hyperschedule.schedule.parseDateOrNull
+import top.jursin.hyperschedule.schedule.parseMinutes
 import top.jursin.hyperschedule.ui.component.ConflictDialog
 import top.jursin.hyperschedule.ui.component.NumberPickerDialog
 import top.jursin.hyperschedule.ui.component.ProvideBackToNow
@@ -60,12 +71,26 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.glass.GlassDialog
+import top.yukonga.miuix.kmp.glass.GlassDialogButton
+import top.yukonga.miuix.kmp.glass.GlassDialogButtonRole
+import top.yukonga.miuix.kmp.glass.GlassFloatingToolbar
 import top.yukonga.miuix.kmp.glass.rememberGlassPopupAnchor
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.glass.Delete
+import top.yukonga.miuix.kmp.icon.glass.Edit
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /** 空格「+」出现后自动收起的时长 */
 private const val PendingCellLifeMs = 3_000L
+
+/** 长按课程卡后工具栏的目标 */
+private data class CourseActionTarget(val course: Course, val week: Int, val anchor: Rect)
 
 @Composable
 fun SchedulePage(
@@ -85,6 +110,7 @@ fun SchedulePage(
     onWallpaperBlurChange: (Int) -> Unit = {},
     onWallpaperBlurCommit: () -> Unit = {},
     onEditCourse: (Course) -> Unit = {},
+    onDeleteCourseWeek: (courseId: String, week: Int) -> Unit = { _, _ -> },
     onAddCourse: (day: Int, startSection: Int, endSection: Int) -> Unit = { _, _, _ -> },
     onManageCourses: () -> Unit = {},
     onManageTables: () -> Unit = {},
@@ -162,7 +188,7 @@ fun SchedulePage(
         }
     val viewingPage by remember { derivedStateOf { pagerState.currentPage } }
 
-    // 课表数据异步到达，首帧算不出本周，拿到后补一次定位，否则会停在第 1 周
+    // 课表数据异步到达，首帧算不出本周，拿到后补一次定位
     var weekLocated by remember(table?.tableId) { mutableStateOf(false) }
     LaunchedEffect(currentWeek, table?.tableId) {
         if (weekLocated || currentWeek == null) return@LaunchedEffect
@@ -172,24 +198,28 @@ fun SchedulePage(
 
     var pendingCell by remember { mutableStateOf<PendingCell?>(null) }
     var detailAnchor by remember { mutableStateOf<Course?>(null) }
-    // 点开的卡属于哪一周
     var detailWeek by remember { mutableIntStateOf(0) }
-    // 那一格的放假/调休角标
     var detailMark by remember { mutableStateOf<String?>(null) }
     var detailVisible by remember { mutableStateOf(false) }
     var appearanceVisible by remember { mutableStateOf(false) }
-    // 收起动画跑完才卸载抽屉
     var appearanceMounted by remember { mutableStateOf(false) }
     var showJumpDialog by remember { mutableStateOf(false) }
     var jumpWeek by remember { mutableIntStateOf(1) }
     var historyVisible by remember { mutableStateOf(false) }
     var dragLayerBounds by remember { mutableStateOf(Rect.Zero) }
-    // 顶栏「更多」菜单
     val menuAnchor = rememberGlassPopupAnchor()
     var menuOpen by remember { mutableStateOf(false) }
+    var courseAction by remember { mutableStateOf<CourseActionTarget?>(null) }
+    var deleteTarget by remember { mutableStateOf<CourseActionTarget?>(null) }
+    var pageWindowBounds by remember { mutableStateOf(Rect.Zero) }
+    var toolbarSize by remember { mutableStateOf(IntSize.Zero) }
+    var topPaddingDp by remember { mutableStateOf(0.dp) }
 
-    // 换页后原来的「+」不再属于当前视图
-    LaunchedEffect(viewingPage) { pendingCell = null }
+    LaunchedEffect(viewingPage) {
+        pendingCell = null
+        courseAction = null
+        deleteTarget = null
+    }
 
     // 纵向滚动全周共用一份，拉伸作用在整页
     val pageScroll = rememberScrollState()
@@ -235,6 +265,8 @@ fun SchedulePage(
     LaunchedEffect(pageIsCurrent, pageCovered) {
         if (!pageIsCurrent || pageCovered) {
             menuOpen = false
+            courseAction = null
+            deleteTarget = null
             appearanceVisible = false
             appearanceMounted = false
             detailVisible = false
@@ -278,11 +310,17 @@ fun SchedulePage(
     // 拖动结束但指针记录还在时清掉
     val dragging = editor.drag != null
     LaunchedEffect(dragging) {
-        if (!dragging && touchState.pointerId != null) touchState.end()
+        if (dragging) courseAction = null
+        else if (touchState.pointerId != null) touchState.end()
     }
 
     // 采集放在周 pager 之外
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .onGloballyPositioned { pageWindowBounds = it.boundsInWindow() },
+    ) {
         Scaffold(
             // 拉伸只作用在顶栏之下的内容，顶栏本身保持固定
             modifier =
@@ -310,6 +348,7 @@ fun SchedulePage(
                 )
             },
         ) { paddingValues ->
+            topPaddingDp = paddingValues.calculateTopPadding()
             // 时间轴视图切回本页、或停在本页时再点一次本 Tab，都把当前时刻翻到屏幕中间
             if (style.timeline) {
                 ScrollToNowOnShow(
@@ -346,7 +385,7 @@ fun SchedulePage(
                                 pagerState = pagerState,
                                 settleSlot = settleSlot,
                                 enabled = { !tabNavigating },
-                                blockedPointer = { touchState.pointerId },
+                                blockedPointer = { touchState.pointerId ?: touchState.longPressPointer },
                                 // 手指带着课卡时只许停在学期内
                                 pages = {
                                     if (editor.drag != null) pageOfWeek(1)..pageOfWeek(totalWeeks) else 0..lastPage
@@ -407,6 +446,9 @@ fun SchedulePage(
                             detailMark = mark
                             detailVisible = true
                         },
+                        onCourseLongPress = { clicked, week, bounds ->
+                            courseAction = CourseActionTarget(clicked, week, bounds)
+                        },
                         onAddCourse = onAddCourse,
                     )
                 }
@@ -416,6 +458,32 @@ fun SchedulePage(
                     cardOrigin = { editor.cardOrigin(dragLayerBounds.topLeft) },
                     style = style,
                 )
+            }
+            GlassDialog(
+                show = deleteTarget != null,
+                onDismissRequest = { deleteTarget = null },
+                backdrop = blurBackdrop,
+                title = "删除课程",
+                summary = "只删除选中课程本周的这个时段，确定删除？",
+            ) {
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    GlassDialogButton(
+                        onClick = { deleteTarget = null },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        Text("取消", style = MiuixTheme.textStyles.button)
+                    }
+                    GlassDialogButton(
+                        onClick = {
+                            deleteTarget?.let { onDeleteCourseWeek(it.course.id, it.week) }
+                            deleteTarget = null
+                        },
+                        modifier = Modifier.weight(1f),
+                        role = GlassDialogButtonRole.Destructive,
+                    ) {
+                        Text("删除", style = MiuixTheme.textStyles.button)
+                    }
+                }
             }
         }
         // 撤销/重做按钮画在采样层之外
@@ -442,6 +510,106 @@ fun SchedulePage(
             onManageTables = onManageTables,
             onManageCourses = onManageCourses,
         )
+        val action = courseAction
+        if (action != null) {
+            Box(
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) { detectTapGestures { courseAction = null } },
+            )
+            val density = LocalDensity.current
+            val gapPx = with(density) { 8.dp.toPx() }
+            val insetX = with(density) { 12.dp.toPx() }
+            val topLimitPx = with(density) { topPaddingDp.toPx() + gapPx }
+            val (gapAbove, gapBelow) =
+                remember(action, allCourses, sectionTimes) {
+                    fun minutesOf(course: Course): Pair<Int, Int>? {
+                        if (course.isCustomTime) {
+                            val start = parseMinutes(course.customStartTime) ?: return null
+                            val end = parseMinutes(course.customEndTime) ?: return null
+                            return (start to end).takeIf { end > start }
+                        }
+                        val first = sectionTimes.getOrNull((course.startSection ?: 1) - 1) ?: return null
+                        val last = sectionTimes.getOrNull((course.endSection ?: course.startSection ?: 1) - 1) ?: return null
+                        val start = parseMinutes(first.first) ?: return null
+                        val end = parseMinutes(last.second) ?: return null
+                        return (start to end).takeIf { end > start }
+                    }
+                    val self = minutesOf(action.course) ?: return@remember true to true
+                    val peers =
+                        allCourses.map { it.course }.filter {
+                            it.day == action.course.day && it.id != action.course.id
+                        }
+                    val blockedAbove =
+                        peers.any { c ->
+                            val r = minutesOf(c) ?: return@any false
+                            r.second <= self.first && self.first - r.second < 55
+                        }
+                    val blockedBelow =
+                        peers.any { c ->
+                            val r = minutesOf(c) ?: return@any false
+                            r.first >= self.second && r.first - self.second < 55
+                        }
+                    !blockedAbove to !blockedBelow
+                }
+            GlassFloatingToolbar(
+                modifier =
+                    Modifier
+                        .onSizeChanged { toolbarSize = it }
+                        .offset {
+                            val w = toolbarSize.width.toFloat()
+                            val h = toolbarSize.height.toFloat()
+                            val cardLeft = action.anchor.left - pageWindowBounds.left
+                            val cardRight = action.anchor.right - pageWindowBounds.left
+                            val cardTop = action.anchor.top - pageWindowBounds.top
+                            val cardBottom = action.anchor.bottom - pageWindowBounds.top
+                            val maxX = (pageWindowBounds.width - gapPx - w).coerceAtLeast(gapPx)
+                            val maxY = (pageWindowBounds.height - gapPx - h).coerceAtLeast(gapPx)
+                            val left = cardLeft - insetX
+                            val right = cardRight - w + insetX
+                            val x =
+                                when {
+                                    left in gapPx..maxX -> left
+                                    right in gapPx..maxX -> right
+                                    else -> left.coerceIn(gapPx, maxX)
+                                }
+                            val above = cardTop - h
+                            val fitsAbove = above in topLimitPx..maxY
+                            val fitsBelow = cardBottom in topLimitPx..maxY
+                            val hasAbove = fitsAbove && (gapAbove || !fitsBelow)
+                            val hasBelow = fitsBelow && (gapBelow || !fitsAbove)
+                            val y =
+                                (if (hasBelow && !hasAbove) cardBottom else above)
+                                    .coerceIn(topLimitPx.coerceAtMost(maxY), maxY)
+                            IntOffset(x.toInt(), y.toInt())
+                        },
+                backdrop = blurBackdrop,
+                cornerRadius = 20.dp,
+            ) {
+                Row(
+                    modifier = Modifier.padding(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    IconButton(
+                        onClick = {
+                            onEditCourse(action.course)
+                            courseAction = null
+                        },
+                    ) {
+                        Icon(MiuixIcons.Glass.Edit, contentDescription = "编辑课程")
+                    }
+                    IconButton(
+                        onClick = {
+                            deleteTarget = action
+                            courseAction = null
+                        },
+                    ) {
+                        Icon(MiuixIcons.Glass.Delete, contentDescription = "删除时段")
+                    }
+                }
+            }
+        }
     }
 
     val anchor = detailAnchor
