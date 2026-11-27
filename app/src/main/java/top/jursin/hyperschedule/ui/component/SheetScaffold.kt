@@ -59,6 +59,7 @@ fun SheetScaffold(
         title = title,
         startAction = startAction,
         endAction = endAction,
+        progressiveBlur = true,
         backdrop = LocalPageGlassBackdrop.current,
         material = GlassBottomSheetDefaults.material(),
         stroke = GlassBottomSheetDefaults.stroke(),
