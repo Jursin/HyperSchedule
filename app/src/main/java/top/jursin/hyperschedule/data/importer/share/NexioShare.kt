@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.data.importer.share
 
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.importer.ComboScheduleJson
 import top.jursin.hyperschedule.data.importer.CourseJson
 import top.jursin.hyperschedule.data.importer.CourseTableConfigJson
@@ -21,6 +22,7 @@ internal object NexioShare {
             try {
                 ShareHttp.get("$BASE_URL?code=${URLEncoder.encode(code, "UTF-8")}")
             } catch (error: ShareHttpException) {
+                AppLog.w("ShareImport", "Nexio 分享码请求失败 code=${error.code} body=${error.body.take(200)}")
                 throw IllegalStateException(error.readableMessage())
             }
         if (body.isBlank()) throw IllegalStateException("Nexio 课程表没有返回数据")

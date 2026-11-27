@@ -5,6 +5,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.db.dao.BackupDao
 import top.jursin.hyperschedule.data.db.dao.CourseDao
 import top.jursin.hyperschedule.data.db.dao.CourseTableDao
@@ -21,6 +22,8 @@ import top.jursin.hyperschedule.data.db.entity.TimeTable
 import top.jursin.hyperschedule.data.db.entity.TimeTableCombo
 import top.jursin.hyperschedule.data.db.entity.TimeTableComboRule
 
+private const val DB_VERSION = 1
+
 @Database(
     entities = [
         CourseTable::class,
@@ -34,7 +37,7 @@ import top.jursin.hyperschedule.data.db.entity.TimeTableComboRule
         TimeTableCombo::class,
         TimeTableComboRule::class,
     ],
-    version = 1,
+    version = DB_VERSION,
     exportSchema = true,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -59,7 +62,10 @@ abstract class AppDatabase : RoomDatabase() {
                     ?: Room.databaseBuilder(context.applicationContext, AppDatabase::class.java, NAME)
                         .addMigrations(*ALL_MIGRATIONS)
                         .build()
-                        .also { instance = it }
+                        .also {
+                            instance = it
+                            AppLog.i("Database", "数据库打开，版本 $DB_VERSION")
+                        }
             }
     }
 }

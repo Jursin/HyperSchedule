@@ -1,12 +1,12 @@
 package top.jursin.hyperschedule.data.push
 
 import android.content.Context
-import android.util.Log
 import top.jursin.hyperschedule.data.db.entity.Course
 import top.jursin.hyperschedule.data.db.entity.CourseWithWeeks
 import top.jursin.hyperschedule.data.db.entity.TimeSlot
 import top.jursin.hyperschedule.data.db.entity.TimeTable
 import top.jursin.hyperschedule.data.importer.normalizePosition
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.model.HolidayEntry
 import top.jursin.hyperschedule.schedule.HolidayPlan
 import top.jursin.hyperschedule.schedule.formatMinutes
@@ -299,7 +299,7 @@ private suspend fun <T : Any> Task<T>.await(): T? =
 
 /** 把穿戴 SDK 抛出的异常翻译成可读原因，原始信息同时打到 logcat */
 fun describeWearError(error: Throwable): String {
-    Log.w(TAG, "穿戴接口失败：${error.javaClass.simpleName} ${error.message}", error)
+    AppLog.w(TAG, "穿戴接口失败：${error.javaClass.simpleName} ${error.message}", error)
     return when (error) {
         is SignatureVerifyFailedException -> "快应用签名与本应用不一致"
         is AppNotInstalledException -> "未安装快应用"

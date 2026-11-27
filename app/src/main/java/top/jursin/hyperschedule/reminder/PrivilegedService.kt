@@ -6,11 +6,11 @@ import android.content.Context
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
-import android.util.Log
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import rikka.shizuku.Shizuku
+import top.jursin.hyperschedule.data.local.AppLog
 
 /** 以 shell 身份运行的服务 */
 internal object PrivilegedService {
@@ -44,7 +44,7 @@ internal object PrivilegedService {
         service = null
         ShizukuAccess.init(context)
         if (!ShizukuAccess.hasPermission) {
-            Log.w(TAG, "Shizuku 没在运行或本应用没拿到授权")
+            AppLog.w(TAG, "Shizuku 未运行或本应用未获授权")
             return null
         }
         val args = userServiceArgs(context)
@@ -55,11 +55,11 @@ internal object PrivilegedService {
                 service
             } else {
                 runCatching { Shizuku.unbindUserService(args, connection, true) }
-                Log.w(TAG, "绑定超时（${BIND_TIMEOUT_SECONDS}s），Shevery 没把服务进程拉起来")
+                AppLog.w(TAG, "绑定超时（${BIND_TIMEOUT_SECONDS}s），Shevery 未拉起服务进程")
                 null
             }
         }.getOrElse {
-            Log.w(TAG, "绑定 Shizuku 服务失败", it)
+            AppLog.w(TAG, "绑定 Shizuku 服务失败", it)
             null
         }
     }
@@ -122,7 +122,7 @@ class PrivilegedServiceImpl : IPrivilegedService.Stub() {
                 .invoke(manager, FIREWALL_CHAIN_OEM_DENY, uid, if (enabled) RULE_ALLOW else RULE_DENY)
             true
         }.getOrElse {
-            Log.w(TAG, "切换 uid=$uid 网络失败", it)
+            AppLog.w(TAG, "切换 uid=$uid 网络失败", it)
             false
         }
 

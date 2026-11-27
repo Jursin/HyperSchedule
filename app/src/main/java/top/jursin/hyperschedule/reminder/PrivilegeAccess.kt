@@ -6,13 +6,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.IBinder
 import android.provider.Settings
-import android.util.Log
 import androidx.core.net.toUri
 import com.hamondev.shevery.api.SheveryPrivilege
 import com.hamondev.shevery.api.SheveryProvider
 import rikka.shizuku.Shizuku
 import rikka.shizuku.ShizukuBinderWrapper
 import rikka.shizuku.SystemServiceHelper
+import top.jursin.hyperschedule.data.local.AppLog
 
 class AppSheveryProvider : SheveryProvider() {
     override fun onCreate(): Boolean = true
@@ -166,13 +166,13 @@ internal object ShizukuBypass {
     private fun setXmsfNetwork(context: Context, enabled: Boolean): Boolean {
         val uid =
             runCatching { context.packageManager.getPackageUid(XMSF_PACKAGE, 0) }
-                .onFailure { Log.w(TAG, "取不到 $XMSF_PACKAGE 的 uid", it) }
+                .onFailure { AppLog.w(TAG, "取不到 $XMSF_PACKAGE 的 uid", it) }
                 .getOrNull() ?: return false
         val service = PrivilegedService.get(context)
         if (service != null) {
             val viaService = runCatching { service.setPackageNetworkingEnabled(uid, enabled) }
             if (viaService.getOrNull() == true) return true
-            Log.w(TAG, "服务内切换 uid=$uid 网络失败", viaService.exceptionOrNull())
+            AppLog.w(TAG, "服务内切换 uid=$uid 网络失败", viaService.exceptionOrNull())
         }
         return setXmsfNetworkInProcess(uid, enabled)
     }
@@ -199,7 +199,7 @@ internal object ShizukuBypass {
                 .invoke(manager, CHAIN_OEM_DENY, uid, if (enabled) RULE_ALLOW else RULE_DENY)
             true
         }.getOrElse {
-            Log.w(TAG, "切换 uid=$uid 网络失败", it)
+            AppLog.w(TAG, "切换 uid=$uid 网络失败", it)
             false
         }
 }

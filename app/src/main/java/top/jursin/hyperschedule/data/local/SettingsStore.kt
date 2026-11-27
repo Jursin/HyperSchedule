@@ -243,6 +243,8 @@ private val Prefs =
         boolSetting("wearPushExcludeHoliday", { it.wearPush.excludeHoliday }) { s, v ->
             s.copy(wearPush = s.wearPush.copy(excludeHoliday = v))
         },
+        enumSetting("logLevel", { it.logLevel }) { s, v -> s.copy(logLevel = v) },
+        intSetting("logKeep", { it.logKeep }, coerce = LogKeep::coerce) { s, v -> s.copy(logKeep = v) },
         // 这几项都是本机状态，不进备份
         stringSetting("backupLocation", { it.backup.location }, backedUp = false) { s, v ->
             s.copy(backup = s.backup.copy(location = v.orEmpty()))
@@ -319,6 +321,7 @@ class SettingsStore private constructor(context: Context) {
     /** 从磁盘重读，恢复备份后调用 */
     fun reload() {
         state = load()
+        AppLog.onSettingsChanged()
     }
 
     /** 导出可备份的设置项，排除本机状态键 */

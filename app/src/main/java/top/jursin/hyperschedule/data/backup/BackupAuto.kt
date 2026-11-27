@@ -1,6 +1,7 @@
 package top.jursin.hyperschedule.data.backup
 
 import android.content.Context
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.local.SettingsStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
@@ -35,6 +36,7 @@ object BackupAuto {
 
             val payload =
                 runCatching { repository.build() }.getOrElse { error ->
+                    AppLog.e("Backup", "构建备份数据失败", error)
                     val message = error.message ?: "读取数据失败"
                     if (dir != null) record(store, Target.Local, error = message)
                     if (webDavOn) record(store, Target.WebDav, error = message)
@@ -79,8 +81,14 @@ object BackupAuto {
         // 内容没变、目录里那份还在，就不必再写一份
         if (hash == store.state.backup.stamp.lastHash && repository.hasBackup(dir)) return
         runCatching { repository.save(dir, payload, keep) }
-            .onSuccess { record(store, Target.Local, hash = hash) }
-            .onFailure { record(store, Target.Local, error = it.message ?: "备份失败") }
+            .onSuccess { name ->
+                AppLog.i("Backup", "本地备份成功：$name")
+                record(store, Target.Local, hash = hash)
+            }
+            .onFailure {
+                AppLog.e("Backup", "本地备份失败", it)
+                record(store, Target.Local, error = it.message ?: "备份失败")
+            }
     }
 
     private suspend fun saveRemote(
@@ -96,13 +104,20 @@ object BackupAuto {
         // 云端那份还在不在只能列一次，列不出来就当失败，别在启动时反复重试
         val files =
             runCatching { client.list() }.getOrElse {
+                AppLog.e("Backup", "$target 连接云端失败", it)
                 record(store, target, error = it.message ?: "连接云端失败")
                 return
             }
         if (hash == lastHash && files.isNotEmpty()) return
         runCatching { repository.saveTo(client, payload, keep, files) }
-            .onSuccess { record(store, target, hash = hash) }
-            .onFailure { record(store, target, error = it.message ?: "云端备份失败") }
+            .onSuccess { name ->
+                AppLog.i("Backup", "$target 云端备份成功：$name")
+                record(store, target, hash = hash)
+            }
+            .onFailure {
+                AppLog.e("Backup", "$target 云端备份失败", it)
+                record(store, target, error = it.message ?: "云端备份失败")
+            }
     }
 
     /** [hash] 非空表示真的写成功了，同时刷新时间 */

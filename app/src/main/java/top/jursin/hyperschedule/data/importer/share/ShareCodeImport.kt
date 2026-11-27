@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.data.importer.share
 
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.importer.CourseJson
 import top.jursin.hyperschedule.data.importer.CourseTableJson
 import top.jursin.hyperschedule.data.importer.TimeSlotJson
@@ -63,6 +64,7 @@ object ShareCodeImport {
                     ShareCodeSource.Nexio -> NexioShare.fetch(code)
                 }
             payload.table.requireValidForImport()
+            AppLog.i("ShareImport", "${source.label} 分享码解析成功，${payload.table.courses.size} 门课程")
             payload
         }
 

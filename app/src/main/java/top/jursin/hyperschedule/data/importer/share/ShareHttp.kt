@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.data.importer.share
 
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.AppHttp
 import top.jursin.hyperschedule.data.remote.readCapped
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -35,7 +36,10 @@ internal object ShareHttp {
         val builder = Request.Builder().url(url).method(method, payload)
         headers.forEach { (key, value) -> builder.header(key, value) }
         AppHttp.newCall(builder.build()).execute().use { response ->
-            val text = runCatching { response.body.readCapped().decodeToString() }.getOrDefault("")
+            val text =
+                runCatching { response.body.readCapped().decodeToString() }
+                    .onFailure { AppLog.w("ShareHttp", "读取响应体失败", it) }
+                    .getOrDefault("")
             if (!response.isSuccessful) throw ShareHttpException(response.code, text)
             return text
         }

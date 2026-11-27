@@ -7,6 +7,7 @@ import android.widget.Toast
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.getAppVersion
 import top.jursin.hyperschedule.reminder.ShizukuAccess
 import java.io.File
@@ -74,8 +75,8 @@ class UpdateController private constructor(private val context: Context) {
         if (checking) return
         checking = true
         scope.launch {
+            val currentVersion = getAppVersion(context)
             try {
-                val currentVersion = getAppVersion(context)
                 val release =
                     withContext(Dispatchers.IO) {
                         AppUpdate.fetchRelease(acceptPrerelease, proxy, currentVersion)
@@ -91,10 +92,12 @@ class UpdateController private constructor(private val context: Context) {
                 }
                 pending = asset
                 pendingVersion = release.version
+                AppLog.i("Update", "发现新版本 ${release.version}，安装包 ${asset.name}")
                 dialog = UpdateDialogState.Available(release.version, release.notes)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                AppLog.e("Update", "检查更新失败（当前版本 $currentVersion，含预发布=$acceptPrerelease）", e)
                 if (!silent) toast("检查更新失败：${e.message ?: "网络错误"}")
             } finally {
                 checking = false
@@ -130,6 +133,7 @@ class UpdateController private constructor(private val context: Context) {
                     UpdateNotification.cancel(context)
                     throw e
                 } catch (e: Exception) {
+                    AppLog.e("Update", "下载更新失败：${asset.name} -> ${pendingVersion.ifBlank { "未知版本" }}", e)
                     UpdateNotification.cancel(context)
                     toast("下载失败：${e.message ?: "网络错误"}")
                     if (dialog is UpdateDialogState.Downloading) dialog = UpdateDialogState.None
@@ -182,7 +186,11 @@ class UpdateController private constructor(private val context: Context) {
             UpdateNotification.cancel(context)
             dialog = UpdateDialogState.None
             scope.launch {
-                if (UpdateApk.installSilently(context, file) != null) installBySystem(file)
+                val error = UpdateApk.installSilently(context, file)
+                if (error != null) {
+                    AppLog.w("Update", "静默安装失败，回落系统安装器：$error")
+                    installBySystem(file)
+                }
             }
             return
         }

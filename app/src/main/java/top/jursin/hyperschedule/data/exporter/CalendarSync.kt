@@ -12,6 +12,7 @@ import android.net.Uri
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import top.jursin.hyperschedule.data.db.AppDatabase
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.local.SettingsStore
 import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.data.repository.ScheduleRepository
@@ -48,10 +49,13 @@ object CalendarSync {
                 val events = data.loadEvents(HolidayRepository.get(appContext))
                 val calendarId = ensureCalendar(appContext)
                 clearEvents(appContext, calendarId)
-                Result.success(writeEvents(appContext, calendarId, events, state.reminder.icsAlarmMinutes))
+                val written = writeEvents(appContext, calendarId, events, state.reminder.icsAlarmMinutes)
+                AppLog.i("CalendarSync", "日历同步成功，写入 $written 个事件")
+                Result.success(written)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                AppLog.e("CalendarSync", "日历同步失败", e)
                 Result.failure(e)
             }
         }

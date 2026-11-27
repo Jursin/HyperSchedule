@@ -15,6 +15,7 @@ import androidx.core.app.ServiceCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.IntentCompat
 import top.jursin.hyperschedule.R
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.reminder.ensureNotificationChannel
 import top.jursin.hyperschedule.reminder.notificationManager
 import top.jursin.hyperschedule.reminder.openApp
@@ -148,6 +149,7 @@ class UpdateForegroundService : Service() {
                 ?: return
         wakeLock = lock
         runCatching { lock.acquire(WAKE_LOCK_TIMEOUT) }
+            .onFailure { AppLog.w("Update", "获取下载唤醒锁失败", it) }
     }
 
     companion object {

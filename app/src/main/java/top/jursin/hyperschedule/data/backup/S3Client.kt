@@ -1,6 +1,7 @@
 package top.jursin.hyperschedule.data.backup
 
 import android.util.Xml
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.AppHttp
 import top.jursin.hyperschedule.data.remote.AppUserAgent
 import top.jursin.hyperschedule.data.remote.readCapped
@@ -159,7 +160,7 @@ class S3Client(
                 }
                 parser.next()
             }
-        }
+        }.onFailure { AppLog.w("Backup", "S3 备份列表解析失败：${xml.take(200)}", it) }
         return files to token
     }
 

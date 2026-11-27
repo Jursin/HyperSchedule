@@ -1,6 +1,7 @@
 package top.jursin.hyperschedule.data.importer.edu
 
 import android.content.Context
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.httpGetGiteeRaw
 import java.io.File
 import kotlinx.coroutines.Dispatchers
@@ -39,6 +40,7 @@ class SchoolRepository(
             val local = load()
             val sameSource = sourceFile.exists() && sourceFile.readText() == url
             if (sameSource && local.versionId.isNotEmpty() && remote.versionId <= local.versionId) {
+                AppLog.d("Edu", "学校索引无更新 version=${remote.versionId}")
                 return@withContext RepoUpdate()
             }
             val known = importable(local).mapTo(HashSet()) { it.id }
@@ -47,16 +49,24 @@ class SchoolRepository(
             indexFile.writeBytes(bytes)
             sourceFile.writeText(url)
             cached = remote
+            AppLog.i("Edu", "学校索引同步成功 version=${remote.versionId}，新增 $added 所")
             RepoUpdate(changed = true, added = added)
         }
 
     private fun load(): SchoolIndex {
         cached?.let { return it }
-        // 缓存损坏时回落到内置索引
+        val cachedResult = runCatching { SchoolIndexParser.parse(readIndexBytes()) }
         val parsed =
-            runCatching { SchoolIndexParser.parse(readIndexBytes()) }.getOrNull()
-                ?: runCatching { SchoolIndexParser.parse(assetBytes()) }.getOrNull()
-                ?: SchoolIndex()
+            cachedResult.getOrNull()
+                ?: runCatching { SchoolIndexParser.parse(assetBytes()) }
+                    .getOrElse { error ->
+                        AppLog.e(
+                            "Edu",
+                            "学校索引加载失败，学校列表为空（缓存：${cachedResult.exceptionOrNull()?.message}）",
+                            error,
+                        )
+                        SchoolIndex()
+                    }
         cached = parsed
         return parsed
     }

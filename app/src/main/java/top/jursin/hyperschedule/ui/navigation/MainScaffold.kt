@@ -395,6 +395,11 @@ fun MainScaffold(
                         secondaryPage(key)
                     }
                 }
+                entry<Page.Log> {
+                    NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
+                        secondaryPage(Page.Log)
+                    }
+                }
                 entry<Page.Backup> {
                     NavEntry(interceptPredictiveBack, onBack, onDismissToHome = dismissToHome, windowed = windowed) {
                         secondaryPage(Page.Backup)

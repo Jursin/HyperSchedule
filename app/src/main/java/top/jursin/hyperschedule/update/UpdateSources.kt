@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.AppHttp
 import top.jursin.hyperschedule.data.remote.AppUserAgent
 import top.jursin.hyperschedule.data.remote.proxiedUrl
@@ -144,10 +145,15 @@ object UpdateSpeed {
                     if (SystemClock.elapsedRealtime() - start >= SpeedSampleMs) break
                 }
                 val elapsed = (SystemClock.elapsedRealtime() - start).coerceAtLeast(1L)
-                if (read <= 0) SourceSpeed.Timeout else SourceSpeed.Reachable(read * 1000 / elapsed)
+                val speed =
+                    if (read <= 0) SourceSpeed.Timeout else SourceSpeed.Reachable(read * 1000 / elapsed)
+                val detail = if (speed is SourceSpeed.Reachable) "${speed.bytesPerSecond} B/s" else "超时"
+                AppLog.d("Update", "${source.host} 测速：$detail")
+                speed
             }
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             // 连不上、超时、被重置都归成超时
+            AppLog.w("Update", "${source.host} 测速失败，按超时处理：${e.message.orEmpty()}")
             SourceSpeed.Timeout
         }
     }

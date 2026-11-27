@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.theme.CardCornerRadius
 import top.jursin.hyperschedule.theme.ContainerTintAlpha
 import top.jursin.hyperschedule.theme.PageBottomInset
@@ -58,8 +59,9 @@ fun UpdateLogPage(appBlur: Boolean = false, onBack: () -> Unit) {
             releases = withContext(Dispatchers.IO) { fetchReleaseMeta() }
         } catch (e: CancellationException) {
             throw e
-        } catch (_: Exception) {
+        } catch (e: Exception) {
             // 日期和角标空着
+            AppLog.w("Update", "获取更新日志元信息失败", e)
         }
     }
 

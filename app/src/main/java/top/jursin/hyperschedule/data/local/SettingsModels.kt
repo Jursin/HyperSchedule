@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.data.local
 
+import android.util.Log
 import top.jursin.hyperschedule.data.backup.BACKUP_FOLDER
 import top.jursin.hyperschedule.data.backup.S3_DEFAULT_REGION
 import kotlin.math.abs
@@ -27,6 +28,8 @@ data class SettingsState(
     val todayStyle: TodayStyle = TodayStyle(),
     val reminder: ReminderSettings = ReminderSettings(),
     val wearPush: WearPushSettings = WearPushSettings(),
+    val logLevel: LogLevel = LogLevel.Warn,
+    val logKeep: Int = LogKeep.DEFAULT,
     val backup: BackupSettings = BackupSettings(),
     val webDav: WebDavSettings = WebDavSettings(),
     val s3: S3Settings = S3Settings(),
@@ -64,8 +67,9 @@ data class BackupSettings(
     val configured: Boolean get() = location.isNotBlank()
 
     companion object {
+        const val KEEP_UNLIMITED = -1
         const val DEFAULT_KEEP = 5
-        val KEEP_OPTIONS = listOf(3, 5, 10)
+        val KEEP_OPTIONS = listOf(5, 10, 30, KEEP_UNLIMITED)
 
         fun coerceKeep(value: Int): Int = if (value in KEEP_OPTIONS) value else DEFAULT_KEEP
 
@@ -179,6 +183,15 @@ data class TodayStyle(
     companion object {
         val Default = TodayStyle()
     }
+}
+
+/** 日志级别 */
+enum class LogLevel(val title: String, val priority: Int) {
+    Off("不记录", Int.MAX_VALUE),
+    Error("Error", Log.ERROR),
+    Warn("Warn", Log.WARN),
+    Info("Info", Log.INFO),
+    Debug("Debug", Log.DEBUG),
 }
 
 enum class ThemeMode(val title: String) {

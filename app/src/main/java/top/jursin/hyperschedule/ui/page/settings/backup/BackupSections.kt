@@ -82,8 +82,8 @@ internal fun BackupActionsSection(
     )
     DropdownPreference(
         title = "备份保留数量",
-        summary = "超出后删除最旧的一份",
-        items = BackupSettings.KEEP_OPTIONS.map { "${it}份" },
+        summary = if (stamp.keepCount == BackupSettings.KEEP_UNLIMITED) "保留全部备份" else "超出后删除最旧的一份",
+        items = BackupSettings.KEEP_OPTIONS.map { if (it == BackupSettings.KEEP_UNLIMITED) "无限制" else "${it}份" },
         selectedIndex = BackupSettings.keepIndexOf(stamp.keepCount),
         onSelectedIndexChange = onKeepChange,
     )

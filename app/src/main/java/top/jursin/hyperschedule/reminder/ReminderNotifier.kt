@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import top.jursin.hyperschedule.MainActivity
 import top.jursin.hyperschedule.R
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.schedule.formatMinutes
 import java.time.LocalDateTime
 import java.util.concurrent.ConcurrentHashMap
@@ -151,8 +152,18 @@ internal object ReminderNotifier {
             // 申请升格成实时动态，标签里的秒表才会跟着走
             runCatching { builder.setRequestPromotedOngoing(true) }
         }
-        val posted = runCatching { notificationManager(context)?.notify(id, builder.build()) }.isSuccess
-        if (posted) lastPosted[id] = signature
+        val posted =
+            runCatching {
+                val manager = notificationManager(context) ?: return@runCatching false
+                manager.notify(id, builder.build())
+                true
+            }
+                .onFailure { AppLog.w("CourseReminder", "发布通知失败 id=$id category=$category", it) }
+                .getOrDefault(false)
+        if (posted) {
+            lastPosted[id] = signature
+            AppLog.d("CourseReminder", "发布${if (inClass) "课中" else "课前"}提醒：${course.name}")
+        }
     }
 
     private fun progressStyle(progress: Int): Notification.Style {

@@ -8,6 +8,8 @@ import top.jursin.hyperschedule.data.db.entity.CourseTimeBinding
 import top.jursin.hyperschedule.data.importer.edu.EduFavoritePrefsName
 import top.jursin.hyperschedule.data.importer.edu.EduFavoriteStore
 import top.jursin.hyperschedule.data.importer.edu.EduRepoStore
+import top.jursin.hyperschedule.data.local.AppLog
+import top.jursin.hyperschedule.data.local.BackupSettings
 import top.jursin.hyperschedule.data.local.SettingsStore
 import top.jursin.hyperschedule.data.repository.HolidayRepository
 import top.jursin.hyperschedule.getAppVersion
@@ -171,10 +173,9 @@ class BackupRepository(
     /** 写一份备份并按保留份数清理，返回文件名 */
     suspend fun save(dir: BackupDir, payload: BackupPayload, keep: Int): String =
         withContext(Dispatchers.IO) {
-            val retained = keep.coerceAtLeast(1)
             val name = fileName(payload)
             dir.write(name, encode(payload))
-            prune(dir, retained)
+            prune(dir, keep)
             name
         }
 
@@ -212,7 +213,13 @@ class BackupRepository(
                 runCatching {
                     to.write(entry.name, from.read(entry.name))
                     from.delete(entry.name)
-                }.fold(onSuccess = { moved++ }, onFailure = { failed++ })
+                }.fold(
+                    onSuccess = { moved++ },
+                    onFailure = { error ->
+                        failed++
+                        AppLog.w("Backup", "搬运备份失败：${entry.name}", error)
+                    },
+                )
             }
             if (moved > 0) prune(to, keep)
             MigrateResult(moved, failed)
@@ -227,18 +234,18 @@ class BackupRepository(
         keep: Int,
         existing: List<BackupFile>,
     ): String {
-        val retained = keep.coerceAtLeast(1)
         val name = fileName(payload)
         client.upload(name, encode(payload))
-        // 新文件最新，旧列表留 keep-1 份就够
-        val failures =
-            existing
-                .drop((retained - 1).coerceAtLeast(0))
-                .mapNotNull { file ->
-                    runCatching { client.delete(file.name) }.exceptionOrNull()?.let { file.name to it }
-                }
-        if (failures.isNotEmpty()) {
-            throw BackupCleanupException("备份已上传，但清理旧备份失败：${failures.joinToString { it.first }}")
+        if (keep != BackupSettings.KEEP_UNLIMITED) {
+            val failures =
+                existing
+                    .drop((keep - 1).coerceAtLeast(0))
+                    .mapNotNull { file ->
+                        runCatching { client.delete(file.name) }.exceptionOrNull()?.let { file.name to it }
+                    }
+            if (failures.isNotEmpty()) {
+                throw BackupCleanupException("备份已上传，但清理旧备份失败：${failures.joinToString { it.first }}")
+            }
         }
         return name
     }
@@ -358,6 +365,7 @@ class BackupRepository(
 
     /** 只删本应用命名的文件，目录里的其它东西一概不碰 */
     private fun prune(dir: BackupDir, keep: Int) {
+        if (keep == BackupSettings.KEEP_UNLIMITED) return
         val failures =
             dir.list()
             .filter { BACKUP_FILE_NAME.matches(it.name) }

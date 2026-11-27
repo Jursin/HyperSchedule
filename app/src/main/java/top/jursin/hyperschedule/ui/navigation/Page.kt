@@ -59,6 +59,9 @@ sealed class Page : NavKey {
         val url: String = "",
     ) : Page()
 
+    /** 日志 */
+    @Serializable data object Log : Page()
+
     /** 备份与恢复 */
     @Serializable data object Backup : Page()
 

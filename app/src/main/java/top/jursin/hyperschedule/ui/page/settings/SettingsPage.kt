@@ -43,6 +43,7 @@ fun SettingsPage(
     onOpenHoliday: () -> Unit = {},
     onOpenReminder: () -> Unit = {},
     onOpenWearPush: () -> Unit = {},
+    onOpenLog: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val state = store.state
@@ -137,6 +138,7 @@ fun SettingsPage(
         PreferenceSection("更多") {
             ArrowPreference("外观与主题", onClick = onAppearanceClick)
             ArrowPreference("更新", onClick = onUpdateClick)
+            ArrowPreference("日志", onClick = onOpenLog)
             ArrowPreference("关于", onClick = onAboutClick)
         }
     }

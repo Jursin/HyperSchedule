@@ -10,6 +10,7 @@ import android.provider.Settings
 import androidx.core.content.FileProvider
 import androidx.core.content.pm.PackageInfoCompat
 import androidx.core.net.toUri
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.AppHttp
 import top.jursin.hyperschedule.data.remote.AppUserAgent
 import top.jursin.hyperschedule.reminder.PrivilegedService
@@ -55,8 +56,9 @@ internal object UpdateApk {
                 fetch(context, asset, onProgress)
             } catch (e: CancellationException) {
                 throw e
-            } catch (_: IOException) {
+            } catch (e: IOException) {
                 // 只有网络类错误值得重试一次
+                AppLog.w("Update", "下载失败，重试一次：${e.message.orEmpty()}", e)
                 fetch(context, asset, onProgress)
             }
         }
@@ -108,6 +110,7 @@ internal object UpdateApk {
             }
             check(partFile.renameTo(file)) { "安装包保存失败" }
             onProgress(1f)
+            AppLog.i("Update", "安装包下载完成：${file.name}（${file.length()} 字节）")
             return file
         } finally {
             response.close()
@@ -164,7 +167,9 @@ internal object UpdateApk {
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
                 }
             context.startActivity(intent)
-        }.isSuccess
+        }
+            .onFailure { AppLog.w("Update", "启动系统安装器失败：${file.name}", it) }
+            .isSuccess
 
     /** 已授权 Shizuku 时让 shell 服务静默安装，返回 null 表示成功 */
     suspend fun installSilently(context: Context, file: File): String? =
@@ -190,6 +195,7 @@ internal object UpdateApk {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                AppLog.e("Update", "静默安装失败", e)
                 e.message ?: "安装失败"
             } finally {
                 // 关掉读端让写入线程从 copyTo 里退出，超时只是兜底

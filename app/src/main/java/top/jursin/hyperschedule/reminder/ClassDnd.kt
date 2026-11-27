@@ -7,6 +7,7 @@ import android.content.Intent
 import android.media.AudioManager
 import android.widget.Toast
 import androidx.core.content.edit
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.local.SettingsStore
 
 /** 上课自动勿扰 */
@@ -101,7 +102,7 @@ internal object ClassDnd {
                 if (manager != null && manager.currentInterruptionFilter == filterApplied) {
                     manager.setInterruptionFilter(filterOriginal)
                 }
-            }
+            }.onFailure { AppLog.w("ClassDnd", "恢复勿扰过滤失败", it) }
         }
         val ringerApplied = store.getInt(KEY_APPLIED_RINGER, -1)
         val ringerOriginal = store.getInt(KEY_RINGER, -1)
@@ -109,7 +110,7 @@ internal object ClassDnd {
             val audio = context.getSystemService(AudioManager::class.java)
             runCatching {
                 if (audio != null && audio.ringerMode == ringerApplied) audio.ringerMode = ringerOriginal
-            }
+            }.onFailure { AppLog.w("ClassDnd", "恢复铃音模式失败", it) }
         }
         clear(context)
     }
@@ -139,7 +140,8 @@ internal object ClassDnd {
                     manager.setInterruptionFilter(target)
                 }
             }
-        }.isSuccess
+        }.onFailure { AppLog.w("ClassDnd", "写入勿扰设置失败（silent=$silent，target=$target）", it) }
+            .isSuccess
 }
 
 class ClassDndReceiver : BroadcastReceiver() {

@@ -76,12 +76,6 @@ import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration.Companion.milliseconds
 
-private const val PERMISSION_DENIED_HINT = "设备未授权"
-private const val WEAR_APP_MISSING_HINT = "未安装快应用"
-
-// 快应用获取链接
-private const val WEAR_APP_URL = "https://astrobox.online/open?source=resv2&id=top.jursin.hyperschedule&provider=OfficialV2"
-
 /** 读取课表并按放假调休调整后组装推送内容 */
 private suspend fun loadWearSchedule(
     tableId: String,
@@ -190,7 +184,7 @@ fun WearPushPage(
                 .onSuccess { requestDeviceInfo(nodeId) }
                 .onFailure { toast(describeWearError(it)) }
         } else {
-            toast(WEAR_APP_MISSING_HINT, duration)
+            toast("未安装快应用", duration)
         }
     }
 
@@ -226,7 +220,7 @@ fun WearPushPage(
                         val permission = runCatching { wear.ensurePermission(node.id) }
                         when (permission.getOrNull()) {
                             true -> launchAppIfInstalled(node.id, Toast.LENGTH_SHORT)
-                            false -> toast(PERMISSION_DENIED_HINT)
+                            false -> toast("设备未授权")
                             null -> toast(describeWearError(permission.exceptionOrNull()!!))
                         }
                     }
@@ -254,7 +248,7 @@ fun WearPushPage(
                 }
             if (!granted) {
                 pushing = false
-                return@launch toast(PERMISSION_DENIED_HINT)
+                return@launch toast("设备未授权")
             }
             // 课表内容不满足推送条件时抛的是本地异常
             val schedule =
@@ -343,7 +337,7 @@ fun WearPushPage(
                 cornerRadius = CardCornerRadius,
                 colors = colors,
                 pressFeedbackType = PressFeedbackType.Sink,
-                onClick = { uriHandler.openUri(WEAR_APP_URL) },
+                onClick = { uriHandler.openUri("https://astrobox.online/open?source=resv2&id=top.jursin.hyperschedule&provider=OfficialV2") },
             ) {
                 Text(
                     text = "通过 AstroBox 获取快应用",
@@ -431,10 +425,11 @@ private fun ConnectionStatusCard(
                 Spacer(Modifier.height(2.dp))
                 Text(
                     modifier = Modifier.fillMaxWidth(),
-                    text = if (isConnected && deviceInfo != null && deviceInfo.versionName.isNotEmpty()) {
-                        "快应用版本：v${deviceInfo.versionName}(${deviceInfo.versionCode})"
-                    } else {
-                        "未安装快应用"
+                    text = when {
+                        !isConnected -> " "
+                        deviceInfo != null && deviceInfo.versionName.isNotEmpty() ->
+                            "快应用版本：v${deviceInfo.versionName}(${deviceInfo.versionCode})"
+                        else -> "未安装快应用"
                     },
                     fontSize = 12.sp,
                     color = textColor.copy(alpha = 0.6f),

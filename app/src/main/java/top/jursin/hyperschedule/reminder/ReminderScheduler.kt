@@ -4,9 +4,9 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.core.content.edit
 import top.jursin.hyperschedule.AppMessages
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.local.ReminderSettings
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -253,7 +253,7 @@ internal object ReminderScheduler {
                     alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, at.toEpochMillis(), pending)
                 }
             }.onFailure { error ->
-                Log.w("CourseReminder", "注册提醒闹钟失败 requestCode=$requestCode", error)
+                AppLog.w("CourseReminder", "注册提醒闹钟失败 requestCode=$requestCode", error)
                 AppMessages.post("精确闹钟注册失败")
             }.isSuccess
         return requestCode.takeIf { scheduled }

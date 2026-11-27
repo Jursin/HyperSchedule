@@ -3,7 +3,7 @@ package top.jursin.hyperschedule.reminder
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.schedule.parseDateOrNull
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
@@ -99,7 +99,7 @@ private fun BroadcastReceiver.receiveAsync(block: suspend () -> Unit) {
         try {
             block()
         } catch (error: Throwable) {
-            Log.w(TAG, "处理课程提醒失败", error)
+            AppLog.e(TAG, "处理课程提醒失败", error)
         } finally {
             pending.finish()
         }

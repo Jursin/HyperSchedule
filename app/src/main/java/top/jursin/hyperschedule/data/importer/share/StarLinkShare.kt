@@ -1,5 +1,6 @@
 package top.jursin.hyperschedule.data.importer.share
 
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.importer.CourseJson
 import top.jursin.hyperschedule.data.importer.CourseTableConfigJson
 import top.jursin.hyperschedule.data.importer.CourseTableJson
@@ -17,6 +18,7 @@ internal object StarLinkShare {
                 ShareHttp.get(BASE_URL + code)
             } catch (error: ShareHttpException) {
                 // 对方用 404 表示口令不存在
+                AppLog.w("ShareImport", "星链分享码请求失败 code=${error.code} body=${error.body.take(200)}")
                 if (error.code == 404) throw IllegalStateException("分享码无效或已过期")
                 throw error
             }

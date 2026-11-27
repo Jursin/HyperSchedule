@@ -1,6 +1,8 @@
 package top.jursin.hyperschedule
 
 import android.app.Application
+import top.jursin.hyperschedule.data.local.AppLog
+import top.jursin.hyperschedule.data.local.SettingsStore
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.receiveAsFlow
@@ -11,6 +13,7 @@ class HyperScheduleApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        AppLog.init(this, SettingsStore.get(this))
         graph = AppGraph(this)
     }
 }

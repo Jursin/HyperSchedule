@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.core.net.toUri
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.readCapped
 import java.io.IOException
 
@@ -97,14 +98,33 @@ object BackupDirs {
         return if (relative.isBlank()) INTERNAL_VOLUME_LABEL else "$INTERNAL_VOLUME_LABEL/$relative"
     }
 
+    @Volatile private var lastInvalidReason: String? = null
+
+    private fun warnOnce(reason: String, error: Throwable? = null) {
+        if (lastInvalidReason == reason) return
+        lastInvalidReason = reason
+        if (error == null) AppLog.w("Backup", reason) else AppLog.w("Backup", reason, error)
+    }
+
     /** 按存下来的位置字符串还原目录，返回 null 表示没有配置或位置已无法解析 */
     fun from(context: Context, location: String?, label: String): BackupDir? {
-        if (location.isNullOrBlank()) return null
-        val uri = runCatching { location.toUri() }.getOrNull() ?: return null
-        if (uri.scheme != ContentResolver.SCHEME_CONTENT) return null
+        if (location.isNullOrBlank()) {
+            lastInvalidReason = null
+            return null
+        }
+        val uri =
+            runCatching { location.toUri() }
+                .onFailure { warnOnce("备份目录位置无法解析", it) }
+                .getOrNull() ?: return null
+        if (uri.scheme != ContentResolver.SCHEME_CONTENT) {
+            warnOnce("备份目录位置协议不受支持：${uri.scheme}")
+            return null
+        }
         // 展示名每次现算，存下来的旧值可能已不合适
         val shown = labelOf(context, uri) ?: label.ifBlank { "已选择的文件夹" }
-        return runCatching { SafBackupDir(context, uri, shown) }.getOrNull()
+        return runCatching { SafBackupDir(context, uri, shown) }
+            .onFailure { warnOnce("备份目录已失效，自动备份跳过", it) }
+            .getOrNull().also { if (it != null) lastInvalidReason = null }
     }
 }
 

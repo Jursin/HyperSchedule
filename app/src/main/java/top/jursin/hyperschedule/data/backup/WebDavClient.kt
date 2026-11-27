@@ -2,6 +2,7 @@ package top.jursin.hyperschedule.data.backup
 
 import android.util.Base64
 import android.util.Xml
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.remote.AppHttpNoRedirect
 import top.jursin.hyperschedule.data.remote.AppUserAgent
 import top.jursin.hyperschedule.data.remote.readCapped
@@ -219,7 +220,7 @@ internal fun parseBackupList(xml: String): List<BackupFile> {
             }
             parser.next()
         }
-    }
+    }.onFailure { AppLog.w("Backup", "WebDav 备份列表解析失败：${xml.take(200)}", it) }
     return files.sortedByDescending { it.time }
 }
 

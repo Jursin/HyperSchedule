@@ -20,6 +20,7 @@ import top.jursin.hyperschedule.ui.page.settings.AboutPage
 import top.jursin.hyperschedule.ui.page.settings.BackupPage
 import top.jursin.hyperschedule.ui.page.settings.HolidayPage
 import top.jursin.hyperschedule.ui.page.settings.LicensePage
+import top.jursin.hyperschedule.ui.page.settings.LogPage
 import top.jursin.hyperschedule.ui.page.settings.SettingsPage
 import top.jursin.hyperschedule.ui.page.settings.SponsorPage
 import top.jursin.hyperschedule.ui.page.settings.ThemePage
@@ -149,6 +150,7 @@ internal fun SecondaryPage(
                 onOpenHoliday = { navigate(Page.Holiday) },
                 onOpenReminder = { navigate(Page.Reminder) },
                 onOpenWearPush = { navigate(Page.WearPush) },
+                onOpenLog = { navigate(Page.Log) },
                 onBack = onBack,
             )
         is Page.Appearance -> ThemePage(store, onBack)
@@ -276,6 +278,7 @@ internal fun SecondaryPage(
                 onImported = backToScheduleTransfer,
                 onSwitchTable = ::switchTable,
             )
+        is Page.Log -> LogPage(store, appBlur = settings.blur, onBack = onBack)
         is Page.Backup -> BackupPage(store, graph.backup, appBlur = settings.blur, onBack = onBack)
         is Page.Holiday -> HolidayPage(repository = graph.holiday, appBlur = settings.blur, onBack = onBack)
         is Page.Reminder -> CourseReminderPage(store = store, appBlur = settings.blur, onBack = onBack)

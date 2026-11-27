@@ -4,6 +4,7 @@ import android.content.Context
 import top.jursin.hyperschedule.data.importer.ComboScheduleJson
 import top.jursin.hyperschedule.data.importer.CourseJson
 import top.jursin.hyperschedule.data.importer.CourseTableConfigJson
+import top.jursin.hyperschedule.data.local.AppLog
 import top.jursin.hyperschedule.data.importer.TimeSlotJson
 import top.jursin.hyperschedule.data.remote.httpGetGiteeRaw
 import java.io.File
@@ -29,7 +30,12 @@ class EduScriptRepository(
             if (!isSafeRelative(resourceFolder) || !isSafeRelative(scriptPath)) return@withContext null
             val target = File(scriptsDir, "$resourceFolder/$scriptPath")
             val url = repoStore.scriptUrl(resourceFolder, scriptPath)
-            val remote = url?.let { runCatching { httpGetGiteeRaw(it) }.getOrNull() }
+            val remote =
+                url?.let {
+                    runCatching { httpGetGiteeRaw(it) }
+                        .onFailure { error -> AppLog.w("Edu", "远端脚本拉取失败，回落到本地：$scriptPath ${error.message.orEmpty()}") }
+                        .getOrNull()
+                }
             when {
                 remote != null -> {
                     target.parentFile?.mkdirs()
@@ -37,7 +43,12 @@ class EduScriptRepository(
                     remote.decodeToString()
                 }
                 target.exists() -> target.readText()
-                else -> assetScript("$EduScriptAssets/$resourceFolder/$scriptPath")
+                else ->
+                    assetScript("$EduScriptAssets/$resourceFolder/$scriptPath")
+                        ?: run {
+                            AppLog.w("Edu", "脚本三级来源均不可用：$resourceFolder/$scriptPath")
+                            null
+                        }
             }
         }
 
